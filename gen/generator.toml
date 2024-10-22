@@ -1,0 +1,33 @@
+[general]
+library_name = "libaeron"
+output_file_path = "../src/LibAeron.jl"
+module_name = "LibAeron"
+jll_pkg_name = "Aeron_jll"
+prologue_file_path = "./prologue.jl"
+export_symbol_prefixes = ["aeron_", "AERON_"]
+use_julia_native_enum_type = false
+auto_mutability = false
+extract_c_comment_style = "doxygen"
+show_c_function_prototype = true
+use_deterministic_symbol = true
+smart_de_anonymize = true
+
+printer_blacklist = [
+    "AERON_COUNTER_VALUE_LENGTH",
+    "AERON_COUNTER_METADATA_LENGTH",
+    "AERON_COUNTER_MAX_LABEL_LENGTH",
+    "AERON_COUNTER_MAX_KEY_LENGTH",
+    "AERON_COUNTER_REGISTRATION_ID_OFFSET",
+    "AERON_COUNTER_TYPE_ID_OFFSET",
+    "AERON_COUNTER_FREE_FOR_REUSE_DEADLINE_OFFSET",
+    "AERON_COUNTER_KEY_OFFSET",
+    "AERON_COUNTER_LABEL_LENGTH_OFFSET",
+]
+
+[codegen]
+use_julia_bool = true
+use_ccall_macro = true
+always_NUL_terminated_string = true
+
+[codegen.macro]
+macro_mode = "basic"

@@ -1,0 +1,11 @@
+name = "Aeron"
+uuid = "b850ffb1-6704-484e-996b-4710e2f097f0"
+authors = ["Darryl Gamroth <dgamroth@rubus.ca>"]
+version = "0.1.0"
+
+[deps]
+Aeron_jll = "d964258c-d1ad-568a-aca9-3ef511f5bffd"
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
+
+[compat]
+Clang = "0.18.3"
