@@ -1,51 +1,35 @@
 mutable struct Subscription
     subscription::Ptr{aeron_subscription_t}
     const constants::aeron_subscription_constants_t
-    function Subscription(subscription::Ptr{aeron_subscription_t})
+    const allocated::Bool
+    function Subscription(subscription::Ptr{aeron_subscription_t}, allocated::Bool=false)
         constants = Ref{aeron_subscription_constants_t}()
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
-        finalizer(close, new(subscription, constants[]))
-        # new(subscription, constants[])
+        finalizer(close, new(subscription, constants[], allocated))
     end
 end
 
-# typedef void ( * aeron_fragment_handler_t ) ( void * clientd , const uint8_t * buffer , size_t length , aeron_header_t * header )
-"""
-Callback for handling fragments of data being read from a log.
-
-The frame will either contain a whole message or a fragment of a message to be reassembled. Messages are fragmented if greater than the frame for MTU in length.
-
-# Arguments
-* `clientd`: passed to the poll function.
-* `buffer`: containing the data.
-* `length`: of the data in bytes.
-* `header`: representing the meta data for the data.
-"""
-# const fragment_handler = @cfunction(aeron_fragment_handler, Cvoid, (Ptr{Cvoid}, Ptr{UInt8}, Int32, Ptr{aeron_header_t}))
-
-function available_image_handler_wrapper(clientd::Ptr{Cvoid}, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    client = unsafe_pointer_to_objref(clientd)::Client
-    client.available_image_handler(client, Image(image))
+function available_image_handler_wrapper(clientd::Context, ::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    clientd.available_image_handler(clientd, Image(image))
 end
 
-function unavailable_image_handler_wrapper(clientd::Ptr{Cvoid}, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    client = unsafe_pointer_to_objref(clientd)::Client
-    client.unavailable_image_handler(client, Image(image))
+function unavailable_image_handler_wrapper(clientd::Context, ::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    clientd.unavailable_image_handler(clientd, Image(image))
 end
 
 function add_subscription(c::Client, uri::AbstractString, stream_id)
     async = Ref{Ptr{aeron_async_add_subscription_t}}(C_NULL)
     subscription = Ref{Ptr{aeron_subscription_t}}(C_NULL)
 
-    available_image_func = @cfunction(available_image_handler_wrapper, Cvoid, (Ptr{Cvoid}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
-    unavailable_image_func = @cfunction(unavailable_image_handler_wrapper, Cvoid, (Ptr{Cvoid}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+    available_image_func = @cfunction(available_image_handler_wrapper, Cvoid, (Ref{Context}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+    unavailable_image_func = @cfunction(unavailable_image_handler_wrapper, Cvoid, (Ref{Context}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
 
     try
         if aeron_async_add_subscription(async, c.client, uri, stream_id,
-            available_image_func, pointer_from_objref(c),
-            unavailable_image_func, pointer_from_objref(c)) < 0
+            available_image_func, Ref(context(c)),
+            unavailable_image_func, Ref(context(c))) < 0
             throwerror()
         end
 
@@ -55,7 +39,7 @@ function add_subscription(c::Client, uri::AbstractString, stream_id)
             end
             yield()
         end
-        return Subscription(subscription[])
+        return Subscription(subscription[], true)
     catch e
         if subscription[] != C_NULL
             aeron_subscription_close(subscription[], C_NULL, C_NULL)
@@ -65,9 +49,10 @@ function add_subscription(c::Client, uri::AbstractString, stream_id)
 end
 
 function Base.close(s::Subscription)
-    ccall(:jl_safe_printf, Cvoid, (Cstring, Cstring), "Finalizing %s.\n", repr(s))
-    if aeron_subscription_close(s.subscription, C_NULL, C_NULL) < 0
-        throwerror()
+    if s.allocated == true
+        if aeron_subscription_close(s.subscription, C_NULL, C_NULL) < 0
+            throwerror()
+        end
     end
 end
 
@@ -83,11 +68,12 @@ Base.isopen(s::Subscription) = !aeron_subscription_is_closed(s.subscription)
 isconnected(s::Subscription) = aeron_subscription_is_connected(s.subscription)
 
 function poll(s::Subscription, fragment_handler::AbstractFragmentHandler, fragment_limit)
-    num_fragments = aeron_subscription_poll(s.subscription, handler(fragment_handler), pointer_from_objref(fragment_handler), fragment_limit)
-    # num_fragments = @ccall Aeron_jll.libaeron.aeron_subscription_poll(s.subscription::Ptr{aeron_subscription_t}, handler(fragment_handler)::aeron_fragment_handler_t, fragment_handler::FragmentHandler, fragment_limit::Csize_t)::Cint
+    num_fragments = aeron_subscription_poll(s.subscription,
+        on_fragment_cfunction(fragment_handler), on_fragment_clientd(fragment_handler), fragment_limit)
 
     if num_fragments < 0
         throwerror()
     end
+
     return num_fragments
 end

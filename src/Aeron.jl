@@ -1,5 +1,6 @@
 module Aeron
 
+using AllocCheck
 using UnsafeArrays
 
 include("LibAeron.jl")
@@ -11,6 +12,7 @@ include("context.jl")
 include("image.jl")
 include("client.jl")
 include("header.jl")
+include("fragmenthandler.jl")
 include("fragmentassembler.jl")
 
 include("bufferclaim.jl")
