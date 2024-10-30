@@ -4,7 +4,7 @@ mutable struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragment
     fragment_handler::T
 
     function FragmentAssembler(fragment_handler::T) where {T<:AbstractFragmentHandler}
-        assembler = Ref{Ptr{Aeron.aeron_fragment_assembler_t}}()
+        assembler = Ref{Ptr{aeron_fragment_assembler_t}}(C_NULL)
 
         if aeron_fragment_assembler_create(assembler,
             on_fragment_cfunction(fragment_handler),
