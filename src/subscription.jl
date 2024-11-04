@@ -7,16 +7,29 @@ mutable struct Subscription
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
-        finalizer(close, new(subscription, constants[], allocated))
+
+        finalizer(new(subscription, constants[], allocated)) do s
+            if s.allocated == true
+                aeron_subscription_close(s.subscription, C_NULL, C_NULL)
+            end
+        end
     end
 end
 
-function available_image_handler_wrapper(clientd::Context, ::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    clientd.available_image_handler(clientd, Image(image))
+function available_image_handler_wrapper((callback, clientd), subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback(clientd, Subscription(subscription), Image(image))
 end
 
-function unavailable_image_handler_wrapper(clientd::Context, ::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    clientd.unavailable_image_handler(clientd, Image(image))
+function available_image_handler_cfunction(::T) where {T}
+    @cfunction(available_image_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+end
+
+function unavailable_image_handler_wrapper((callback, clientd), subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback(clientd, Subscription(subscription), Image(image))
+end
+
+function unavailable_image_handler_cfunction(::T) where {T}
+    @cfunction(unavailable_image_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
 end
 
 struct AsyncAddSubscription
@@ -25,13 +38,12 @@ end
 
 function async_add_subscription(c::Client, uri::AbstractString, stream_id)
     async = Ref{Ptr{aeron_async_add_subscription_t}}(C_NULL)
-
-    available_image_func = @cfunction(available_image_handler_wrapper, Cvoid, (Ref{Context}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
-    unavailable_image_func = @cfunction(unavailable_image_handler_wrapper, Cvoid, (Ref{Context}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+    on_available_image = context(c).on_available_image
+    on_unavailable_image = context(c).on_unavailable_image
 
     if aeron_async_add_subscription(async, c.client, uri, stream_id,
-        available_image_func, Ref(context(c)),
-        unavailable_image_func, Ref(context(c))) < 0
+        available_image_handler_cfunction(on_available_image), Ref(on_available_image),
+        unavailable_image_handler_cfunction(on_unavailable_image), Ref(on_unavailable_image)) < 0
         throwerror()
     end
     return AsyncAddSubscription(async[])
@@ -67,6 +79,14 @@ function async_add_destination(c::Client, s::Subscription, uri::AbstractString)
     return AsyncDestination(async[])
 end
 
+function add_destination(c::Client, s::Subscription, uri::AbstractString)
+    async = async_add_destination(c, s, uri)
+    while true
+        poll(s, async) && return
+        yield()
+    end
+end
+
 function async_remove_destination(c::Client, s::Subscription, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
     if aeron_subscription_async_remove_destination(async, c.client, s.subscription, uri) < 0
@@ -75,9 +95,16 @@ function async_remove_destination(c::Client, s::Subscription, uri::AbstractStrin
     return AsyncDestination(async[])
 end
 
+function remove_destination(c::Client, s::Subscription, uri::AbstractString)
+    async = async_remove_destination(c, s, uri)
+    while true
+        poll(s, async) && return
+        yield()
+    end
+end
+
 function poll(::Subscription, a::AsyncDestination)
-    destination = Ref{Ptr{aeron_destination_t}}(C_NULL)
-    retval = aeron_subscription_async_destination_poll(destination, a.async) < 0
+    retval = aeron_subscription_async_destination_poll(a.async)
     if retval < 0
         throwerror()
     end
@@ -106,7 +133,7 @@ is_connected(s::Subscription) = aeron_subscription_is_connected(s.subscription)
 
 function poll(s::Subscription, fragment_handler::AbstractFragmentHandler, fragment_limit)
     num_fragments = aeron_subscription_poll(s.subscription,
-        on_fragment_cfunction(fragment_handler), on_fragment_clientd(fragment_handler), fragment_limit)
+        on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
 
     if num_fragments < 0
         throwerror()
@@ -117,7 +144,7 @@ end
 
 function poll(s::Subscription, fragment_handler::AbstractControlledFragmentHandler, fragment_limit)
     num_fragments = aeron_subscription_controlled_poll(s.subscription,
-        on_fragment_cfunction(fragment_handler), on_fragment_clientd(fragment_handler), fragment_limit)
+        on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
 
     if num_fragments < 0
         throwerror()
@@ -128,7 +155,7 @@ end
 
 function poll(s::Subscription, block_handler::AbstractBlockHandler, block_length_limit)
     bytes = aeron_subscription_block_poll(s.subscription,
-        on_fragment_cfunction(block_handler), on_fragment_clientd(block_handler), block_length_limit)
+        on_block_cfunction(block_handler), Ref(block_handler), block_length_limit)
 
     if bytes < 0
         throwerror()

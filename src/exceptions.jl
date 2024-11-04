@@ -1,3 +1,10 @@
+"""
+    abstract type AeronException <: Exception
+
+An abstract type for Aeron exceptions.
+
+This serves as a base type for different Aeron-specific exceptions.
+"""
 abstract type AeronException <: Exception end
 
 macro define_exception(name)
@@ -17,6 +24,20 @@ end
 @define_exception TimedOutException
 @define_exception GeneralAeronException
 
+"""
+    map_to_exception_and_throw(code::Int32, message::AbstractString) -> Nothing
+
+Maps an error code to an appropriate exception type and throws it with the given message.
+
+# Arguments
+
+- `code::Int32`: The error code.
+- `message::AbstractString`: The error message.
+
+# Returns
+
+- `Nothing`: This function does not return a value.
+"""
 function map_to_exception_and_throw(code, message)
     if code == Libc.EINVAL
         throw(ArgumentError(message))
@@ -40,6 +61,15 @@ function map_to_exception_and_throw(code, message)
     return
 end
 
+"""
+    throwerror() -> Nothing
+
+Throws an appropriate exception based on the current Aeron error code and message.
+
+# Returns
+
+- `Nothing`: This function does not return a value.
+"""
 function throwerror()
     map_to_exception_and_throw(aeron_errcode(), unsafe_string(aeron_errmsg()))
 end

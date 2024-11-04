@@ -1,25 +1,35 @@
-mutable struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragmentHandler
-    assembler::Ptr{aeron_fragment_assembler_t}
-    # Hold a reference to the FragmentHandler to prevent it from being garbage collected
-    fragment_handler::T
+"""
+    struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragmentHandler
 
-    function FragmentAssembler(fragment_handler::T) where {T<:AbstractFragmentHandler}
-        assembler = Ref{Ptr{aeron_fragment_assembler_t}}(C_NULL)
+Represents a fragment assembler that reassembles fragmented messages and passes them to a fragment handler.
 
-        if aeron_fragment_assembler_create(assembler,
-            on_fragment_cfunction(fragment_handler),
-            on_fragment_clientd(fragment_handler)) < 0
-            throwerror()
-        end
+# Constructor
 
-        finalizer(new{T}(assembler[], fragment_handler)) do f
-            aeron_fragment_assembler_delete(f.assembler)
-        end
-    end
+- `FragmentAssembler(on_fragment::T)`: Creates a new `FragmentAssembler` with the given fragment handler.
+"""
+mutable struct FragmentAssembler{T<:Function,C,F<:AbstractFragmentHandler} <: AbstractFragmentHandler
+    on_fragment::T
+    clientd::C
+    fragment_handler::F
 end
 
-on_fragment_clientd(f::FragmentAssembler) = f.assembler
+on_fragment(f::FragmentAssembler) = f.on_fragment
+clientd(f::FragmentAssembler) = f.clientd
 
-function on_fragment_cfunction(::FragmentAssembler)
-    @cfunction(aeron_fragment_assembler_handler, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Ptr{Cvoid}))
+function FragmentAssembler(fragment_handler::AbstractFragmentHandler)
+    assembler = Ref{Ptr{aeron_fragment_assembler_t}}(C_NULL)
+
+    if aeron_fragment_assembler_create(assembler,
+        on_fragment_cfunction(fragment_handler),
+        Ref(fragment_handler)) < 0
+        throwerror()
+    end
+
+    fa = FragmentAssembler(assembler[], fragment_handler) do clientd, buffer, header
+        aeron_fragment_assembler_handler(clientd, buffer, length(buffer), header_ptr(header))
+    end
+
+    finalizer(fa) do fa
+        aeron_fragment_assembler_delete(fa.clientd)
+    end
 end

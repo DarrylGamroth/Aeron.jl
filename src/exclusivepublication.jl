@@ -1,5 +1,3 @@
-const IOVECS_NUM = 4
-
 mutable struct ExclusivePublication
     publication::Ptr{aeron_exclusive_publication_t}
     const constants::aeron_publication_constants_t
@@ -10,8 +8,13 @@ mutable struct ExclusivePublication
         if aeron_exclusive_publication_constants(publication, constants) < 0
             throwerror()
         end
-        finalizer(close, new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), allocated))
+
+        finalizer(new(publication, constants[],
+            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), allocated)) do p
+            if p.allocated == true
+                aeron_exclusive_publication_close(p.publication, C_NULL, C_NULL)
+            end
+        end
     end
 end
 
@@ -57,12 +60,28 @@ function async_add_destination(c::Client, p::ExclusivePublication, uri::Abstract
     return AsyncDestination(async[])
 end
 
+function add_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
+    async = async_add_destination(c, p, uri)
+    while true
+        poll(p, async) && return
+        yield()
+    end
+end
+
 function async_remove_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
     if aeron_exclusive_publication_async_remove_destination(async, c.client, p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
+end
+
+function remove_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
+    async = async_remove_destination(c, p, uri)
+    while true
+        poll(p, async) && return
+        yield()
+    end
 end
 
 function async_remove_destination_by_id(c::Client, p::ExclusivePublication, destination_id)
@@ -73,9 +92,16 @@ function async_remove_destination_by_id(c::Client, p::ExclusivePublication, dest
     return AsyncDestination(async[])
 end
 
+function remove_destination_by_id(c::Client, p::ExclusivePublication, destination_id)
+    async = async_remove_destination_by_id(c, p, destination_id)
+    while true
+        poll(p, async) && return
+        yield()
+    end
+end
+
 function poll(::ExclusivePublication, a::AsyncDestination)
-    destination = Ref{Ptr{aeron_destination_t}}(C_NULL)
-    retval = aeron_exclusive_publication_async_destination_poll(destination, a.async) < 0
+    retval = aeron_exclusive_publication_async_destination_poll(a.async)
     if retval < 0
         throwerror()
     end
@@ -98,7 +124,7 @@ function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8},
     else
         aeron_exclusive_publication_offer(p.publication, buffer, length(buffer),
             reserved_value_supplier_cfunction(reserved_value_supplier),
-            reserved_value_supplier_clientd(reserved_value_supplier))
+            Ref(reserved_value_supplier))
     end
 end
 
@@ -115,7 +141,7 @@ function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector
         else
             aeron_exclusive_publication_offerv(p.publication, p.iovecs, n,
                 reserved_value_supplier_cfunction(reserved_value_supplier),
-                reserved_value_supplier_clientd(reserved_value_supplier))
+                Ref(reserved_value_supplier))
         end
     end
 end

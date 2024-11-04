@@ -13,6 +13,10 @@ use_deterministic_symbol = true
 smart_de_anonymize = true
 
 printer_blacklist = [
+    "aeron_counter_value_descriptor_stct",
+    "aeron_counter_value_descriptor_t",
+    "aeron_counter_metadata_descriptor_stct",
+    "aeron_counter_metadata_descriptor_t",
     "AERON_COUNTER_VALUE_LENGTH",
     "AERON_COUNTER_METADATA_LENGTH",
     "AERON_COUNTER_MAX_LABEL_LENGTH",

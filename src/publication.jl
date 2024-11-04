@@ -1,12 +1,3 @@
-const PUBLICATION_NOT_CONNECTED = AERON_PUBLICATION_NOT_CONNECTED
-const PUBLICATION_BACK_PRESSURED = AERON_PUBLICATION_BACK_PRESSURED
-const PUBLICATION_ADMIN_ACTION = AERON_PUBLICATION_ADMIN_ACTION
-const PUBLICATION_CLOSED = AERON_PUBLICATION_CLOSED
-const PUBLICATION_MAX_POSITION_EXCEEDED = AERON_PUBLICATION_MAX_POSITION_EXCEEDED
-const PUBLICATION_ERROR = AERON_PUBLICATION_ERROR
-
-const IOVECS_NUM = 4
-
 mutable struct Publication
     publication::Ptr{aeron_publication_t}
     const constants::aeron_publication_constants_t
@@ -17,8 +8,13 @@ mutable struct Publication
         if aeron_publication_constants(publication, constants) < 0
             throwerror()
         end
-        finalizer(close, new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), allocated))
+
+        finalizer(new(publication, constants[],
+            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), allocated)) do p
+            if p.allocated == true
+                aeron_publication_close(p.publication, C_NULL, C_NULL)
+            end
+        end
     end
 end
 
@@ -64,12 +60,28 @@ function async_add_destination(c::Client, p::Publication, uri::AbstractString)
     return AsyncDestination(async[])
 end
 
+function add_destination(c::Client, p::Publication, uri::AbstractString)
+    async = async_add_destination(c, p, uri)
+    while true
+        poll(p, async) && return
+        yield()
+    end
+end
+
 function async_remove_destination(c::Client, p::Publication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
     if aeron_publication_async_remove_destination(async, c.client, p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
+end
+
+function remove_destination(c::Client, p::Publication, uri::AbstractString)
+    async = async_remove_destination(c, p, uri)
+    while true
+        poll(p, async) && return
+        yield()
+    end
 end
 
 function async_remove_destination_by_id(c::Client, p::Publication, destination_id)
@@ -80,9 +92,16 @@ function async_remove_destination_by_id(c::Client, p::Publication, destination_i
     return AsyncDestination(async[])
 end
 
+function remove_destination_by_id(c::Client, p::Publication, destination_id)
+    async = async_remove_destination_by_id(c, p, destination_id)
+    while true
+        poll(p, async) && return
+        yield()
+    end
+end
+
 function poll(::Publication, a::AsyncDestination)
-    destination = Ref{Ptr{aeron_destination_t}}(C_NULL)
-    retval = aeron_publication_async_destination_poll(destination, a.async) < 0
+    retval = aeron_publication_async_destination_poll(a.async)
     if retval < 0
         throwerror()
     end
@@ -105,7 +124,7 @@ function offer(p::Publication, buffer::AbstractVector{UInt8},
     else
         aeron_publication_offer(p.publication, buffer, length(buffer),
             reserved_value_supplier_cfunction(reserved_value_supplier),
-            reserved_value_supplier_clientd(reserved_value_supplier))
+            Ref(reserved_value_supplier))
     end
 end
 
@@ -122,7 +141,7 @@ function offer(p::Publication, buffers::AbstractVector{<:AbstractVector{UInt8}},
         else
             aeron_publication_offerv(p.publication, p.iovecs, n,
                 reserved_value_supplier_cfunction(reserved_value_supplier),
-                reserved_value_supplier_clientd(reserved_value_supplier))
+                Ref(reserved_value_supplier))
         end
     end
 end
@@ -142,9 +161,9 @@ original_registration_id(p::Publication) = p.constants.original_registration_id
 registration_id(p::Publication) = p.constants.registration_id
 max_possible_position(p::Publication) = p.constants.max_possible_position
 position_bits_to_shift(p::Publication) = p.constants.position_bits_to_shift
-term_buffer_length(p::Publication) = p.constants.term_buffer_length
-max_message_length(p::Publication) = p.constants.max_message_length
-max_payload_length(p::Publication) = p.constants.max_payload_length
+term_buffer_length(p::Publication) = Int(p.constants.term_buffer_length)
+max_message_length(p::Publication) = Int(p.constants.max_message_length)
+max_payload_length(p::Publication) = Int(p.constants.max_payload_length)
 stream_id(p::Publication) = p.constants.stream_id
 session_id(p::Publication) = p.constants.session_id
 initial_term_id(p::Publication) = p.constants.initial_term_id

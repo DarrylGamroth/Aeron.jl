@@ -1,3 +1,18 @@
+"""
+    struct Counter
+
+Represents an Aeron counter, which is used for tracking various metrics.
+
+# Fields
+
+- `counter::Ptr{aeron_counter_t}`: Pointer to the underlying Aeron counter structure.
+- `constants::aeron_counter_constants_t`: Constants associated with the counter.
+- `allocated::Bool`: Indicates whether the counter was allocated.
+
+# Constructor
+
+- `Counter(counter::Ptr{aeron_counter_t}, allocated::Bool=false)`: Creates a new `Counter` instance with the given Aeron counter pointer and allocation status.
+"""
 mutable struct Counter
     counter::Ptr{aeron_counter_t}
     constants::aeron_counter_constants_t
@@ -7,15 +22,45 @@ mutable struct Counter
         if aeron_counter_constants(counter, constants) < 0
             throwerror()
         end
-        finalizer(close, new(counter, constants[], allocated))
+        
+        finalizer(new(counter, constants[], allocated)) do c
+            if c.allocated == true
+                aeron_counter_close(c.counter, C_NULL, C_NULL)
+            end
+        end
     end
 end
 
+"""
+    struct AsyncAddCounter
+
+Represents an asynchronous add counter operation.
+
+# Fields
+
+- `async::Ptr{aeron_async_add_counter_t}`: Pointer to the underlying Aeron asynchronous add counter structure.
+"""
 struct AsyncAddCounter
     async::Ptr{aeron_async_add_counter_t}
 end
 
-function async_add_counter(c::Client, type_id, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString)
+"""
+    async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString) -> AsyncAddCounter
+
+Initiates an asynchronous add counter operation.
+
+# Arguments
+
+- `c::Client`: The Aeron client.
+- `type_id::Int32`: The type ID of the counter.
+- `key_buffer::Union{Nothing,AbstractVector{UInt8}}`: The key buffer for the counter.
+- `label::AbstractString`: The label for the counter.
+
+# Returns
+
+- `AsyncAddCounter`: The asynchronous add counter operation.
+"""
+function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString)
     async = Ref{Ptr{aeron_async_add_counter_t}}(C_NULL)
 
     if key_buffer === nothing
@@ -32,6 +77,19 @@ function async_add_counter(c::Client, type_id, key_buffer::Union{Nothing,Abstrac
     return AsyncAddCounter(async[])
 end
 
+"""
+    poll(a::AsyncAddCounter) -> Union{Nothing, Counter}
+
+Polls the completion of the asynchronous add counter operation.
+
+# Arguments
+
+- `a::AsyncAddCounter`: The asynchronous add counter operation.
+
+# Returns
+
+- `Union{Nothing, Counter}`: The counter if the operation is complete, otherwise `nothing`.
+"""
 function poll(a::AsyncAddCounter)
     counter = Ref{Ptr{aeron_counter_t}}(C_NULL)
     if aeron_async_add_counter_poll(counter, a.async) < 0
@@ -43,7 +101,23 @@ function poll(a::AsyncAddCounter)
     return Counter(counter[], true)
 end
 
-function add_counter(c::Client, type_id, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString)
+"""
+    add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString) -> Counter
+
+Adds a counter synchronously.
+
+# Arguments
+
+- `c::Client`: The Aeron client.
+- `type_id::Int32`: The type ID of the counter.
+- `key_buffer::Union{Nothing,AbstractVector{UInt8}}`: The key buffer for the counter.
+- `label::AbstractString`: The label for the counter.
+
+# Returns
+
+- `Counter`: The added counter.
+"""
+function add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString)
     async = async_add_counter(c, type_id, key_buffer, label)
     while true
         counter = poll(async)
@@ -54,6 +128,15 @@ function add_counter(c::Client, type_id, key_buffer::Union{Nothing,AbstractVecto
     end
 end
 
+"""
+    Base.close(c::Counter)
+
+Closes the `Counter` `c`, releasing any allocated resources.
+
+# Arguments
+
+- `c::Counter`: The counter to close.
+"""
 function Base.close(c::Counter)
     if c.allocated == true
         if aeron_counter_close(c.counter, C_NULL, C_NULL) < 0
@@ -63,10 +146,44 @@ function Base.close(c::Counter)
     c.counter = C_NULL
 end
 
+"""
+    registration_id(c::Counter) -> Int64
+
+Returns the registration ID of the `Counter` `c`.
+
+The registration ID is a unique identifier for the counter.
+"""
 registration_id(c::Counter) = c.constants.registration_id
+
+"""
+    counter_id(c::Counter) -> Int32
+
+Returns the counter ID of the `Counter` `c`.
+
+The counter ID is a unique identifier for the counter within the Aeron client.
+"""
 counter_id(c::Counter) = c.constants.counter_id
+
+"""
+    Base.isopen(c::Counter) -> Bool
+
+Returns `true` if the `Counter` `c` is open, `false` otherwise.
+
+A counter is considered open if it has not been closed.
+"""
 Base.isopen(c::Counter) = !aeron_counter_is_closed(c.counter)
 
+"""
+    Base.show(io::IO, mime::MIME"text/plain", c::Counter)
+
+Displays the `Counter` `c` in a human-readable format.
+
+# Arguments
+
+- `io::IO`: The IO stream to write to.
+- `mime::MIME"text/plain"`: The MIME type for plain text.
+- `c::Counter`: The counter to display.
+"""
 function Base.show(io::IO, mime::MIME"text/plain", c::Counter)
     println(io, "Counter")
     println(io, "  registration id: ", registration_id(c))
