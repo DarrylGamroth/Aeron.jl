@@ -2,10 +2,143 @@ module Aeron
 
 include("LibAeron.jl")
 using .LibAeron
-
 using EnumX
 using StringViews
 using UnsafeArrays
+
+export AbstractBlockHandler,
+    AbstractControlledFragmentHandler,
+    AbstractFragmentHandler,
+    AbstractReservedValueSupplier,
+    AeronException,
+    AsyncAddCounter,
+    AsyncAddPublication,
+    AsyncAddSubscription,
+    AsyncDestination,
+    BlockHandler,
+    BufferClaim,
+    Client,
+    ClientTimeoutException,
+    ConductorServiceTimeoutException,
+    Context,
+    ControlledAction,
+    ControlledFragmentAssembler,
+    ControlledFragmentHandler,
+    Counter,
+    CounterState,
+    CountersReader,
+    DriverTimeoutException,
+    FragmentAssembler,
+    FragmentHandler,
+    GeneralAeronException,
+    Header,
+    IOException,
+    IllegalStateException,
+    Image,
+    PUBLICATION_ADMIN_ACTION,
+    PUBLICATION_BACK_PRESSURED,
+    PUBLICATION_CLOSED,
+    PUBLICATION_ERROR,
+    PUBLICATION_MAX_POSITION_EXCEEDED,
+    PUBLICATION_NOT_CONNECTED,
+    Publication,
+    ReservedValueSupplier,
+    Subscription,
+    TimedOutException,
+    abort,
+    add_counter,
+    add_destination,
+    add_publication,
+    add_subscription,
+    aeron_dir,
+    aeron_dir!,
+    async_add_counter,
+    async_add_destination,
+    async_add_publication,
+    async_add_subscription,
+    async_remove_destination,
+    async_remove_destination_by_id,
+    buffer,
+    channel,
+    channel_status,
+    channel_status_indicator_id,
+    client_id,
+    client_name,
+    client_ptr,
+    clientd,
+    commit,
+    context,
+    context_ptr,
+    correlation_id,
+    counter_foreach,
+    counter_id,
+    counter_key,
+    counter_label,
+    counter_owner_id,
+    counter_reference_id,
+    counter_registration_id,
+    counter_state,
+    counter_type_id,
+    counter_value,
+    default_path,
+    driver_timeout_ms,
+    driver_timeout_ms!,
+    error_handler!,
+    find_by_type_id_and_registration_id,
+    frame_length,
+    free_for_reuse_deadline_ms,
+    idle_sleep_duration_ns,
+    idle_sleep_duration_ns!,
+    image_count,
+    initial_term_id,
+    is_connected,
+    join_position,
+    keepalive_internal_ns,
+    keepalive_internal_ns!,
+    launch_media_driver,
+    max_counter_id,
+    max_message_length,
+    max_payload_length,
+    max_possible_position,
+    mtu_length,
+    next_correlation_id,
+    next_term_offset,
+    offer,
+    on_available_counter!,
+    on_available_image!,
+    on_close_client!,
+    on_fragment,
+    on_new_exclusive_publication!,
+    on_new_publication!,
+    on_new_subscription!,
+    on_unavailable_counter!,
+    on_unavailable_image!,
+    original_registration_id,
+    poll,
+    position,
+    position_bits_to_shift,
+    position_limit,
+    pre_touch_mapped_memory,
+    pre_touch_mapped_memory!,
+    publication_limit_counter_id,
+    registration_id,
+    remove_destination,
+    remove_destination_by_id,
+    resource_linger_duration_ns,
+    resource_linger_duration_ns!,
+    session_id,
+    source_identity,
+    stream_id,
+    subscriber_position_id,
+    term_buffer_length,
+    term_id,
+    term_offset,
+    try_claim,
+    version,
+    version_gitsha,
+    version_major,
+    version_minor,
+    version_patch
 
 const PUBLICATION_NOT_CONNECTED = AERON_PUBLICATION_NOT_CONNECTED
 const PUBLICATION_BACK_PRESSURED = AERON_PUBLICATION_BACK_PRESSURED
@@ -108,6 +241,28 @@ function default_path()
     end
 end
 
+"""
+    launch_media_driver(;env=String[], wait=false) -> Process
+
+Launch an aeron media driver process. A media driver is required for clients to communicate with each other.
+
+See the aeron wiki at: https://github.com/real-logic/aeron/wiki/Configuration-Options for more information on configuring the media driver.
+
+# Arguments
+- `env`: A vector of strings containing environment variables to pass to the media driver.
+- `wait`: If `true`, wait for the media driver to exit before returning. If `false`, return immediately and run the media driver in the background.
+"""
+function launch_media_driver(; env::Vector{String}=String[], wait=false)
+    cmd = addenv(Aeron_jll.aeronmd_s(), env)
+    process = run(`$(cmd)`; wait=wait)
+    if !wait
+        @async begin
+            success(process)
+        end
+    end
+    return process
+end
+
 include("exceptions.jl")
 
 include("context.jl")
@@ -131,9 +286,5 @@ include("reservedvaluesupplier.jl")
 include("publication.jl")
 
 include("subscription.jl")
-
-# for name in names(@__MODULE__; all=true)
-#     println("$name,")
-# end
 
 end # module
