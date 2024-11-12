@@ -56,7 +56,7 @@ function map_to_exception_and_throw(code, message)
     elseif code == 0
         return
     else
-        throw(AeronException(message))
+        error(message)
     end
     return
 end
