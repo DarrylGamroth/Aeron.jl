@@ -12,7 +12,7 @@ show_c_function_prototype = true
 use_deterministic_symbol = true
 smart_de_anonymize = true
 
-printer_blacklist = [
+output_ignorelist = [
     "aeron_counter_value_descriptor_stct",
     "aeron_counter_value_descriptor_t",
     "aeron_counter_metadata_descriptor_stct",
