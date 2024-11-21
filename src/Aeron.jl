@@ -64,11 +64,9 @@ export AbstractBlockHandler,
     channel_status_indicator_id,
     client_id,
     client_name,
-    client_ptr,
     clientd,
     commit,
     context,
-    context_ptr,
     correlation_id,
     counter_foreach,
     counter_id,
@@ -161,11 +159,11 @@ Enumeration of possible actions that can be taken by a controlled fragment handl
 - `COMMIT = 3`: Commit the current fragment processing.
 - `CONTINUE = 4`: Continue processing the next fragment.
 """
-@enumx ControlledAction begin
-    ABORT = 1
-    BREAK = 2
-    COMMIT = 3
-    CONTINUE = 4
+@enumx ControlledAction::UInt32 begin
+    ABORT = Integer(AERON_ACTION_ABORT)
+    BREAK = Integer(AERON_ACTION_BREAK)
+    COMMIT = Integer(AERON_ACTION_COMMIT)
+    CONTINUE = Integer(AERON_ACTION_CONTINUE)
 end
 
 struct AsyncDestination

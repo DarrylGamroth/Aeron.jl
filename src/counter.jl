@@ -70,7 +70,7 @@ function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,
         end
     else
         if aeron_async_add_counter(async, c.client, type_id,
-            key_buffer_ptr, key_buffer_len, label, length(label)) < 0
+            key_buffer, length(key_buffer), label, length(label)) < 0
             throwerror()
         end
     end

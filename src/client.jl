@@ -12,7 +12,7 @@ mutable struct Client
     client::Ptr{aeron_t}
     function Client(context::Context)
         c = Ref{Ptr{aeron_t}}(C_NULL)
-        if aeron_init(c, context_ptr(context)) < 0
+        if aeron_init(c, pointer(context)) < 0
             throwerror()
         end
 
@@ -82,7 +82,7 @@ Get the client ID of the given `Client`.
 client_id(c::Client) = aeron_client_id(c.client)
 
 """
-    client_ptr(c::Client) -> Ptr{aeron_t}
+    pointer(c::Client) -> Ptr{aeron_t}
 
 Get the underlying Aeron client pointer.
 
@@ -92,7 +92,7 @@ Get the underlying Aeron client pointer.
 # Returns
 - `Ptr{aeron_t}`: Pointer to the Aeron client.
 """
-client_ptr(c::Client) = c.client
+pointer(c::Client) = c.client
 
 """
     context(c::Client) -> Context

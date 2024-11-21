@@ -25,11 +25,11 @@ struct Header
 end
 
 """
-    header_ptr(h::Header) -> Ptr{aeron_header_t}
+    pointer(h::Header) -> Ptr{aeron_header_t}
 
 Returns the pointer to the Aeron header for the `Header` `h`.
 """
-header_ptr(h::Header) = h.header
+pointer(h::Header) = h.header
 
 """
     position(h::Header) -> Int64

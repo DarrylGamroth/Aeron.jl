@@ -53,7 +53,7 @@ function Context(dirname::AbstractString)
 end
 
 """
-    context_ptr(c)
+    pointer(c)
 
 Get the pointer to the underlying `aeron_context_t` struct.
 
@@ -63,7 +63,7 @@ Get the pointer to the underlying `aeron_context_t` struct.
 # Returns
 - The pointer to the underlying `aeron_context_t` struct.
 """
-context_ptr(c::Context) = c.context
+pointer(c::Context) = c.context
 
 """
     close(c)

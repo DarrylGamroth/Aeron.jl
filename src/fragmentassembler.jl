@@ -26,7 +26,7 @@ function FragmentAssembler(fragment_handler::AbstractFragmentHandler)
     end
 
     fa = FragmentAssembler(assembler[], fragment_handler) do clientd, buffer, header
-        aeron_fragment_assembler_handler(clientd, buffer, length(buffer), header_ptr(header))
+        aeron_fragment_assembler_handler(clientd, buffer, length(buffer), pointer(header))
     end
 
     finalizer(fa) do fa
