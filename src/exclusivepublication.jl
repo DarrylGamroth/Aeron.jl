@@ -228,16 +228,30 @@ Offer a buffer to the exclusive publication.
 - `p::ExclusivePublication`: The exclusive publication.
 - `buffer::AbstractVector{UInt8}`: The buffer to offer.
 - `reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing`: Optional reserved value supplier.
+
+# Returns
+- `Int`: The new stream position otherwise a negative error value.
+"""
+function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8})
+    aeron_exclusive_publication_offer(p.publication, buffer, length(buffer), C_NULL, C_NULL)
+end
+
+"""
+Offer a buffer to the exclusive publication with a reserved value supplier.
+
+# Arguments
+- `p::ExclusivePublication`: The exclusive publication.
+- `buffer::AbstractVector{UInt8}`: The buffer to offer.
+- `reserved_value_supplier::AbstractReservedValueSupplier`: The reserved value supplier.
+
+# Returns
+- `Int`: The new stream position otherwise a negative error value.
 """
 function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8},
-    reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing)
-    if reserved_value_supplier === nothing
-        aeron_exclusive_publication_offer(p.publication, buffer, length(buffer), C_NULL, C_NULL)
-    else
-        aeron_exclusive_publication_offer(p.publication, buffer, length(buffer),
-            reserved_value_supplier_cfunction(reserved_value_supplier),
-            Ref(reserved_value_supplier))
-    end
+    reserved_value_supplier::AbstractReservedValueSupplier)
+    aeron_exclusive_publication_offer(p.publication, buffer, length(buffer),
+        reserved_value_supplier_cfunction(reserved_value_supplier),
+        Ref(reserved_value_supplier))
 end
 
 """
@@ -247,22 +261,37 @@ Offer multiple buffers to the exclusive publication.
 - `p::ExclusivePublication`: The exclusive publication.
 - `buffers::AbstractVector{<:AbstractVector{UInt8}}`: The buffers to offer.
 - `reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing`: Optional reserved value supplier.
+
+# Returns
+- `Int`: The new stream position otherwise a negative error value.
 """
-function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}},
-    reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing)
+function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}})
+    _offer(p, buffers, C_NULL, C_NULL)
+end
+
+"""
+Offer multiple buffers to the exclusive publication with a reserved value supplier.
+
+# Arguments
+- `p::ExclusivePublication`: The exclusive publication.
+- `buffers::AbstractVector{<:AbstractVector{UInt8}}`: The buffers to offer.
+- `reserved_value_supplier::AbstractReservedValueSupplier`: The reserved value supplier.
+
+# Returns
+- `Int`: The new stream position otherwise a negative error value.
+"""
+function offer(p::ExclusivePublication, buffers::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier)
+    _offer(p, buffers, reserved_value_supplier_cfunction(reserved_value_supplier), Ref(reserved_value_supplier))
+end
+
+function _offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier, clientd)
     n = length(buffers)
     resize!(p.iovecs, n)
     GC.@preserve buffers begin
         for (i, buffer) in enumerate(buffers)
             @inbounds p.iovecs[i] = aeron_iovec_t(pointer(buffer), length(buffer))
         end
-        if reserved_value_supplier === nothing
-            aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, C_NULL, C_NULL)
-        else
-            aeron_exclusive_publication_offerv(p.publication, p.iovecs, n,
-                reserved_value_supplier_cfunction(reserved_value_supplier),
-                Ref(reserved_value_supplier))
-        end
+        aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, reserved_value_supplier, clientd)
     end
 end
 
@@ -274,7 +303,7 @@ Offer a block of data to the exclusive publication.
 - `buffer::AbstractVector{UInt8}`: The buffer to offer.
 
 # Returns
-- `Int`: The position of the publication.
+- `Int`: The new stream position otherwise a negative error value.
 """
 function offer_block(p::ExclusivePublication, buffer::AbstractVector{UInt8})
     position = aeron_exclusive_publication_offer_block(p.publication, buffer, length(buffer))
@@ -293,7 +322,7 @@ Try to claim a range of the publication.
 
 # Returns
 - `BufferClaim`: The buffer claim.
-- `Int`: The position of the publication.
+- `Int`: The new stream position otherwise a negative error value.
 """
 function try_claim(p::ExclusivePublication, length)
     buffer_claim = Ref{aeron_buffer_claim_t}()
