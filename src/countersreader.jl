@@ -226,11 +226,7 @@ function counter_state(c::CountersReader, counter_id)
     if retval < 0
         throwerror()
     end
-    state = state_ref[]
-    return state == AERON_COUNTER_RECORD_UNUSED ? CounterState.RECORD_UNUSED :
-           state == AERON_COUNTER_RECORD_ALLOCATED ? CounterState.RECORD_ALLOCATED :
-           state == AERON_COUNTER_RECORD_RECLAIMED ? CounterState.RECORD_RECLAIMED :
-           throwerror()
+    return CounterState.T(state_ref[])
 end
 
 """

@@ -26,12 +26,8 @@ function ControlledFragmentAssembler(fragment_handler::AbstractControlledFragmen
     end
 
     fa = ControlledFragmentAssembler(assembler[], fragment_handler) do clientd, buffer, header
-        action = aeron_controlled_fragment_assembler_handler(clientd, buffer, length(buffer), header_ptr(header))
-        return action == AERON_ACTION_ABORT ? ControlledAction.ABORT :
-               action == AERON_ACTION_BREAK ? ControlledAction.BREAK :
-               action == AERON_ACTION_COMMIT ? ControlledAction.COMMIT :
-               action == AERON_ACTION_CONTINUE ? ControlledAction.CONTINUE :
-               throw(ArgumentError("Unknown action: $action"))
+        action = aeron_controlled_fragment_assembler_handler(clientd, buffer, length(buffer), pointer(header))
+        return ControlledAction.T(Integer(action))
     end
 
     finalizer(fa) do fa

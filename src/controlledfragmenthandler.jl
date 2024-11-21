@@ -39,12 +39,7 @@ clientd(f::ControlledFragmentHandler) = f.clientd
 
 function on_fragment_wrapper(f::AbstractControlledFragmentHandler, buffer, length, header)
     action = on_fragment(f)(clientd(f), UnsafeArray(buffer, (Int64(length),)), Header(header))
-
-    return action == ControlledAction.ABORT ? AERON_ACTION_ABORT :
-           action == ControlledAction.BREAK ? AERON_ACTION_BREAK :
-           action == ControlledAction.COMMIT ? AERON_ACTION_COMMIT :
-           action == ControlledAction.CONTINUE ? AERON_ACTION_CONTINUE :
-           throw(ArgumentError("Unknown action: $action"))
+    return aeron_controlled_fragment_handler_action_t(Integer(action))
 end
 
 function on_fragment_cfunction(::T) where {T<:AbstractControlledFragmentHandler}
