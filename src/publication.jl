@@ -222,12 +222,13 @@ function Base.close(p::Publication)
 end
 
 """
+    offer(p::Publication, buffer::AbstractVector{UInt8}) -> Int
+
 Offer a buffer to the publication.
 
 # Arguments
 - `p::Publication`: The publication.
 - `buffer::AbstractVector{UInt8}`: The buffer to offer.
-- `reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing`: Optional reserved value supplier.
 
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
@@ -237,11 +238,13 @@ function offer(p::Publication, buffer::AbstractVector{UInt8})
 end
 
 """
+    offer(p::Publication, buffer::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier) -> Int
+
 Offer a buffer to the publication.
 
 # Arguments
 - `p::Publication`: The publication.
-- `buffer::AbstractVector{UInt8}`: The buffer to offer. 
+- `buffer::AbstractVector{UInt8}`: The buffer to offer.
 - `reserved_value_supplier::AbstractReservedValueSupplier`: The reserved value supplier.
 
 # Returns
@@ -254,6 +257,8 @@ function offer(p::Publication, buffer::AbstractVector{UInt8}, reserved_value_sup
 end
 
 """
+    offer(p::Publication, buffers::AbstractVector{<:AbstractVector{UInt8}}) -> Int
+
 Offer multiple buffers to the publication.
 
 # Arguments
@@ -268,6 +273,8 @@ function offer(p::Publication, buffers::AbstractVector{<:AbstractVector{UInt8}})
 end
 
 """
+    offer(p::Publication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier::AbstractReservedValueSupplier) -> Int
+
 Offer multiple buffers to the publication with a reserved value supplier.
 
 # Arguments
