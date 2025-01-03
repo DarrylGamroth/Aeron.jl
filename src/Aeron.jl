@@ -12,6 +12,7 @@ export AbstractBlockHandler,
     AbstractReservedValueSupplier,
     AeronException,
     AsyncAddCounter,
+    AsyncAddExclusivePublication,
     AsyncAddPublication,
     AsyncAddSubscription,
     AsyncDestination,
@@ -28,6 +29,7 @@ export AbstractBlockHandler,
     CounterState,
     CountersReader,
     DriverTimeoutException,
+    ExclusivePublication,
     FragmentAssembler,
     FragmentHandler,
     GeneralAeronException,
@@ -48,12 +50,14 @@ export AbstractBlockHandler,
     abort,
     add_counter,
     add_destination,
+    add_exclusive_publication,
     add_publication,
     add_subscription,
     aeron_dir,
     aeron_dir!,
     async_add_counter,
     async_add_destination,
+    async_add_exclusive_publication,
     async_add_publication,
     async_add_subscription,
     async_remove_destination,
@@ -82,6 +86,7 @@ export AbstractBlockHandler,
     driver_timeout_ms,
     driver_timeout_ms!,
     error_handler!,
+    exclusive_publication_limit_counter_id,
     find_by_type_id_and_registration_id,
     frame_length,
     free_for_reuse_deadline_ms,
@@ -102,6 +107,7 @@ export AbstractBlockHandler,
     next_correlation_id,
     next_term_offset,
     offer,
+    offer_block,
     on_available_counter!,
     on_available_image!,
     on_close_client!,
@@ -192,7 +198,7 @@ version_major() = aeron_version_major()
 
 """
     version_minor() -> Int64
-    
+
 Get the minor version of the Aeron library.
 
 # Returns
@@ -282,6 +288,7 @@ include("blockhandler.jl")
 include("bufferclaim.jl")
 include("reservedvaluesupplier.jl")
 include("publication.jl")
+include("exclusivepublication.jl")
 
 include("subscription.jl")
 
