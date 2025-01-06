@@ -1,7 +1,7 @@
 name = "Aeron"
 uuid = "b850ffb1-6704-484e-996b-4710e2f097f0"
 authors = ["Darryl Gamroth <dgamroth@rubus.ca>"]
-version = "0.9.0"
+version = "0.10.0"
 
 [deps]
 Aeron_jll = "d964258c-d1ad-568a-aca9-3ef511f5bffd"
@@ -12,7 +12,7 @@ StringViews = "354b36f9-a18e-4713-926e-db85100087ba"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [compat]
-Aeron_jll = "1.46.7"
+Aeron_jll = "1.47.0"
 CEnum = "0.5.0"
 Clang = "0.18.3"
 EnumX = "1.0.4"

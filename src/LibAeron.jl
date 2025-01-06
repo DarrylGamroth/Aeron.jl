@@ -102,6 +102,39 @@ end
 
 const aeron_header_values_t = aeron_header_values_stct
 
+struct aeron_publication_error_values_stct
+    data::NTuple{72, UInt8}
+end
+
+function Base.getproperty(x::Ptr{aeron_publication_error_values_stct}, f::Symbol)
+    f === :registration_id && return Ptr{Int64}(x + 0)
+    f === :destination_registration_id && return Ptr{Int64}(x + 8)
+    f === :session_id && return Ptr{Int32}(x + 16)
+    f === :stream_id && return Ptr{Int32}(x + 20)
+    f === :receiver_id && return Ptr{Int64}(x + 24)
+    f === :group_tag && return Ptr{Int64}(x + 32)
+    f === :address_type && return Ptr{Int16}(x + 40)
+    f === :source_port && return Ptr{UInt16}(x + 42)
+    f === :source_address && return Ptr{NTuple{16, UInt8}}(x + 44)
+    f === :error_code && return Ptr{Int32}(x + 60)
+    f === :error_message_length && return Ptr{Int32}(x + 64)
+    f === :error_message && return Ptr{NTuple{1, UInt8}}(x + 68)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::aeron_publication_error_values_stct, f::Symbol)
+    r = Ref{aeron_publication_error_values_stct}(x)
+    ptr = Base.unsafe_convert(Ptr{aeron_publication_error_values_stct}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{aeron_publication_error_values_stct}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+const aeron_publication_error_values_t = aeron_publication_error_values_stct
+
 mutable struct aeron_subscription_stct end
 
 const aeron_subscription_t = aeron_subscription_stct
@@ -326,6 +359,47 @@ The error handler to be called when an error occurs.
 """
 const aeron_error_handler_t = Ptr{Cvoid}
 
+# typedef void ( * aeron_publication_error_frame_handler_t ) ( void * clientd , aeron_publication_error_values_t * error_frame )
+"""
+The error frame handler to be called when the driver notifies the client about an error frame being received. The data passed to this callback will only be valid for the lifetime of the callback. The user should use <code>[`aeron_publication_error_values_copy`](@ref)</code> if they require the data to live longer than that.
+"""
+const aeron_publication_error_frame_handler_t = Ptr{Cvoid}
+
+"""
+    aeron_publication_error_values_copy(dst, src)
+
+Copy an existing [`aeron_publication_error_values_t`](@ref) to the supplied pointer. The caller is responsible for freeing the allocated memory using [`aeron_publication_error_values_delete`](@ref) when the copy is not longer required.
+
+# Arguments
+* `dst`: to copy the values to.
+* `src`: to copy the values from.
+# Returns
+0 if this is successful, -1 otherwise. Will set [`aeron_errcode`](@ref)() and [`aeron_errmsg`](@ref)() on failure.
+### Prototype
+```c
+int aeron_publication_error_values_copy(aeron_publication_error_values_t **dst, aeron_publication_error_values_t *src);
+```
+"""
+function aeron_publication_error_values_copy(dst, src)
+    @ccall libaeron.aeron_publication_error_values_copy(dst::Ptr{Ptr{aeron_publication_error_values_t}}, src::Ptr{aeron_publication_error_values_t})::Cint
+end
+
+"""
+    aeron_publication_error_values_delete(to_delete)
+
+Delete a instance of [`aeron_publication_error_values_t`](@ref) that was created when making a copy ([`aeron_publication_error_values_copy`](@ref)). This should not be use on the pointer received via the aeron\\_frame\\_handler\\_t.
+
+# Arguments
+* `to_delete`: to be deleted.
+### Prototype
+```c
+void aeron_publication_error_values_delete(aeron_publication_error_values_t *to_delete);
+```
+"""
+function aeron_publication_error_values_delete(to_delete)
+    @ccall libaeron.aeron_publication_error_values_delete(to_delete::Ptr{aeron_publication_error_values_t})::Cvoid
+end
+
 # typedef void ( * aeron_notification_t ) ( void * clientd )
 """
 Generalised notification callback.
@@ -366,6 +440,42 @@ void *aeron_context_get_error_handler_clientd(aeron_context_t *context);
 """
 function aeron_context_get_error_handler_clientd(context)
     @ccall libaeron.aeron_context_get_error_handler_clientd(context::Ptr{aeron_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_context_set_publication_error_frame_handler(context, handler, clientd)
+
+### Prototype
+```c
+int aeron_context_set_publication_error_frame_handler(aeron_context_t *context, aeron_publication_error_frame_handler_t handler, void *clientd);
+```
+"""
+function aeron_context_set_publication_error_frame_handler(context, handler, clientd)
+    @ccall libaeron.aeron_context_set_publication_error_frame_handler(context::Ptr{aeron_context_t}, handler::aeron_publication_error_frame_handler_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_context_get_publication_error_frame_handler(context)
+
+### Prototype
+```c
+aeron_publication_error_frame_handler_t aeron_context_get_publication_error_frame_handler(aeron_context_t *context);
+```
+"""
+function aeron_context_get_publication_error_frame_handler(context)
+    @ccall libaeron.aeron_context_get_publication_error_frame_handler(context::Ptr{aeron_context_t})::aeron_publication_error_frame_handler_t
+end
+
+"""
+    aeron_context_get_publication_error_frame_handler_clientd(context)
+
+### Prototype
+```c
+void *aeron_context_get_publication_error_frame_handler_clientd(aeron_context_t *context);
+```
+"""
+function aeron_context_get_publication_error_frame_handler_clientd(context)
+    @ccall libaeron.aeron_context_get_publication_error_frame_handler_clientd(context::Ptr{aeron_context_t})::Ptr{Cvoid}
 end
 
 # typedef void ( * aeron_on_new_publication_t ) ( void * clientd , aeron_async_add_publication_t * async , const char * channel , int32_t stream_id , int32_t session_id , int64_t correlation_id )
@@ -1528,6 +1638,26 @@ int aeron_counters_reader_counter_type_id( aeron_counters_reader_t *counters_rea
 """
 function aeron_counters_reader_counter_type_id(counters_reader, counter_id, type_id)
     @ccall libaeron.aeron_counters_reader_counter_type_id(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, type_id::Ptr{Int32})::Cint
+end
+
+"""
+    aeron_counters_reader_metadata_key(counters_reader, counter_id, key_p)
+
+Get a pointer to the key of a counter's metadata
+
+# Arguments
+* `counters_reader`: that contains the counter
+* `counter_id`: to find
+* `key_p`: out pointer set to location of metadata key
+# Returns
+-1 on failure, 0 on success.
+### Prototype
+```c
+int aeron_counters_reader_metadata_key( aeron_counters_reader_t *counters_reader, int32_t counter_id, uint8_t **key_p);
+```
+"""
+function aeron_counters_reader_metadata_key(counters_reader, counter_id, key_p)
+    @ccall libaeron.aeron_counters_reader_metadata_key(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, key_p::Ptr{Ptr{UInt8}})::Cint
 end
 
 """
@@ -4075,6 +4205,1928 @@ function aeron_cnc_close(aeron_cnc)
     @ccall libaeron.aeron_cnc_close(aeron_cnc::Ptr{aeron_cnc_t})::Cvoid
 end
 
+# typedef void ( * aeron_idle_strategy_func_t ) ( void * state , int work_count )
+const aeron_idle_strategy_func_t = Ptr{Cvoid}
+
+# typedef int ( * aeron_idle_strategy_init_func_t ) ( void * * state , const char * env_var , const char * init_args )
+const aeron_idle_strategy_init_func_t = Ptr{Cvoid}
+
+"""
+    aeron_semantic_version_compose(major, minor, patch)
+
+### Prototype
+```c
+int32_t aeron_semantic_version_compose(uint8_t major, uint8_t minor, uint8_t patch);
+```
+"""
+function aeron_semantic_version_compose(major, minor, patch)
+    @ccall libaeron.aeron_semantic_version_compose(major::UInt8, minor::UInt8, patch::UInt8)::Int32
+end
+
+"""
+    aeron_semantic_version_major(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_major(int32_t version);
+```
+"""
+function aeron_semantic_version_major(version)
+    @ccall libaeron.aeron_semantic_version_major(version::Int32)::UInt8
+end
+
+"""
+    aeron_semantic_version_minor(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_minor(int32_t version);
+```
+"""
+function aeron_semantic_version_minor(version)
+    @ccall libaeron.aeron_semantic_version_minor(version::Int32)::UInt8
+end
+
+"""
+    aeron_semantic_version_patch(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_patch(int32_t version);
+```
+"""
+function aeron_semantic_version_patch(version)
+    @ccall libaeron.aeron_semantic_version_patch(version::Int32)::UInt8
+end
+
+# typedef void ( * aeron_fptr_t ) ( void )
+const aeron_fptr_t = Ptr{Cvoid}
+
+mutable struct aeron_archive_stct end
+
+const aeron_archive_t = aeron_archive_stct
+
+mutable struct aeron_archive_context_stct end
+
+const aeron_archive_context_t = aeron_archive_context_stct
+
+mutable struct aeron_archive_async_connect_stct end
+
+const aeron_archive_async_connect_t = aeron_archive_async_connect_stct
+
+struct aeron_archive_encoded_credentials_stct
+    data::Cstring
+    length::UInt32
+end
+
+const aeron_archive_encoded_credentials_t = aeron_archive_encoded_credentials_stct
+
+# typedef aeron_archive_encoded_credentials_t * ( * aeron_archive_credentials_encoded_credentials_supplier_func_t ) ( void * clientd )
+"""
+Callback to return encoded credentials.
+
+# Returns
+encoded credentials to include with the connect request
+"""
+const aeron_archive_credentials_encoded_credentials_supplier_func_t = Ptr{Cvoid}
+
+# typedef aeron_archive_encoded_credentials_t * ( * aeron_archive_credentials_challenge_supplier_func_t ) ( aeron_archive_encoded_credentials_t * encoded_challenge , void * clientd )
+"""
+Callback to return encoded credentials given a specific encoded challenge.
+
+# Arguments
+* `encoded_challenge`: to use to generate the encoded credentials
+# Returns
+encoded credentials to include with the challenge response
+"""
+const aeron_archive_credentials_challenge_supplier_func_t = Ptr{Cvoid}
+
+# typedef void ( * aeron_archive_credentials_free_func_t ) ( aeron_archive_encoded_credentials_t * credentials , void * clientd )
+"""
+Callback to return encoded credentials so they may be reused or freed.
+
+# Arguments
+* `credentials`: to reuse or free
+"""
+const aeron_archive_credentials_free_func_t = Ptr{Cvoid}
+
+# typedef void ( * aeron_archive_delegating_invoker_func_t ) ( void * clientd )
+"""
+Callback to allow execution of a delegating invoker to be run.
+"""
+const aeron_archive_delegating_invoker_func_t = Ptr{Cvoid}
+
+"""
+    aeron_archive_replay_params_stct
+
+Struct containing the available replay parameters.
+"""
+struct aeron_archive_replay_params_stct
+    bounding_limit_counter_id::Int32
+    file_io_max_length::Int32
+    position::Int64
+    length::Int64
+    replay_token::Int64
+    subscription_registration_id::Int64
+end
+
+"""
+Struct containing the available replay parameters.
+"""
+const aeron_archive_replay_params_t = aeron_archive_replay_params_stct
+
+"""
+    aeron_archive_replay_params_init(params)
+
+Initialize an [`aeron_archive_replay_params_t`](@ref) with the default values.
+
+### Prototype
+```c
+int aeron_archive_replay_params_init(aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_replay_params_init(params)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_params_init(params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_replication_params_stct
+
+Struct containing the available replication parameters.
+"""
+struct aeron_archive_replication_params_stct
+    stop_position::Int64
+    dst_recording_id::Int64
+    live_destination::Cstring
+    replication_channel::Cstring
+    src_response_channel::Cstring
+    channel_tag_id::Int64
+    subscription_tag_id::Int64
+    file_io_max_length::Int32
+    replication_session_id::Int32
+    encoded_credentials::Ptr{aeron_archive_encoded_credentials_t}
+end
+
+"""
+Struct containing the available replication parameters.
+"""
+const aeron_archive_replication_params_t = aeron_archive_replication_params_stct
+
+"""
+    aeron_archive_replication_params_init(params)
+
+Initialize an [`aeron_archive_replication_params_t`](@ref) with the default values
+
+### Prototype
+```c
+int aeron_archive_replication_params_init(aeron_archive_replication_params_t *params);
+```
+"""
+function aeron_archive_replication_params_init(params)
+    @ccall libaeron_archive_c_client.aeron_archive_replication_params_init(params::Ptr{aeron_archive_replication_params_t})::Cint
+end
+
+"""
+    aeron_archive_recording_descriptor_stct
+
+Struct containing the details of a recording
+"""
+struct aeron_archive_recording_descriptor_stct
+    control_session_id::Int64
+    correlation_id::Int64
+    recording_id::Int64
+    start_timestamp::Int64
+    stop_timestamp::Int64
+    start_position::Int64
+    stop_position::Int64
+    initial_term_id::Int32
+    segment_file_length::Int32
+    term_buffer_length::Int32
+    mtu_length::Int32
+    session_id::Int32
+    stream_id::Int32
+    stripped_channel::Cstring
+    stripped_channel_length::Csize_t
+    original_channel::Cstring
+    original_channel_length::Csize_t
+    source_identity::Cstring
+    source_identity_length::Csize_t
+end
+
+"""
+Struct containing the details of a recording
+"""
+const aeron_archive_recording_descriptor_t = aeron_archive_recording_descriptor_stct
+
+# typedef void ( * aeron_archive_recording_descriptor_consumer_func_t ) ( aeron_archive_recording_descriptor_t * recording_descriptor , void * clientd )
+"""
+Callback to return recording descriptors.
+"""
+const aeron_archive_recording_descriptor_consumer_func_t = Ptr{Cvoid}
+
+"""
+    aeron_archive_recording_subscription_descriptor_stct
+
+Struct containing the details of a recording subscription
+"""
+struct aeron_archive_recording_subscription_descriptor_stct
+    control_session_id::Int64
+    correlation_id::Int64
+    subscription_id::Int64
+    stream_id::Int32
+    stripped_channel::Cstring
+    stripped_channel_length::Csize_t
+end
+
+"""
+Struct containing the details of a recording subscription
+"""
+const aeron_archive_recording_subscription_descriptor_t = aeron_archive_recording_subscription_descriptor_stct
+
+# typedef void ( * aeron_archive_recording_subscription_descriptor_consumer_func_t ) ( aeron_archive_recording_subscription_descriptor_t * recording_subscription_descriptor , void * clientd )
+"""
+Callback to return recording subscription descriptors.
+"""
+const aeron_archive_recording_subscription_descriptor_consumer_func_t = Ptr{Cvoid}
+
+@cenum aeron_archive_client_recording_signal_en::Int32 begin
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_START = 0
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_STOP = 1
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_EXTEND = 2
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_REPLICATE = 3
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_MERGE = 4
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_SYNC = 5
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_DELETE = 6
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_REPLICATE_END = 7
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_NULL_VALUE = -2147483648
+end
+
+const aeron_archive_client_recording_signal_t = aeron_archive_client_recording_signal_en
+
+"""
+    aeron_archive_recording_signal_stct
+
+Struct containing the details of a recording signal.
+"""
+struct aeron_archive_recording_signal_stct
+    control_session_id::Int64
+    recording_id::Int64
+    subscription_id::Int64
+    position::Int64
+    recording_signal_code::Int32
+end
+
+"""
+Struct containing the details of a recording signal.
+"""
+const aeron_archive_recording_signal_t = aeron_archive_recording_signal_stct
+
+# typedef void ( * aeron_archive_recording_signal_consumer_func_t ) ( aeron_archive_recording_signal_t * recording_signal , void * clientd )
+"""
+Callback to return recording signals.
+"""
+const aeron_archive_recording_signal_consumer_func_t = Ptr{Cvoid}
+
+@cenum aeron_archive_source_location_en::UInt32 begin
+    AERON_ARCHIVE_SOURCE_LOCATION_LOCAL = 0
+    AERON_ARCHIVE_SOURCE_LOCATION_REMOTE = 1
+end
+
+const aeron_archive_source_location_t = aeron_archive_source_location_en
+
+"""
+    aeron_archive_context_init(ctx)
+
+Create an [`aeron_archive_context_t`](@ref) struct.
+
+# Arguments
+* `ctx`: context to create and initialize
+### Prototype
+```c
+int aeron_archive_context_init(aeron_archive_context_t **ctx);
+```
+"""
+function aeron_archive_context_init(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_init(ctx::Ptr{Ptr{aeron_archive_context_t}})::Cint
+end
+
+"""
+    aeron_archive_context_close(ctx)
+
+Close and delete the [`aeron_archive_context_t`](@ref) struct.
+
+# Arguments
+* `ctx`: context to delete
+### Prototype
+```c
+int aeron_archive_context_close(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_close(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_close(ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_context_set_aeron(ctx, aeron)
+
+Specify the client used for communicating with the local Media Driver. <p> This client will be closed with the [`aeron_archive_t`](@ref) is closed if [`aeron_archive_context_set_owns_aeron_client`](@ref) is true.
+
+### Prototype
+```c
+int aeron_archive_context_set_aeron(aeron_archive_context_t *ctx, aeron_t *aeron);
+```
+"""
+function aeron_archive_context_set_aeron(ctx, aeron)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_aeron(ctx::Ptr{aeron_archive_context_t}, aeron::Ptr{aeron_t})::Cint
+end
+
+"""
+    aeron_archive_context_get_aeron(ctx)
+
+### Prototype
+```c
+aeron_t *aeron_archive_context_get_aeron(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_aeron(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_aeron(ctx::Ptr{aeron_archive_context_t})::Ptr{aeron_t}
+end
+
+"""
+    aeron_archive_context_set_owns_aeron_client(ctx, owns_aeron_client)
+
+Specify whether or not this context owns the client and, therefore, takes responsibility for closing it.
+
+### Prototype
+```c
+int aeron_archive_context_set_owns_aeron_client(aeron_archive_context_t *ctx, bool owns_aeron_client);
+```
+"""
+function aeron_archive_context_set_owns_aeron_client(ctx, owns_aeron_client)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_owns_aeron_client(ctx::Ptr{aeron_archive_context_t}, owns_aeron_client::Bool)::Cint
+end
+
+"""
+    aeron_archive_context_get_owns_aeron_client(ctx)
+
+### Prototype
+```c
+bool aeron_archive_context_get_owns_aeron_client(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_owns_aeron_client(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_owns_aeron_client(ctx::Ptr{aeron_archive_context_t})::Bool
+end
+
+"""
+    aeron_archive_context_set_aeron_directory_name(ctx, aeron_directory_name)
+
+Specify the top level Aeron directory used for communication between the Aeron client and the Media Driver.
+
+### Prototype
+```c
+int aeron_archive_context_set_aeron_directory_name(aeron_archive_context_t *ctx, const char *aeron_directory_name);
+```
+"""
+function aeron_archive_context_set_aeron_directory_name(ctx, aeron_directory_name)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_aeron_directory_name(ctx::Ptr{aeron_archive_context_t}, aeron_directory_name::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_aeron_directory_name(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_aeron_directory_name(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_aeron_directory_name(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_aeron_directory_name(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_request_channel(ctx, control_request_channel)
+
+Specify the channel used for sending requests to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_request_channel(aeron_archive_context_t *ctx, const char *control_request_channel);
+```
+"""
+function aeron_archive_context_set_control_request_channel(ctx, control_request_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_request_channel(ctx::Ptr{aeron_archive_context_t}, control_request_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_request_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_control_request_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_request_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_request_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_request_stream_id(ctx, control_request_stream_id)
+
+Specify the stream used for sending requests to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_request_stream_id(aeron_archive_context_t *ctx, int32_t control_request_stream_id);
+```
+"""
+function aeron_archive_context_set_control_request_stream_id(ctx, control_request_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_request_stream_id(ctx::Ptr{aeron_archive_context_t}, control_request_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_request_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_control_request_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_request_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_request_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_control_response_channel(ctx, control_response_channel)
+
+Specify the channel used for receiving responses from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_response_channel(aeron_archive_context_t *ctx, const char *control_response_channel);
+```
+"""
+function aeron_archive_context_set_control_response_channel(ctx, control_response_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_response_channel(ctx::Ptr{aeron_archive_context_t}, control_response_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_response_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_control_response_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_response_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_response_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_response_stream_id(ctx, control_response_stream_id)
+
+Specify the stream used for receiving responses from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_response_stream_id(aeron_archive_context_t *ctx, int32_t control_response_stream_id);
+```
+"""
+function aeron_archive_context_set_control_response_stream_id(ctx, control_response_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_response_stream_id(ctx::Ptr{aeron_archive_context_t}, control_response_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_response_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_control_response_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_response_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_response_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_recording_events_channel(ctx, recording_events_channel)
+
+Specify the channel used for receiving recording events from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_events_channel(aeron_archive_context_t *ctx, const char *recording_events_channel);
+```
+"""
+function aeron_archive_context_set_recording_events_channel(ctx, recording_events_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_events_channel(ctx::Ptr{aeron_archive_context_t}, recording_events_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_recording_events_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_recording_events_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_recording_events_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_recording_events_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_recording_events_stream_id(ctx, recording_events_stream_id)
+
+Specify the stream id used for recording events channel.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_events_stream_id(aeron_archive_context_t *ctx, int32_t recording_events_stream_id);
+```
+"""
+function aeron_archive_context_set_recording_events_stream_id(ctx, recording_events_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_events_stream_id(ctx::Ptr{aeron_archive_context_t}, recording_events_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_recording_events_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_recording_events_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_recording_events_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_recording_events_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_message_timeout_ns(ctx, message_timeout_ns)
+
+Specify the message timeout, in nanoseconds, to wait for sending or receiving a message.
+
+### Prototype
+```c
+int aeron_archive_context_set_message_timeout_ns(aeron_archive_context_t *ctx, uint64_t message_timeout_ns);
+```
+"""
+function aeron_archive_context_set_message_timeout_ns(ctx, message_timeout_ns)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_message_timeout_ns(ctx::Ptr{aeron_archive_context_t}, message_timeout_ns::UInt64)::Cint
+end
+
+"""
+    aeron_archive_context_get_message_timeout_ns(ctx)
+
+### Prototype
+```c
+uint64_t aeron_archive_context_get_message_timeout_ns(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_message_timeout_ns(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_message_timeout_ns(ctx::Ptr{aeron_archive_context_t})::UInt64
+end
+
+"""
+    aeron_archive_context_set_control_term_buffer_length(ctx, control_term_buffer_length)
+
+Specify the default term buffer length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_term_buffer_length(aeron_archive_context_t *ctx, size_t control_term_buffer_length);
+```
+"""
+function aeron_archive_context_set_control_term_buffer_length(ctx, control_term_buffer_length)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_term_buffer_length(ctx::Ptr{aeron_archive_context_t}, control_term_buffer_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_term_buffer_length(ctx)
+
+### Prototype
+```c
+size_t aeron_archive_context_get_control_term_buffer_length(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_term_buffer_length(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_term_buffer_length(ctx::Ptr{aeron_archive_context_t})::Csize_t
+end
+
+"""
+    aeron_archive_context_set_control_mtu_length(ctx, control_mtu_length)
+
+Specify the default MTU length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_mtu_length(aeron_archive_context_t *ctx, size_t control_mtu_length);
+```
+"""
+function aeron_archive_context_set_control_mtu_length(ctx, control_mtu_length)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_mtu_length(ctx::Ptr{aeron_archive_context_t}, control_mtu_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_mtu_length(ctx)
+
+### Prototype
+```c
+size_t aeron_archive_context_get_control_mtu_length(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_mtu_length(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_mtu_length(ctx::Ptr{aeron_archive_context_t})::Csize_t
+end
+
+"""
+    aeron_archive_context_set_control_term_buffer_sparse(ctx, control_term_buffer_sparse)
+
+Specify the default MTU length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_term_buffer_sparse(aeron_archive_context_t *ctx, bool control_term_buffer_sparse);
+```
+"""
+function aeron_archive_context_set_control_term_buffer_sparse(ctx, control_term_buffer_sparse)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_term_buffer_sparse(ctx::Ptr{aeron_archive_context_t}, control_term_buffer_sparse::Bool)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_term_buffer_sparse(ctx)
+
+### Prototype
+```c
+bool aeron_archive_context_get_control_term_buffer_sparse(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_term_buffer_sparse(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_term_buffer_sparse(ctx::Ptr{aeron_archive_context_t})::Bool
+end
+
+"""
+    aeron_archive_context_set_idle_strategy(ctx, idle_strategy_func, idle_strategy_state)
+
+Specify the idle strategy function and associated state used by the client between polling calls.
+
+### Prototype
+```c
+int aeron_archive_context_set_idle_strategy( aeron_archive_context_t *ctx, aeron_idle_strategy_func_t idle_strategy_func, void *idle_strategy_state);
+```
+"""
+function aeron_archive_context_set_idle_strategy(ctx, idle_strategy_func, idle_strategy_state)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_idle_strategy(ctx::Ptr{aeron_archive_context_t}, idle_strategy_func::aeron_idle_strategy_func_t, idle_strategy_state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_credentials_supplier(ctx, encoded_credentials, on_challenge, on_free, clientd)
+
+Specify the various credentials callbacks to use when connecting to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_credentials_supplier( aeron_archive_context_t *ctx, aeron_archive_credentials_encoded_credentials_supplier_func_t encoded_credentials, aeron_archive_credentials_challenge_supplier_func_t on_challenge, aeron_archive_credentials_free_func_t on_free, void *clientd);
+```
+"""
+function aeron_archive_context_set_credentials_supplier(ctx, encoded_credentials, on_challenge, on_free, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_credentials_supplier(ctx::Ptr{aeron_archive_context_t}, encoded_credentials::aeron_archive_credentials_encoded_credentials_supplier_func_t, on_challenge::aeron_archive_credentials_challenge_supplier_func_t, on_free::aeron_archive_credentials_free_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_recording_signal_consumer(ctx, on_recording_signal, clientd)
+
+Specify the callback to which recording signals are dispatched while polling for control responses.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_signal_consumer( aeron_archive_context_t *ctx, aeron_archive_recording_signal_consumer_func_t on_recording_signal, void *clientd);
+```
+"""
+function aeron_archive_context_set_recording_signal_consumer(ctx, on_recording_signal, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_signal_consumer(ctx::Ptr{aeron_archive_context_t}, on_recording_signal::aeron_archive_recording_signal_consumer_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_error_handler(ctx, error_handler, clientd)
+
+Specify the callback to which errors are dispatched while executing archive client commands.
+
+### Prototype
+```c
+int aeron_archive_context_set_error_handler( aeron_archive_context_t *ctx, aeron_error_handler_t error_handler, void *clientd);
+```
+"""
+function aeron_archive_context_set_error_handler(ctx, error_handler, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_error_handler(ctx::Ptr{aeron_archive_context_t}, error_handler::aeron_error_handler_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_delegating_invoker(ctx, delegating_invoker_func, clientd)
+
+Specify the callback to be invoked in addition to any invoker used by the Aeron instance. <p> Useful when running in a low thread count environment.
+
+### Prototype
+```c
+int aeron_archive_context_set_delegating_invoker( aeron_archive_context_t *ctx, aeron_archive_delegating_invoker_func_t delegating_invoker_func, void *clientd);
+```
+"""
+function aeron_archive_context_set_delegating_invoker(ctx, delegating_invoker_func, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_delegating_invoker(ctx::Ptr{aeron_archive_context_t}, delegating_invoker_func::aeron_archive_delegating_invoker_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_async_connect(async, ctx)
+
+Begin an attempt at creating a connection which can be completed by calling [`aeron_archive_async_connect_poll`](@ref).
+
+# Arguments
+* `async`: [`aeron_archive_async_connect_t`](@ref) to create and initialize
+* `ctx`: [`aeron_archive_context_t`](@ref) for the archive connection
+### Prototype
+```c
+int aeron_archive_async_connect(aeron_archive_async_connect_t **async, aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_async_connect(async, ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_async_connect(async::Ptr{Ptr{aeron_archive_async_connect_t}}, ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_async_connect_poll(aeron_archive, async)
+
+Poll for a complete connection.
+
+# Arguments
+* `aeron_archive`: [`aeron_archive_t`](@ref) that will be created/initialized upon successful connection
+* `async`: [`aeron_archive_async_connect_t`](@ref) to poll
+# Returns
+-1 for failure, 0 for 'try again', and 1 for success <p> Note that after a return of either -1 or 1, the provided [`aeron_archive_async_connect_t`](@ref) will have been deleted. <p> Also note that after a return of 1, the aeron\\_archive pointer will be set to a ready to use [`aeron_archive_t`](@ref).
+### Prototype
+```c
+int aeron_archive_async_connect_poll(aeron_archive_t **aeron_archive, aeron_archive_async_connect_t *async);
+```
+"""
+function aeron_archive_async_connect_poll(aeron_archive, async)
+    @ccall libaeron_archive_c_client.aeron_archive_async_connect_poll(aeron_archive::Ptr{Ptr{aeron_archive_t}}, async::Ptr{aeron_archive_async_connect_t})::Cint
+end
+
+"""
+    aeron_archive_connect(aeron_archive, ctx)
+
+Connect to an Aeron Archive.
+
+# Arguments
+* `aeron_archive`: [`aeron_archive_t`](@ref) that will be created/initialized upon successful connection
+* `ctx`: [`aeron_archive_context_t`](@ref) for the archive connection
+### Prototype
+```c
+int aeron_archive_connect(aeron_archive_t **aeron_archive, aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_connect(aeron_archive, ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_connect(aeron_archive::Ptr{Ptr{aeron_archive_t}}, ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_close(aeron_archive)
+
+Close the connection to the Aeron Archive and free up associated resources.
+
+### Prototype
+```c
+int aeron_archive_close(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_close(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_close(aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_get_archive_context(aeron_archive)
+
+Retrieve the underlying [`aeron_archive_context_t`](@ref) used to configure the provided [`aeron_archive_t`](@ref).
+
+### Prototype
+```c
+aeron_archive_context_t *aeron_archive_get_archive_context(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_archive_context(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_archive_context(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_archive_context_t}
+end
+
+"""
+    aeron_archive_get_and_own_archive_context(aeron_archive)
+
+Retrieve the underlying [`aeron_archive_context_t`](@ref) used to configure the provided [`aeron_archive_t`](@ref). <p> Additionally, calling this function transfers ownership of the returned [`aeron_archive_context_t`](@ref) to the caller. i.e. it is now the the caller's responsibility to close the context. This is useful when wrapping the C library in other, higher level languages.
+
+### Prototype
+```c
+aeron_archive_context_t *aeron_archive_get_and_own_archive_context(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_and_own_archive_context(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_and_own_archive_context(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_archive_context_t}
+end
+
+"""
+    aeron_archive_get_archive_id(aeron_archive)
+
+Retrieve the archive id of the connected Aeron Archive.
+
+### Prototype
+```c
+int64_t aeron_archive_get_archive_id(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_archive_id(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_archive_id(aeron_archive::Ptr{aeron_archive_t})::Int64
+end
+
+"""
+    aeron_archive_get_control_response_subscription(aeron_archive)
+
+Retrieve the underlying [`aeron_subscription_t`](@ref) used for reading responses from the connected Aeron Archive.
+
+### Prototype
+```c
+aeron_subscription_t *aeron_archive_get_control_response_subscription(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_control_response_subscription(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_control_response_subscription(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_subscription_t}
+end
+
+"""
+    aeron_archive_get_and_own_control_response_subscription(aeron_archive)
+
+Retrieve the underlying [`aeron_subscription_t`](@ref) used for reading responses from the connected Aeron Archive. <p> Additionally, calling this function transfers ownership of the returned [`aeron_subscription_t`](@ref) to the caller. i.e. it is now the caller's responsibility to close the subscription. This is useful when wrapping the C library in other, high level languages.
+
+### Prototype
+```c
+aeron_subscription_t *aeron_archive_get_and_own_control_response_subscription(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_and_own_control_response_subscription(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_and_own_control_response_subscription(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_subscription_t}
+end
+
+"""
+    aeron_archive_control_session_id(aeron_archive)
+
+### Prototype
+```c
+int64_t aeron_archive_control_session_id(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_control_session_id(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_control_session_id(aeron_archive::Ptr{aeron_archive_t})::Int64
+end
+
+"""
+    aeron_archive_poll_for_recording_signals(count_p, aeron_archive)
+
+Poll for recording signals, dispatching them to the configured [`aeron_archive_recording_signal_consumer_func_t`](@ref) in the context
+
+# Arguments
+* `count_p`: out param that indicates the number of recording signals dispatched.
+# Returns
+0 for success, -1 for failure.
+### Prototype
+```c
+int aeron_archive_poll_for_recording_signals(int32_t *count_p, aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_poll_for_recording_signals(count_p, aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_poll_for_recording_signals(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_poll_for_error_response(aeron_archive, buffer, buffer_length)
+
+Poll the response stream once for an error. If another message is present then it will be skipped over, so only call when not expecting another response.
+
+# Returns
+0 if an error sent from the Aeron Archive is found, in which case, the provided buffer contains the error message. If there was no error, the buffer will be an empty string. <p> -1 if an error occurs while attempting to read from the subscription.
+### Prototype
+```c
+int aeron_archive_poll_for_error_response(aeron_archive_t *aeron_archive, char *buffer, size_t buffer_length);
+```
+"""
+function aeron_archive_poll_for_error_response(aeron_archive, buffer, buffer_length)
+    @ccall libaeron_archive_c_client.aeron_archive_poll_for_error_response(aeron_archive::Ptr{aeron_archive_t}, buffer::Cstring, buffer_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_check_for_error_response(aeron_archive)
+
+Poll the response stream once for an error.
+
+# Returns
+0 if no error is found OR if an error is found but an error handler is specified in the context. <p> -1 if an error is found and no error handler is specified. The error message can be retrieved by calling [`aeron_errmsg`](@ref)()
+### Prototype
+```c
+int aeron_archive_check_for_error_response(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_check_for_error_response(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_check_for_error_response(aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_add_recorded_publication(publication_p, aeron_archive, channel, stream_id)
+
+Add a publication and set it up to be recorded.
+
+# Arguments
+* `publication_p`: out param set to the [`aeron_publication_t`](@ref) upon success
+* `aeron_archive`: the archive client
+* `channel`: the channel for the publication
+* `stream_id`: the stream id for the publication
+### Prototype
+```c
+int aeron_archive_add_recorded_publication( aeron_publication_t **publication_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_add_recorded_publication(publication_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_add_recorded_publication(publication_p::Ptr{Ptr{aeron_publication_t}}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p, aeron_archive, channel, stream_id)
+
+Add an exclusive publication and set it up to be recorded.
+
+# Arguments
+* `publication_p`: out param set to the [`aeron_exclusive_publication_t`](@ref) upon success
+* `aeron_archive`: the archive client
+* `channel`: the channel for the exclusive publication
+* `stream_id`: the stream id for the exclusive publication
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_add_recorded_exclusive_publication( aeron_exclusive_publication_t **exclusive_publication_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p::Ptr{Ptr{aeron_exclusive_publication_t}}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_start_recording(subscription_id_p, aeron_archive, recording_channel, recording_stream_id, source_location, auto_stop)
+
+Start recording a channel/stream pairing. <p> Channels that include session id parameters are considered different than channels without session ids. If a publication matches both a session id specific channel recording and a non session id specific recording, it will be recorded twice.
+
+# Arguments
+* `subscription_id_p`: out param set to the subscription id of the recording
+* `aeron_archive`: the archive client
+* `recording_channel`: the channel of the publication to be recorded
+* `recording_stream_id`: the stream id of the publication to be recorded
+* `source_location`: the source location of the publication to be recorded
+* `auto_stop`: should the recording be automatically stopped when complete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_start_recording( int64_t *subscription_id_p, aeron_archive_t *aeron_archive, const char *recording_channel, int32_t recording_stream_id, aeron_archive_source_location_t source_location, bool auto_stop);
+```
+"""
+function aeron_archive_start_recording(subscription_id_p, aeron_archive, recording_channel, recording_stream_id, source_location, auto_stop)
+    @ccall libaeron_archive_c_client.aeron_archive_start_recording(subscription_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_channel::Cstring, recording_stream_id::Int32, source_location::aeron_archive_source_location_t, auto_stop::Bool)::Cint
+end
+
+"""
+    aeron_archive_get_recording_position(recording_position_p, aeron_archive, recording_id)
+
+Fetch the position recorded for the specified recording.
+
+# Arguments
+* `recording_position_p`: out param set to the recording position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_recording_position( int64_t *recording_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_recording_position(recording_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_recording_position(recording_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_start_position(start_position_p, aeron_archive, recording_id)
+
+Fetch the start position for the specified recording.
+
+# Arguments
+* `start_position_p`: out param set to the start position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_start_position( int64_t *start_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_start_position(start_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_start_position(start_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_stop_position(stop_position_p, aeron_archive, recording_id)
+
+Fetch the stop position for the specified recording.
+
+# Arguments
+* `stop_position_p`: out param set to the stop position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_stop_position( int64_t *stop_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_stop_position(stop_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_stop_position(stop_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_max_recorded_position(max_recorded_position_p, aeron_archive, recording_id)
+
+Fetch the stop or active position for the specified recording.
+
+# Arguments
+* `max_recorded_position_p`: out param set to the stop or active position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_max_recorded_position( int64_t *max_recorded_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_max_recorded_position(max_recorded_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_max_recorded_position(max_recorded_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_subscription(aeron_archive, subscription_id)
+
+Stop recording for the specified subscription id. This is the subscription id returned from [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref).
+
+# Arguments
+* `aeron_archive`: the archive client
+* `subscription_id`: the subscription id for the recording in the Aeron Archive
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_subscription( aeron_archive_t *aeron_archive, int64_t subscription_id);
+```
+"""
+function aeron_archive_stop_recording_subscription(aeron_archive, subscription_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_subscription(aeron_archive::Ptr{aeron_archive_t}, subscription_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_subscription(stopped_p, aeron_archive, subscription_id)
+
+Try to stop a recording for the specified subscription id. This is the subscription id returned from [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref).
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the subscription is not currently active
+* `aeron_archive`: the archive client
+* `subscription_id`: the subscription id for the recording in the Aeron Archive
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_subscription( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t subscription_id);
+```
+"""
+function aeron_archive_try_stop_recording_subscription(stopped_p, aeron_archive, subscription_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_subscription(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, subscription_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_channel_and_stream(aeron_archive, channel, stream_id)
+
+Stop recording for the specified channel and stream. <p> Channels that include session id parameters are considered different than channels without session ids. Stopping a recording on a channel without a session id parameter will not stop the recording of any session id specific recordings that use the same channel and stream id.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `channel`: the channel of the recording to be stopped
+* `stream_id`: the stream id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_channel_and_stream( aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_stop_recording_channel_and_stream(aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_channel_and_stream(aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_channel_and_stream(stopped_p, aeron_archive, channel, stream_id)
+
+Try to stop recording for the specified channel and stream. <p> Channels that include session id parameters are considered different than channels without session ids. Stopping a recording on a channel without a session id parameter will not stop the recording of any session id specific recordings that use the same channel and stream id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the channel/stream pair is not currently active
+* `aeron_archive`: the archive client
+* `channel`: the channel of the recording to be stopped
+* `stream_id`: the stream id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_channel_and_stream( bool *stopped_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_try_stop_recording_channel_and_stream(stopped_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_channel_and_stream(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_by_identity(stopped_p, aeron_archive, recording_id)
+
+Stop recording for the specified recording id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the recording is not currently active
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_by_identity( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_try_stop_recording_by_identity(stopped_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_by_identity(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_publication(aeron_archive, publication)
+
+Stop recording a session id specific recording that pertains to the given publication.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `publication`: the publication to stop recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_publication( aeron_archive_t *aeron_archive, aeron_publication_t *publication);
+```
+"""
+function aeron_archive_stop_recording_publication(aeron_archive, publication)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_publication(aeron_archive::Ptr{aeron_archive_t}, publication::Ptr{aeron_publication_t})::Cint
+end
+
+"""
+    aeron_archive_stop_recording_exclusive_publication(aeron_archive, exclusive_publication)
+
+Stop recording a session id specific recording that pertains to the given exclusive publication.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `exclusive_publication`: the exclusive publication to stop recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_exclusive_publication( aeron_archive_t *aeron_archive, aeron_exclusive_publication_t *exclusive_publication);
+```
+"""
+function aeron_archive_stop_recording_exclusive_publication(aeron_archive, exclusive_publication)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_exclusive_publication(aeron_archive::Ptr{aeron_archive_t}, exclusive_publication::Ptr{aeron_exclusive_publication_t})::Cint
+end
+
+"""
+    aeron_archive_find_last_matching_recording(recording_id_p, aeron_archive, min_recording_id, channel_fragment, stream_id, session_id)
+
+Find the last recording that matches the given criteria.
+
+# Arguments
+* `recording_id_p`: out param for the recording id that matches
+* `aeron_archive`: the archive client
+* `min_recording_id`: the lowest recording id to search back to
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `session_id`: the session id of the recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_find_last_matching_recording( int64_t *recording_id_p, aeron_archive_t *aeron_archive, int64_t min_recording_id, const char *channel_fragment, int32_t stream_id, int32_t session_id);
+```
+"""
+function aeron_archive_find_last_matching_recording(recording_id_p, aeron_archive, min_recording_id, channel_fragment, stream_id, session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_find_last_matching_recording(recording_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, min_recording_id::Int64, channel_fragment::Cstring, stream_id::Int32, session_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_list_recording(count_p, aeron_archive, recording_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List a recording descriptor for a single recording id.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recording( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recording(count_p, aeron_archive, recording_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recording(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_list_recordings(count_p, aeron_archive, from_recording_id, record_count, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List all recording descriptors starting at a particular recording id, with a limit of total descriptors delivered.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `from_recording_id`: the id at which to begin the listing
+* `record_count`: the limit of total descriptors to deliver
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recordings( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t from_recording_id, int32_t record_count, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recordings(count_p, aeron_archive, from_recording_id, record_count, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recordings(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, from_recording_id::Int64, record_count::Int32, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_list_recordings_for_uri(count_p, aeron_archive, from_recording_id, record_count, channel_fragment, stream_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List all recording descriptors for a given channel fragment and stream id, starting at a particular recording id, with a limit of total descriptors delivered.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `from_recording_id`: the id at which to begin the listing
+* `record_count`: the limit of total descriptors to deliver
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recordings_for_uri( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t from_recording_id, int32_t record_count, const char *channel_fragment, int32_t stream_id, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recordings_for_uri(count_p, aeron_archive, from_recording_id, record_count, channel_fragment, stream_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recordings_for_uri(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, from_recording_id::Int64, record_count::Int32, channel_fragment::Cstring, stream_id::Int32, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_start_replay(replay_session_id_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+
+Start a replay <p> The lower 32-bits of the replay session id contain the session id of the image of the received replay and can be obtained by casting the replay session id to an int32\\_t. All 64-bits are required to uniquely identify the replay when calling [`aeron_archive_stop_replay`](@ref).
+
+# Arguments
+* `replay_session_id_p`: out param set to the replay session id
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `replay_channel`: the channel to which the replay should be sent
+* `replay_stream_id`: the stream id to which the replay should be sent
+* `params`: the [`aeron_archive_replay_params_t`](@ref) that control the behaviour of the replay
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_start_replay( int64_t *replay_session_id_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *replay_channel, int32_t replay_stream_id, aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_start_replay(replay_session_id_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_start_replay(replay_session_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, replay_channel::Cstring, replay_stream_id::Int32, params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_replay(subscription_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+
+Start a replay.
+
+# Arguments
+* `subscription_p`: out param set to the subscription created for consuming the replay
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `replay_channel`: the channel to which the replay should be sent
+* `replay_stream_id`: the stream id to which the replay should be sent
+* `params`: the [`aeron_archive_replay_params_t`](@ref) that control the behaviour of the replay
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay( aeron_subscription_t **subscription_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *replay_channel, int32_t replay_stream_id, aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_replay(subscription_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_replay(subscription_p::Ptr{Ptr{aeron_subscription_t}}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, replay_channel::Cstring, replay_stream_id::Int32, params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_truncate_recording(count_p, aeron_archive, recording_id, position)
+
+Truncate a stopped recording to the specified position. The position must be less than the stopped position. The position must be on a fragment boundary. Truncating a recording to the start position effectively deletes the recording.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `position`: the position to which the recording will be truncated
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_truncate_recording( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, int64_t position);
+```
+"""
+function aeron_archive_truncate_recording(count_p, aeron_archive, recording_id, position)
+    @ccall libaeron_archive_c_client.aeron_archive_truncate_recording(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, position::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_replay(aeron_archive, replay_session_id)
+
+Stop a replay session.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `replay_session_id`: the replay session id indicating the replay to stop
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_replay( aeron_archive_t *aeron_archive, int64_t replay_session_id);
+```
+"""
+function aeron_archive_stop_replay(aeron_archive, replay_session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_replay(aeron_archive::Ptr{aeron_archive_t}, replay_session_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_all_replays(aeron_archive, recording_id)
+
+Stop all replays matching a recording id. If recording\\_id is [`AERON_NULL_VALUE`](@ref) then match all replays.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording for which all replays will be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_all_replays( aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_stop_all_replays(aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_all_replays(aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_list_recording_subscriptions(count_p, aeron_archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, recording_subscription_descriptor_consumer, recording_subscription_descriptor_consumer_clientd)
+
+List active recording subscriptions in the Aeron Archive. These are the result of calling [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref). The subscription id in the returned descriptor can be used when calling [`aeron_archive_stop_recording_subscription`](@ref).
+
+# Arguments
+* `count_p`: out param set to the count of matched subscriptions
+* `aeron_archive`: the archive client
+* `pseudo_index`: the index into the active list at which to begin listing
+* `subscription_count`: the limit of total descriptors to deliver
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `apply_stream_id`: whether or not the stream id should be matched
+* `recording_subscription_descriptor_consumer`: to be called for each descriptor
+* `recording_subscription_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recording_subscriptions( int32_t *count_p, aeron_archive_t *aeron_archive, int32_t pseudo_index, int32_t subscription_count, const char *channel_fragment, int32_t stream_id, bool apply_stream_id, aeron_archive_recording_subscription_descriptor_consumer_func_t recording_subscription_descriptor_consumer, void *recording_subscription_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recording_subscriptions(count_p, aeron_archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, recording_subscription_descriptor_consumer, recording_subscription_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recording_subscriptions(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, pseudo_index::Int32, subscription_count::Int32, channel_fragment::Cstring, stream_id::Int32, apply_stream_id::Bool, recording_subscription_descriptor_consumer::aeron_archive_recording_subscription_descriptor_consumer_func_t, recording_subscription_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_purge_recording(deleted_segments_count_p, aeron_archive, recording_id)
+
+Purge a stopped recording. i.e. Mark the recording as INVALID at the Archive and delete the corresponding segment files. The space in the Catalog will be reclaimed upon compaction.
+
+# Arguments
+* `deleted_segments_count_p`: out param set to the number of deleted segments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the stopped recording to be purged
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_purge_recording( int64_t *deleted_segments_count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_purge_recording(deleted_segments_count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_purge_recording(deleted_segments_count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_extend_recording(subscription_id_p, aeron_archive, recording_id, recording_channel, recording_stream_id, source_location, auto_stop)
+
+Extend an existing, non-active recording for a channel and stream pairing. <p> The channel must be configured with the initial position from which it will be extended. This can be done with aeron\\_uri\\_string\\_builder\\_set\\_initial\\_position. The details required to initialize can be found by calling [`aeron_archive_list_recording`](@ref).
+
+# Arguments
+* `subscription_id_p`: out param set to the subscription id of the recording
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the existing recording
+* `recording_channel`: the channel of the publication to be recorded
+* `recording_stream_id`: the stream id of the publication to be recorded
+* `source_location`: the source location of the publication to be recorded
+* `auto_stop`: should the recording be automatically stopped when complete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_extend_recording( int64_t *subscription_id_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *recording_channel, int32_t recording_stream_id, aeron_archive_source_location_t source_location, bool auto_stop);
+```
+"""
+function aeron_archive_extend_recording(subscription_id_p, aeron_archive, recording_id, recording_channel, recording_stream_id, source_location, auto_stop)
+    @ccall libaeron_archive_c_client.aeron_archive_extend_recording(subscription_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, recording_channel::Cstring, recording_stream_id::Int32, source_location::aeron_archive_source_location_t, auto_stop::Bool)::Cint
+end
+
+"""
+    aeron_archive_replicate(replication_id_p, aeron_archive, src_recording_id, src_control_channel, src_control_stream_id, params)
+
+Replicate a recording from a source Archive to a destination. This can be considered a backup for a primary Archive. The source recording will be replayed via the provided replay channel and use the original stream id. The behavior of the replication will be governed by the values specified in the [`aeron_archive_replication_params_t`](@ref). <p> For a source recording that is still active, the replay can merge with the live stream and then follow it directly and no longer require the replay from the source. This would require a multicast live destination. <p> Errors will be reported asynchronously and can be checked for with [`aeron_archive_check_for_error_response`](@ref) and [`aeron_archive_poll_for_error_response`](@ref).
+
+# Arguments
+* `replication_id_p`: out param set to the replication id that can be used to stop the replication
+* `aeron_archive`: the archive client
+* `src_recording_id`: the recording id that must exist at the source Archive
+* `src_control_channel`: remote control channel for the source archive on which to instruct the replay
+* `src_control_stream_id`: remote control stream id for the source archive on which to instruct the replay
+* `params`: optional parameters to configure the behavior of the replication
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replicate( int64_t *replication_id_p, aeron_archive_t *aeron_archive, int64_t src_recording_id, const char *src_control_channel, int32_t src_control_stream_id, aeron_archive_replication_params_t *params);
+```
+"""
+function aeron_archive_replicate(replication_id_p, aeron_archive, src_recording_id, src_control_channel, src_control_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_replicate(replication_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, src_recording_id::Int64, src_control_channel::Cstring, src_control_stream_id::Int32, params::Ptr{aeron_archive_replication_params_t})::Cint
+end
+
+"""
+    aeron_archive_stop_replication(aeron_archive, replication_id)
+
+Stop a replication by the replication id.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `replication_id`: the replication id retrieved when calling [`aeron_archive_replicate`](@ref)
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_replication( aeron_archive_t *aeron_archive, int64_t replication_id);
+```
+"""
+function aeron_archive_stop_replication(aeron_archive, replication_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_replication(aeron_archive::Ptr{aeron_archive_t}, replication_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_try_stop_replication(stopped_p, aeron_archive, replication_id)
+
+Try to stop a replication by the replication id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the recording is not currently active
+* `aeron_archive`: the archive client
+* `replication_id`: the replication id retrieved when calling [`aeron_archive_replicate`](@ref)
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_replication( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t replication_id);
+```
+"""
+function aeron_archive_try_stop_replication(stopped_p, aeron_archive, replication_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_replication(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, replication_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_detach_segments(aeron_archive, recording_id, new_start_position)
+
+Detach segments from the beginning of a recording up to the provided new start position. <p> The new start position must be the first byte position of a segment after the existing start position. <p> It is not possible to detach segments which are active for recording or being replayed.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+* `new_start_position`: the new starting position for the recording after the segments are detached
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_detach_segments( aeron_archive_t *aeron_archive, int64_t recording_id, int64_t new_start_position);
+```
+"""
+function aeron_archive_detach_segments(aeron_archive, recording_id, new_start_position)
+    @ccall libaeron_archive_c_client.aeron_archive_detach_segments(aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, new_start_position::Int64)::Cint
+end
+
+"""
+    aeron_archive_delete_detached_segments(count_p, aeron_archive, recording_id)
+
+Delete segments which have been previously detached from a recording.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_delete_detached_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_delete_detached_segments(count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_delete_detached_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_purge_segments(count_p, aeron_archive, recording_id, new_start_position)
+
+Purge (Detach and delete) segments from the beginning of a recording up to the provided new start position. <p> The new start position must be the first byte position of a segment after the existing start position. <p> It is not possible to detach segments which are active for recording or being replayed.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+* `new_start_position`: the new starting position for the recording after the segments are detached
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_purge_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, int64_t new_start_position);
+```
+"""
+function aeron_archive_purge_segments(count_p, aeron_archive, recording_id, new_start_position)
+    @ccall libaeron_archive_c_client.aeron_archive_purge_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, new_start_position::Int64)::Cint
+end
+
+"""
+    aeron_archive_attach_segments(count_p, aeron_archive, recording_id)
+
+Attach segments to the beginning of a recording to restore history that was previously detached. <p> Segment files must match the existing recording and join exactly to the start position of the recording they are being attached to.
+
+# Arguments
+* `count_p`: out param set to the number of segments attached
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_attach_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_attach_segments(count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_attach_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_migrate_segments(count_p, aeron_archive, src_recording_id, dst_recording_id)
+
+Migrate segments from a source recording and attach them to the beginning of a destination recording. <p> The source recording must match the destination recording for segment length, term length, mtu length, stream id, plus the stop position and term id of the source must join with the start position of the destination and be on a segment boundary. <p> The source recording will be effectively truncated back to its start position after the migration.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `src_recording_id`: the id of an existing recording from which segments will be migrated
+* `dst_recording_id`: the id of an existing recording to which segments will be migrated
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_migrate_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t src_recording_id, int64_t dst_recording_id);
+```
+"""
+function aeron_archive_migrate_segments(count_p, aeron_archive, src_recording_id, dst_recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_migrate_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, src_recording_id::Int64, dst_recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_segment_file_base_position(start_position, position, term_buffer_length, segment_file_length)
+
+Position of the recorded stream at the base of a segment file. <p> If a recording starts within a term then the base position can be before the recording started.
+
+# Arguments
+* `start_position`: start position of the stream
+* `position`: position in the stream to calculate the segment base position from.
+* `term_buffer_length`: term buffer length of the stream
+* `segment_file_length`: segment file length, which is a multiple of term buffer length
+# Returns
+the position of the recorded stream at the beginning of a segment file
+### Prototype
+```c
+int64_t aeron_archive_segment_file_base_position( int64_t start_position, int64_t position, int32_t term_buffer_length, int32_t segment_file_length);
+```
+"""
+function aeron_archive_segment_file_base_position(start_position, position, term_buffer_length, segment_file_length)
+    @ccall libaeron_archive_c_client.aeron_archive_segment_file_base_position(start_position::Int64, position::Int64, term_buffer_length::Int32, segment_file_length::Int32)::Int64
+end
+
+"""
+    aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader, recording_id)
+
+Find the active counter id for a stream based on the recording id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `recording_id`: the recording id of an active recording
+# Returns
+the counter id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int32_t aeron_archive_recording_pos_find_counter_id_by_recording_id(aeron_counters_reader_t *counters_reader, int64_t recording_id);
+```
+"""
+function aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader::Ptr{aeron_counters_reader_t}, recording_id::Int64)::Int32
+end
+
+"""
+    aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader, session_id)
+
+Find the active counter id for a stream based on the session id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `session_id`: the session id of an active recording
+# Returns
+the counter id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int32_t aeron_archive_recording_pos_find_counter_id_by_session_id(aeron_counters_reader_t *counters_reader, int32_t session_id);
+```
+"""
+function aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader, session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader::Ptr{aeron_counters_reader_t}, session_id::Int32)::Int32
+end
+
+"""
+    aeron_archive_recording_pos_get_recording_id(counters_reader, counter_id)
+
+Get the recording id for a given counter id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id of an active recording
+# Returns
+the recording id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int64_t aeron_archive_recording_pos_get_recording_id(aeron_counters_reader_t *counters_reader, int32_t counter_id);
+```
+"""
+function aeron_archive_recording_pos_get_recording_id(counters_reader, counter_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_get_recording_id(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32)::Int64
+end
+
+"""
+    aeron_archive_recording_pos_get_source_identity(counters_reader, counter_id, dst, len_p)
+
+Get the source identity for the recording. <p> See source\\_identity in [`aeron_image_constants_t`](@ref).
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id of an active recording
+* `dst`: a destination buffer into which the source identity will be written
+* `len_p`: a pointer to a size\\_t that initially indicates the length of the dst buffer. After the function return successfully, len\\_p will be set to the length of the source identity string in dst
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_recording_pos_get_source_identity(aeron_counters_reader_t *counters_reader, int32_t counter_id, const char *dst, size_t *len_p);
+```
+"""
+function aeron_archive_recording_pos_get_source_identity(counters_reader, counter_id, dst, len_p)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_get_source_identity(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, dst::Cstring, len_p::Ptr{Csize_t})::Cint
+end
+
+"""
+    aeron_archive_recording_pos_is_active(is_active, counters_reader, counter_id, recording_id)
+
+Is the recording counter still active?
+
+# Arguments
+* `is_active`: out param set to true if the counter is still active
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id to search for
+* `recording_id`: the recording id to match against
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_recording_pos_is_active(bool *is_active, aeron_counters_reader_t *counters_reader, int32_t counter_id, int64_t recording_id);
+```
+"""
+function aeron_archive_recording_pos_is_active(is_active, counters_reader, counter_id, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_is_active(is_active::Ptr{Bool}, counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, recording_id::Int64)::Cint
+end
+
+mutable struct aeron_archive_replay_merge_stct end
+
+const aeron_archive_replay_merge_t = aeron_archive_replay_merge_stct
+
+"""
+    aeron_archive_replay_merge_init(replay_merge, subscription, aeron_archive, replay_channel, replay_destination, live_destination, recording_id, start_position, epoch_clock, merge_progress_timeout_ms)
+
+Create an [`aeron_archive_replay_merge_t`](@ref) to manage the merging of a replayed stream into a live stream.
+
+# Arguments
+* `replay_merge`: the [`aeron_archive_replay_merge_t`](@ref) to create and initialize
+* `subscription`: the subscription to use for the replay and live stream. Must be a multi-destination subscription
+* `aeron_archive`: the archive client
+* `replay_channel`: the channel to use for the replay
+* `replay_destination`: the replay channel to use for the destination added by the subscription
+* `live_destination`: the live stream channel to use for the destination added by the subscription
+* `recording_id`: the recording id of the archive to replay
+* `start_position`: the start position of the replay
+* `epoch_clock`: the clock to use for progress checks
+* `merge_progress_timeout_ms`: the timeout to use for progress checks
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_init( aeron_archive_replay_merge_t **replay_merge, aeron_subscription_t *subscription, aeron_archive_t *aeron_archive, const char *replay_channel, const char *replay_destination, const char *live_destination, int64_t recording_id, int64_t start_position, long long epoch_clock, int64_t merge_progress_timeout_ms);
+```
+"""
+function aeron_archive_replay_merge_init(replay_merge, subscription, aeron_archive, replay_channel, replay_destination, live_destination, recording_id, start_position, epoch_clock, merge_progress_timeout_ms)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_init(replay_merge::Ptr{Ptr{aeron_archive_replay_merge_t}}, subscription::Ptr{aeron_subscription_t}, aeron_archive::Ptr{aeron_archive_t}, replay_channel::Cstring, replay_destination::Cstring, live_destination::Cstring, recording_id::Int64, start_position::Int64, epoch_clock::Clonglong, merge_progress_timeout_ms::Int64)::Cint
+end
+
+"""
+    aeron_archive_replay_merge_close(replay_merge)
+
+Close and delete the [`aeron_archive_replay_merge_t`](@ref) struct.
+
+# Arguments
+* `replay_merge`: the [`aeron_archive_replay_merge_t`](@ref) to close and delete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_close(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_close(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_close(replay_merge::Ptr{aeron_archive_replay_merge_t})::Cint
+end
+
+"""
+    aeron_archive_replay_merge_do_work(work_count_p, replay_merge)
+
+Process the operation of the merge. Do not call the processing of fragments on the subscription.
+
+# Arguments
+* `work_count_p`: an indicator of work done
+* `replay_merge`: the replay\\_merge to process
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_do_work(int *work_count_p, aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_do_work(work_count_p, replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_do_work(work_count_p::Ptr{Cint}, replay_merge::Ptr{aeron_archive_replay_merge_t})::Cint
+end
+
+"""
+    aeron_archive_replay_merge_poll(replay_merge, handler, clientd, fragment_limit)
+
+Poll the image used for the merging replay and live stream. The [`aeron_archive_replay_merge_do_work`](@ref) will be called before the poll so that processing of the merge can be done.
+
+# Arguments
+* `replay_merge`: the replay\\_merge to process/poll
+* `handler`: the handler to call for incoming fragments
+* `clientd`: the clientd to provide to the handler
+* `fragment_limit`: the max number of fragments to process before returning
+# Returns
+>= 0 indicates the number of fragments processed, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_poll( aeron_archive_replay_merge_t *replay_merge, aeron_fragment_handler_t handler, void *clientd, int fragment_limit);
+```
+"""
+function aeron_archive_replay_merge_poll(replay_merge, handler, clientd, fragment_limit)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_poll(replay_merge::Ptr{aeron_archive_replay_merge_t}, handler::aeron_fragment_handler_t, clientd::Ptr{Cvoid}, fragment_limit::Cint)::Cint
+end
+
+"""
+    aeron_archive_replay_merge_image(replay_merge)
+
+The image used for the replay and live stream.
+
+# Arguments
+* `replay_merge`: the replay\\_merge that owns the image.
+# Returns
+the [`aeron_image_t`](@ref)
+### Prototype
+```c
+aeron_image_t *aeron_archive_replay_merge_image(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_image(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_image(replay_merge::Ptr{aeron_archive_replay_merge_t})::Ptr{aeron_image_t}
+end
+
+"""
+    aeron_archive_replay_merge_is_merged(replay_merge)
+
+Is the live stream merged and the replay stopped?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if merged, false otherwise
+### Prototype
+```c
+bool aeron_archive_replay_merge_is_merged(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_is_merged(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_merged(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
+"""
+    aeron_archive_replay_merge_has_failed(replay_merge)
+
+Has the replay\\_merge failed due to an error?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if an error occurred
+### Prototype
+```c
+bool aeron_archive_replay_merge_has_failed(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_has_failed(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_has_failed(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
+"""
+    aeron_archive_replay_merge_is_live_added(replay_merge)
+
+Is the live destination added to the subscription?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if the live destination is added to the subscription
+### Prototype
+```c
+bool aeron_archive_replay_merge_is_live_added(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_is_live_added(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_live_added(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
 const AERON_NULL_VALUE = -1
 
 const AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000
@@ -4086,6 +6138,10 @@ const AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT = -1002
 const AERON_CLIENT_ERROR_BUFFER_FULL = -1003
 
 const AERON_CLIENT_MAX_LOCAL_ADDRESS_STR_LEN = 64
+
+const AERON_RESPONSE_ADDRESS_TYPE_IPV4 = 0x01
+
+const AERON_RESPONSE_ADDRESS_TYPE_IPV6 = 0x02
 
 const AERON_DIR_ENV_VAR = "AERON_DIR"
 
@@ -4133,8 +6189,42 @@ const AERON_PUBLICATION_MAX_POSITION_EXCEEDED = -(Clong(5))
 
 const AERON_PUBLICATION_ERROR = -(Clong(6))
 
+const AERON_MAX_PATH = 4096
+
+const ARCHIVE_ERROR_CODE_GENERIC = 0
+
+const ARCHIVE_ERROR_CODE_ACTIVE_LISTING = 1
+
+const ARCHIVE_ERROR_CODE_ACTIVE_RECORDING = 2
+
+const ARCHIVE_ERROR_CODE_ACTIVE_SUBSCRIPTION = 3
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_SUBSCRIPTION = 4
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_RECORDING = 5
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_REPLAY = 6
+
+const ARCHIVE_ERROR_CODE_MAX_REPLAYS = 7
+
+const ARCHIVE_ERROR_CODE_MAX_RECORDINGS = 8
+
+const ARCHIVE_ERROR_CODE_INVALID_EXTENSION = 9
+
+const ARCHIVE_ERROR_CODE_AUTHENTICATION_REJECTED = 10
+
+const ARCHIVE_ERROR_CODE_STORAGE_SPACE = 11
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_REPLICATION = 12
+
+const ARCHIVE_ERROR_CODE_UNAUTHORISED_ACTION = 13
+
+const AERON_NULL_POSITION = AERON_NULL_VALUE
+
+const REPLAY_MERGE_PROGRESS_TIMEOUT_DEFAULT_MS = 5 * 1000
+
 # exports
-const PREFIXES = ["aeron_", "AERON_"]
+const PREFIXES = ["aeron_", "AERON_", "ARCHIVE_"]
 for name in names(@__MODULE__; all=true), prefix in PREFIXES
     if startswith(string(name), prefix)
         @eval export $name

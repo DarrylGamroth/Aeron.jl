@@ -292,4 +292,6 @@ include("exclusivepublication.jl")
 
 include("subscription.jl")
 
+include("archive/AeronArchive.jl")
+
 end # module
