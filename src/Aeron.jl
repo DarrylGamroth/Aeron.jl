@@ -142,7 +142,9 @@ export AbstractBlockHandler,
     version_gitsha,
     version_major,
     version_minor,
-    version_patch
+    version_patch,
+    AeronArchive,
+    MediaDriver
 
 const PUBLICATION_NOT_CONNECTED = AERON_PUBLICATION_NOT_CONNECTED
 const PUBLICATION_BACK_PRESSURED = AERON_PUBLICATION_BACK_PRESSURED
@@ -293,5 +295,7 @@ include("exclusivepublication.jl")
 include("subscription.jl")
 
 include("archive/AeronArchive.jl")
+
+include("driver/MediaDriver.jl")
 
 end # module

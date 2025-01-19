@@ -1,6 +1,6 @@
 [general]
+library_names = { "aeronc.h" = "libaeron", "aeronmd.h" = "libaeron_driver", "aeron_archive.h" = "libaeron_archive_c_client" }
 library_name = "libaeron"
-library_names = {"aeronc.h" = "libaeron", "aeron_archive.h" = "libaeron_archive_c_client"}
 output_file_path = "../src/LibAeron.jl"
 module_name = "LibAeron"
 jll_pkg_name = "Aeron_jll"

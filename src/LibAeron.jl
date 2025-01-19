@@ -3785,7 +3785,7 @@ end
 """
     aeron_properties_buffer_load(buffer)
 
-Load properties from a string containing name=value pairs and set appropriate environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties from a string containing name=value pairs and set appropriate environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `buffer`: containing properties and values.
@@ -3803,7 +3803,7 @@ end
 """
     aeron_properties_file_load(filename)
 
-Load properties file and set appropriate environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties file and set appropriate environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `filename`: to load.
@@ -3821,7 +3821,7 @@ end
 """
     aeron_properties_http_load(url)
 
-Load properties from HTTP URL and set environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties from HTTP URL and set environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `url`: to attempt to retrieve and load.
@@ -6127,6 +6127,2716 @@ function aeron_archive_replay_merge_is_live_added(replay_merge)
     @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_live_added(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
 end
 
+mutable struct aeron_driver_context_stct end
+
+const aeron_driver_context_t = aeron_driver_context_stct
+
+mutable struct aeron_driver_stct end
+
+const aeron_driver_t = aeron_driver_stct
+
+"""
+    aeron_driver_context_set_dir(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_dir(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_dir(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_dir_warn_if_exists(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_warn_if_exists(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_warn_if_exists(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_warn_if_exists(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_warn_if_exists(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_warn_if_exists(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_warn_if_exists(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_warn_if_exists(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+@cenum aeron_threading_mode_enum::UInt32 begin
+    AERON_THREADING_MODE_DEDICATED = 0
+    AERON_THREADING_MODE_SHARED_NETWORK = 1
+    AERON_THREADING_MODE_SHARED = 2
+    AERON_THREADING_MODE_INVOKER = 3
+end
+
+const aeron_threading_mode_t = aeron_threading_mode_enum
+
+"""
+    aeron_driver_context_set_threading_mode(context, mode)
+
+### Prototype
+```c
+int aeron_driver_context_set_threading_mode(aeron_driver_context_t *context, aeron_threading_mode_t mode);
+```
+"""
+function aeron_driver_context_set_threading_mode(context, mode)
+    @ccall libaeron_driver.aeron_driver_context_set_threading_mode(context::Ptr{aeron_driver_context_t}, mode::aeron_threading_mode_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_threading_mode(context)
+
+### Prototype
+```c
+aeron_threading_mode_t aeron_driver_context_get_threading_mode(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_threading_mode(context)
+    @ccall libaeron_driver.aeron_driver_context_get_threading_mode(context::Ptr{aeron_driver_context_t})::aeron_threading_mode_t
+end
+
+"""
+    aeron_driver_context_set_dir_delete_on_start(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_delete_on_start(aeron_driver_context_t * context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_delete_on_start(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_delete_on_start(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_delete_on_start(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_delete_on_start(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_delete_on_start(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_delete_on_start(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_dir_delete_on_shutdown(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_delete_on_shutdown(aeron_driver_context_t * context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_delete_on_shutdown(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_delete_on_shutdown(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_delete_on_shutdown(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_delete_on_shutdown(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_delete_on_shutdown(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_delete_on_shutdown(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_to_conductor_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_to_conductor_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_to_conductor_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_to_conductor_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_to_conductor_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_to_conductor_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_to_conductor_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_to_conductor_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_to_clients_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_to_clients_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_to_clients_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_to_clients_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_to_clients_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_to_clients_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_to_clients_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_to_clients_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_counters_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_counters_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_counters_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_counters_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_counters_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_counters_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_counters_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_counters_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_error_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_error_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_error_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_error_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_error_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_error_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_error_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_error_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_client_liveness_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_client_liveness_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_client_liveness_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_client_liveness_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_client_liveness_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_client_liveness_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_client_liveness_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_client_liveness_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_term_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_term_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_term_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_term_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_term_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_term_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_term_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_term_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_term_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_term_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_term_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_term_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_term_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_term_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_term_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_term_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_term_buffer_sparse_file(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_term_buffer_sparse_file(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_term_buffer_sparse_file(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_term_buffer_sparse_file(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_term_buffer_sparse_file(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_term_buffer_sparse_file(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_term_buffer_sparse_file(context)
+    @ccall libaeron_driver.aeron_driver_context_get_term_buffer_sparse_file(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_perform_storage_checks(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_perform_storage_checks(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_perform_storage_checks(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_perform_storage_checks(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_perform_storage_checks(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_perform_storage_checks(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_perform_storage_checks(context)
+    @ccall libaeron_driver.aeron_driver_context_get_perform_storage_checks(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_low_file_store_warning_threshold(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_low_file_store_warning_threshold(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_low_file_store_warning_threshold(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_low_file_store_warning_threshold(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_low_file_store_warning_threshold(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_low_file_store_warning_threshold(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_low_file_store_warning_threshold(context)
+    @ccall libaeron_driver.aeron_driver_context_get_low_file_store_warning_threshold(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_spies_simulate_connection(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_spies_simulate_connection(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_spies_simulate_connection(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_spies_simulate_connection(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_spies_simulate_connection(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_spies_simulate_connection(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_spies_simulate_connection(context)
+    @ccall libaeron_driver.aeron_driver_context_get_spies_simulate_connection(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_file_page_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_file_page_size(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_file_page_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_file_page_size(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_file_page_size(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_file_page_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_file_page_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_file_page_size(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_mtu_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_mtu_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_mtu_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_mtu_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_mtu_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_mtu_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_mtu_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_mtu_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_mtu_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_mtu_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_mtu_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_mtu_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_mtu_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_mtu_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_mtu_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_mtu_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_publication_term_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_publication_term_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_publication_term_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_publication_term_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_publication_term_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_publication_term_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_publication_term_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_publication_term_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_term_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_term_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_publication_term_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_term_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_term_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_publication_term_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_term_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_term_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_linger_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_linger_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_linger_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_linger_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_linger_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_linger_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_linger_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_linger_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_socket_so_rcvbuf(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_so_rcvbuf(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_socket_so_rcvbuf(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_so_rcvbuf(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_so_rcvbuf(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_socket_so_rcvbuf(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_so_rcvbuf(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_so_rcvbuf(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_socket_so_sndbuf(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_so_sndbuf(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_socket_so_sndbuf(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_so_sndbuf(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_so_sndbuf(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_socket_so_sndbuf(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_so_sndbuf(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_so_sndbuf(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_socket_multicast_ttl(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_multicast_ttl(aeron_driver_context_t *context, uint8_t value);
+```
+"""
+function aeron_driver_context_set_socket_multicast_ttl(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_multicast_ttl(context::Ptr{aeron_driver_context_t}, value::UInt8)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_multicast_ttl(context)
+
+### Prototype
+```c
+uint8_t aeron_driver_context_get_socket_multicast_ttl(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_multicast_ttl(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_multicast_ttl(context::Ptr{aeron_driver_context_t})::UInt8
+end
+
+"""
+    aeron_driver_context_set_send_to_status_poll_ratio(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_send_to_status_poll_ratio(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_send_to_status_poll_ratio(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_send_to_status_poll_ratio(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_send_to_status_poll_ratio(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_send_to_status_poll_ratio(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_send_to_status_poll_ratio(context)
+    @ccall libaeron_driver.aeron_driver_context_get_send_to_status_poll_ratio(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_rcv_status_message_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rcv_status_message_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_rcv_status_message_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rcv_status_message_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_rcv_status_message_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_rcv_status_message_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rcv_status_message_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rcv_status_message_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+mutable struct aeron_flow_control_strategy_stct end
+
+const aeron_flow_control_strategy_t = aeron_flow_control_strategy_stct
+
+mutable struct aeron_counters_manager_stct end
+
+const aeron_counters_manager_t = aeron_counters_manager_stct
+
+mutable struct aeron_udp_channel_stct end
+
+const aeron_udp_channel_t = aeron_udp_channel_stct
+
+# typedef int ( * aeron_flow_control_strategy_supplier_func_t ) ( aeron_flow_control_strategy_t * * strategy , aeron_driver_context_t * context , aeron_counters_manager_t * counters_manager , const aeron_udp_channel_t * channel , int32_t stream_id , int32_t session_id , int64_t registration_id , int32_t initial_term_id , size_t term_length )
+const aeron_flow_control_strategy_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_flow_control_strategy_supplier_by_name(name)
+
+Return a flow control strategy supplier function pointer associated with the given name. This only will find strategies built into the driver and will not try to dynamically load nor find any in the current executable.
+
+# Arguments
+* `name`: of the strategy
+# Returns
+function pointer to supplier associated with the name
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_flow_control_strategy_supplier_by_name(const char *name);
+```
+"""
+function aeron_flow_control_strategy_supplier_by_name(name)
+    @ccall libaeron_driver.aeron_flow_control_strategy_supplier_by_name(name::Cstring)::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_multicast_flowcontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_multicast_flowcontrol_supplier( aeron_driver_context_t *context, aeron_flow_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_multicast_flowcontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_multicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_flow_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_multicast_flowcontrol_supplier(context)
+
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_driver_context_get_multicast_flowcontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_multicast_flowcontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_multicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_unicast_flowcontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_unicast_flowcontrol_supplier( aeron_driver_context_t *context, aeron_flow_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_unicast_flowcontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_unicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_flow_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_unicast_flowcontrol_supplier(context)
+
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_driver_context_get_unicast_flowcontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_unicast_flowcontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_unicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_image_liveness_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_image_liveness_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_image_liveness_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_image_liveness_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_image_liveness_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_image_liveness_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_image_liveness_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_image_liveness_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_rcv_initial_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rcv_initial_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_rcv_initial_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rcv_initial_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_rcv_initial_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_rcv_initial_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rcv_initial_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rcv_initial_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+mutable struct aeron_congestion_control_strategy_stct end
+
+const aeron_congestion_control_strategy_t = aeron_congestion_control_strategy_stct
+
+mutable struct sockaddr_storage end
+
+# typedef int ( * aeron_congestion_control_strategy_supplier_func_t ) ( aeron_congestion_control_strategy_t * * strategy , aeron_udp_channel_t * channel , int32_t stream_id , int32_t session_id , int64_t registration_id , int32_t term_length , int32_t sender_mtu_length , struct sockaddr_storage * control_address , struct sockaddr_storage * src_address , aeron_driver_context_t * context , aeron_counters_manager_t * counters_manager )
+const aeron_congestion_control_strategy_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_congestioncontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_congestioncontrol_supplier( aeron_driver_context_t *context, aeron_congestion_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_congestioncontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_congestioncontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_congestion_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_congestioncontrol_supplier(context)
+
+### Prototype
+```c
+aeron_congestion_control_strategy_supplier_func_t aeron_driver_context_get_congestioncontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_congestioncontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_congestioncontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_congestion_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_loss_report_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_loss_report_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_loss_report_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_loss_report_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_loss_report_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_loss_report_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_loss_report_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_loss_report_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_unblock_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_unblock_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_unblock_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_unblock_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_unblock_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_unblock_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_unblock_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_unblock_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_publication_connection_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_connection_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_connection_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_connection_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_connection_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_connection_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_connection_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_connection_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_timer_interval_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_timer_interval_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_timer_interval_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_timer_interval_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_timer_interval_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_timer_interval_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_timer_interval_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_timer_interval_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_sender_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sender_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sender_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_conductor_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_conductor_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_conductor_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_receiver_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_receiver_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_receiver_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sharednetwork_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sharednetwork_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sharednetwork_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sharednetwork_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sharednetwork_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sharednetwork_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sharednetwork_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sharednetwork_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_shared_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_shared_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_shared_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_shared_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_shared_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_shared_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_shared_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_shared_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sender_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sender_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sender_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_conductor_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_conductor_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_conductor_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_receiver_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_receiver_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_receiver_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sharednetwork_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sharednetwork_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_shared_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_shared_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_shared_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_shared_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_shared_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_shared_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_shared_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_shared_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_agent_on_start_function(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_agent_on_start_function( aeron_driver_context_t *context, aeron_agent_on_start_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_agent_on_start_function(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_agent_on_start_function(context::Ptr{aeron_driver_context_t}, value::aeron_agent_on_start_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_agent_on_start_function(context)
+
+### Prototype
+```c
+aeron_agent_on_start_func_t aeron_driver_context_get_agent_on_start_function(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_agent_on_start_function(context)
+    @ccall libaeron_driver.aeron_driver_context_get_agent_on_start_function(context::Ptr{aeron_driver_context_t})::aeron_agent_on_start_func_t
+end
+
+"""
+    aeron_driver_context_get_agent_on_start_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_agent_on_start_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_agent_on_start_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_agent_on_start_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_counters_free_to_reuse_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_counters_free_to_reuse_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_flow_control_receiver_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_receiver_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_receiver_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_receiver_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_receiver_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_flow_control_receiver_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_receiver_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_receiver_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_flow_control_group_tag(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_group_tag(aeron_driver_context_t *context, int64_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_group_tag(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_group_tag(context::Ptr{aeron_driver_context_t}, value::Int64)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_group_tag(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_flow_control_group_tag(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_group_tag(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_group_tag(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_flow_control_group_min_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_group_min_size(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_group_min_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_group_min_size(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_group_min_size(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_flow_control_group_min_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_group_min_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_group_min_size(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_receiver_group_tag(context, is_present, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_group_tag(aeron_driver_context_t *context, bool is_present, int64_t value);
+```
+"""
+function aeron_driver_context_set_receiver_group_tag(context, is_present, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_group_tag(context::Ptr{aeron_driver_context_t}, is_present::Bool, value::Int64)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_group_tag_is_present(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_receiver_group_tag_is_present(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_tag_is_present(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_tag_is_present(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_get_receiver_group_tag_value(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_receiver_group_tag_value(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_tag_value(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_tag_value(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+# typedef bool ( * aeron_driver_termination_validator_func_t ) ( void * state , uint8_t * buffer , int32_t length )
+const aeron_driver_termination_validator_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_driver_termination_validator(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_termination_validator( aeron_driver_context_t *context, aeron_driver_termination_validator_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_driver_termination_validator(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_termination_validator(context::Ptr{aeron_driver_context_t}, value::aeron_driver_termination_validator_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_termination_validator(context)
+
+### Prototype
+```c
+aeron_driver_termination_validator_func_t aeron_driver_context_get_driver_termination_validator( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_validator(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_validator(context::Ptr{aeron_driver_context_t})::aeron_driver_termination_validator_func_t
+end
+
+"""
+    aeron_driver_context_get_driver_termination_validator_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_driver_termination_validator_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_validator_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_validator_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+# typedef void ( * aeron_driver_termination_hook_func_t ) ( void * clientd )
+const aeron_driver_termination_hook_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_driver_termination_hook(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_termination_hook( aeron_driver_context_t *context, aeron_driver_termination_hook_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_driver_termination_hook(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_termination_hook(context::Ptr{aeron_driver_context_t}, value::aeron_driver_termination_hook_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_termination_hook(context)
+
+### Prototype
+```c
+aeron_driver_termination_hook_func_t aeron_driver_context_get_driver_termination_hook(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_hook(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_hook(context::Ptr{aeron_driver_context_t})::aeron_driver_termination_hook_func_t
+end
+
+"""
+    aeron_driver_context_get_driver_termination_hook_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_driver_termination_hook_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_hook_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_hook_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_driver_context_set_print_configuration(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_print_configuration(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_print_configuration(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_print_configuration(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_print_configuration(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_print_configuration(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_print_configuration(context)
+    @ccall libaeron_driver.aeron_driver_context_get_print_configuration(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_reliable_stream(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_reliable_stream(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_reliable_stream(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_reliable_stream(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_reliable_stream(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_reliable_stream(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_reliable_stream(context)
+    @ccall libaeron_driver.aeron_driver_context_get_reliable_stream(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_tether_subscriptions(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_tether_subscriptions(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_tether_subscriptions(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_tether_subscriptions(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_tether_subscriptions(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_tether_subscriptions(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_tether_subscriptions(context)
+    @ccall libaeron_driver.aeron_driver_context_get_tether_subscriptions(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_untethered_window_limit_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_untethered_window_limit_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_untethered_window_limit_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_untethered_window_limit_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_untethered_window_limit_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_untethered_window_limit_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_untethered_window_limit_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_untethered_window_limit_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_untethered_resting_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_untethered_resting_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_untethered_resting_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_untethered_resting_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_untethered_resting_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_untethered_resting_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_untethered_resting_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_untethered_resting_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_driver_timeout_ms(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_timeout_ms(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_driver_timeout_ms(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_timeout_ms(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_timeout_ms(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_driver_timeout_ms(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_timeout_ms(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_timeout_ms(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_multicast_group_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_multicast_group_size(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_nak_multicast_group_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_multicast_group_size(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_multicast_group_size(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_nak_multicast_group_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_multicast_group_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_multicast_group_size(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_nak_multicast_max_backoff_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_multicast_max_backoff_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_multicast_max_backoff_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_multicast_max_backoff_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_multicast_max_backoff_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_multicast_max_backoff_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_multicast_max_backoff_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_multicast_max_backoff_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_unicast_delay_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_unicast_delay_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_unicast_delay_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_unicast_delay_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_unicast_delay_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_unicast_delay_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_unicast_delay_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_unicast_delay_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_unicast_retry_delay_ratio(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_unicast_retry_delay_ratio(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_unicast_retry_delay_ratio(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_unicast_retry_delay_ratio(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_unicast_retry_delay_ratio(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_unicast_retry_delay_ratio(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_unicast_retry_delay_ratio(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_unicast_retry_delay_ratio(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_max_resend(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_max_resend(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_max_resend(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_max_resend(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_max_resend(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_max_resend(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_max_resend(context)
+    @ccall libaeron_driver.aeron_driver_context_get_max_resend(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_retransmit_unicast_delay_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_retransmit_unicast_delay_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_retransmit_unicast_delay_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_retransmit_unicast_delay_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_retransmit_unicast_delay_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_retransmit_unicast_delay_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_retransmit_unicast_delay_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_retransmit_unicast_delay_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_retransmit_unicast_linger_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_retransmit_unicast_linger_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_retransmit_unicast_linger_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_retransmit_unicast_linger_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_retransmit_unicast_linger_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_retransmit_unicast_linger_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_retransmit_unicast_linger_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_retransmit_unicast_linger_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+@cenum aeron_inferable_boolean_enum::UInt32 begin
+    AERON_FORCE_FALSE = 0
+    AERON_FORCE_TRUE = 1
+    AERON_INFER = 2
+end
+
+const aeron_inferable_boolean_t = aeron_inferable_boolean_enum
+
+"""
+    aeron_driver_context_set_receiver_group_consideration(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_group_consideration( aeron_driver_context_t *context, aeron_inferable_boolean_t value);
+```
+"""
+function aeron_driver_context_set_receiver_group_consideration(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_group_consideration(context::Ptr{aeron_driver_context_t}, value::aeron_inferable_boolean_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_group_consideration(context)
+
+### Prototype
+```c
+aeron_inferable_boolean_t aeron_driver_context_get_receiver_group_consideration(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_consideration(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_consideration(context::Ptr{aeron_driver_context_t})::aeron_inferable_boolean_t
+end
+
+"""
+    aeron_driver_context_set_rejoin_stream(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rejoin_stream(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_rejoin_stream(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rejoin_stream(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_rejoin_stream(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_rejoin_stream(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rejoin_stream(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rejoin_stream(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_connect_enabled(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_connect_enabled(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_connect_enabled(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_connect_enabled(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_connect_enabled(context)
+
+### Prototype
+```c
+int aeron_driver_context_get_connect_enabled(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_connect_enabled(context)
+    @ccall libaeron_driver.aeron_driver_context_get_connect_enabled(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+mutable struct aeron_udp_channel_transport_bindings_stct end
+
+const aeron_udp_channel_transport_bindings_t = aeron_udp_channel_transport_bindings_stct
+
+"""
+    aeron_driver_context_set_udp_channel_transport_bindings(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_transport_bindings( aeron_driver_context_t *context, aeron_udp_channel_transport_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_transport_bindings(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_transport_bindings(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_transport_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_transport_bindings(context)
+
+### Prototype
+```c
+aeron_udp_channel_transport_bindings_t *aeron_driver_context_get_udp_channel_transport_bindings( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_transport_bindings(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_transport_bindings(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_transport_bindings_t}
+end
+
+mutable struct aeron_udp_channel_interceptor_bindings_stct end
+
+const aeron_udp_channel_interceptor_bindings_t = aeron_udp_channel_interceptor_bindings_stct
+
+"""
+    aeron_driver_context_set_udp_channel_outgoing_interceptors(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_outgoing_interceptors( aeron_driver_context_t *context, aeron_udp_channel_interceptor_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_outgoing_interceptors(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_outgoing_interceptors(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_interceptor_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_outgoing_interceptors(context)
+
+### Prototype
+```c
+aeron_udp_channel_interceptor_bindings_t *aeron_driver_context_get_udp_channel_outgoing_interceptors( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_outgoing_interceptors(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_outgoing_interceptors(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_interceptor_bindings_t}
+end
+
+"""
+    aeron_driver_context_set_udp_channel_incoming_interceptors(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_incoming_interceptors( aeron_driver_context_t *context, aeron_udp_channel_interceptor_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_incoming_interceptors(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_incoming_interceptors(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_interceptor_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_incoming_interceptors(context)
+
+### Prototype
+```c
+aeron_udp_channel_interceptor_bindings_t *aeron_driver_context_get_udp_channel_incoming_interceptors( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_incoming_interceptors(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_incoming_interceptors(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_interceptor_bindings_t}
+end
+
+"""
+    aeron_driver_context_set_publication_reserved_session_id_low(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_reserved_session_id_low(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_publication_reserved_session_id_low(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_reserved_session_id_low(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_reserved_session_id_low(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_publication_reserved_session_id_low(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_reserved_session_id_low(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_reserved_session_id_low(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_publication_reserved_session_id_high(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_reserved_session_id_high(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_publication_reserved_session_id_high(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_reserved_session_id_high(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_reserved_session_id_high(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_publication_reserved_session_id_high(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_reserved_session_id_high(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_reserved_session_id_high(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+mutable struct aeron_name_resolver_stct end
+
+const aeron_name_resolver_t = aeron_name_resolver_stct
+
+# typedef int ( * aeron_name_resolver_supplier_func_t ) ( aeron_name_resolver_t * resolver , const char * args , aeron_driver_context_t * context )
+const aeron_name_resolver_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_resolver_name(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_name(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_name(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_name(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_name(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_name(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_name(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_name(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_resolver_interface(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_interface(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_interface(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_interface(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_interface(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_interface(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_interface(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_interface(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_resolver_bootstrap_neighbor(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_bootstrap_neighbor(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_bootstrap_neighbor(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_bootstrap_neighbor(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_bootstrap_neighbor(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_bootstrap_neighbor(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_bootstrap_neighbor(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_bootstrap_neighbor(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_name_resolver_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_supplier( aeron_driver_context_t *context, aeron_name_resolver_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_name_resolver_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_name_resolver_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_supplier(context)
+
+### Prototype
+```c
+aeron_name_resolver_supplier_func_t aeron_driver_context_get_name_resolver_supplier(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_supplier(context::Ptr{aeron_driver_context_t})::aeron_name_resolver_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_name_resolver_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_name_resolver_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_name_resolver_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_re_resolution_check_interval_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_re_resolution_check_interval_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_re_resolution_check_interval_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_re_resolution_check_interval_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_re_resolution_check_interval_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_re_resolution_check_interval_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_re_resolution_check_interval_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_re_resolution_check_interval_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+mutable struct aeron_duty_cycle_tracker_stct end
+
+const aeron_duty_cycle_tracker_t = aeron_duty_cycle_tracker_stct
+
+"""
+    aeron_driver_context_set_conductor_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_conductor_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_conductor_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_sender_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_sender_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_sender_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_receiver_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_receiver_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_receiver_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_name_resolver_time_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_time_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_name_resolver_time_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_time_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_time_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_name_resolver_time_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_time_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_time_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_sender_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_wildcard_port_range( aeron_driver_context_t *context, uint16_t low_port, uint16_t high_port);
+```
+"""
+function aeron_driver_context_set_sender_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::UInt16, high_port::UInt16)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_get_sender_wildcard_port_range( aeron_driver_context_t *context, uint16_t *low_port, uint16_t *high_port);
+```
+"""
+function aeron_driver_context_get_sender_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::Ptr{UInt16}, high_port::Ptr{UInt16})::Cint
+end
+
+"""
+    aeron_driver_context_set_receiver_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_wildcard_port_range( aeron_driver_context_t *context, uint16_t low_port, uint16_t high_port);
+```
+"""
+function aeron_driver_context_set_receiver_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::UInt16, high_port::UInt16)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_get_receiver_wildcard_port_range( aeron_driver_context_t *context, uint16_t *low_port, uint16_t *high_port);
+```
+"""
+function aeron_driver_context_get_receiver_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::Ptr{UInt16}, high_port::Ptr{UInt16})::Cint
+end
+
+mutable struct aeron_port_manager_stct end
+
+const aeron_port_manager_t = aeron_port_manager_stct
+
+"""
+    aeron_driver_context_set_sender_port_manager(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_port_manager( aeron_driver_context_t *context, aeron_port_manager_t *value);
+```
+"""
+function aeron_driver_context_set_sender_port_manager(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_port_manager(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_port_manager_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_port_manager(context)
+
+### Prototype
+```c
+aeron_port_manager_t *aeron_driver_context_get_sender_port_manager(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_port_manager(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_port_manager(context::Ptr{aeron_driver_context_t})::Ptr{aeron_port_manager_t}
+end
+
+"""
+    aeron_driver_context_set_receiver_port_manager(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_port_manager( aeron_driver_context_t *context, aeron_port_manager_t *value);
+```
+"""
+function aeron_driver_context_set_receiver_port_manager(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_port_manager(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_port_manager_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_port_manager(context)
+
+### Prototype
+```c
+aeron_port_manager_t *aeron_driver_context_get_receiver_port_manager(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_port_manager(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_port_manager(context::Ptr{aeron_driver_context_t})::Ptr{aeron_port_manager_t}
+end
+
+"""
+    aeron_driver_context_set_conductor_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_conductor_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_conductor_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_conductor_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_conductor_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_sender_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_sender_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_sender_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_sender_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_sender_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_receiver_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_receiver_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_receiver_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_receiver_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_receiver_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_name_resolver_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_name_resolver_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_name_resolver_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_name_resolver_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_name_resolver_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_receiver_io_vector_capacity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_io_vector_capacity(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_receiver_io_vector_capacity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_io_vector_capacity(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_io_vector_capacity(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_receiver_io_vector_capacity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_io_vector_capacity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_io_vector_capacity(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_sender_io_vector_capacity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_io_vector_capacity(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_sender_io_vector_capacity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_io_vector_capacity(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_io_vector_capacity(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_sender_io_vector_capacity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_io_vector_capacity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_io_vector_capacity(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_network_publication_max_messages_per_send(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_network_publication_max_messages_per_send(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_network_publication_max_messages_per_send(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_network_publication_max_messages_per_send(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_network_publication_max_messages_per_send(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_network_publication_max_messages_per_send(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_network_publication_max_messages_per_send(context)
+    @ccall libaeron_driver.aeron_driver_context_get_network_publication_max_messages_per_send(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_resource_free_limit(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resource_free_limit(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_resource_free_limit(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resource_free_limit(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_resource_free_limit(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_resource_free_limit(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resource_free_limit(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resource_free_limit(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_async_executor_threads(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_async_executor_threads(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_async_executor_threads(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_async_executor_threads(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_async_executor_threads(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_async_executor_threads(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_async_executor_threads(context)
+    @ccall libaeron_driver.aeron_driver_context_get_async_executor_threads(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_enable_experimental_features(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_enable_experimental_features(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_enable_experimental_features(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_enable_experimental_features(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_enable_experimental_features(context)
+
+### Prototype
+```c
+int aeron_driver_context_get_enable_experimental_features(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_enable_experimental_features(context)
+    @ccall libaeron_driver.aeron_driver_context_get_enable_experimental_features(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_context_set_stream_session_limit(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_stream_session_limit(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_stream_session_limit(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_stream_session_limit(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_stream_session_limit(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_stream_session_limit(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_stream_session_limit(context)
+    @ccall libaeron_driver.aeron_driver_context_get_stream_session_limit(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_init(context)
+
+Create a [`aeron_driver_context_t`](@ref) struct and initialize with default values.
+
+# Arguments
+* `context`: to create and initialize
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_context_init(aeron_driver_context_t **context);
+```
+"""
+function aeron_driver_context_init(context)
+    @ccall libaeron_driver.aeron_driver_context_init(context::Ptr{Ptr{aeron_driver_context_t}})::Cint
+end
+
+"""
+    aeron_driver_context_close(context)
+
+Close and delete [`aeron_driver_context_t`](@ref) struct.
+
+# Arguments
+* `context`: to close and delete
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_context_close(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_close(context)
+    @ccall libaeron_driver.aeron_driver_context_close(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_init(driver, context)
+
+Create a [`aeron_driver_t`](@ref) struct and initialize from the [`aeron_driver_context_t`](@ref) struct.
+
+The given [`aeron_driver_context_t`](@ref) struct will be used exclusively by the driver. Do not reuse between drivers.
+
+# Arguments
+* `driver`: to create and initialize.
+* `context`: to use for initialization.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_init(aeron_driver_t **driver, aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_init(driver, context)
+    @ccall libaeron_driver.aeron_driver_init(driver::Ptr{Ptr{aeron_driver_t}}, context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_start(driver, manual_main_loop)
+
+Start an [`aeron_driver_t`](@ref) given the threading mode. This may spawn threads for the Sender, Receiver, and Conductor depending on threading mode used.
+
+# Arguments
+* `driver`: to start.
+* `manual_main_loop`: to be called by the caller for the Conductor do\\_work cycle.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_start(aeron_driver_t *driver, bool manual_main_loop);
+```
+"""
+function aeron_driver_start(driver, manual_main_loop)
+    @ccall libaeron_driver.aeron_driver_start(driver::Ptr{aeron_driver_t}, manual_main_loop::Bool)::Cint
+end
+
+"""
+    aeron_driver_main_do_work(driver)
+
+Call the Conductor (or Shared) main do\\_work duty cycle once.
+
+Driver must have been created with manual\\_main\\_loop set to true.
+
+# Arguments
+* `driver`: to call do\\_work duty cycle on.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_main_do_work(aeron_driver_t *driver);
+```
+"""
+function aeron_driver_main_do_work(driver)
+    @ccall libaeron_driver.aeron_driver_main_do_work(driver::Ptr{aeron_driver_t})::Cint
+end
+
+"""
+    aeron_driver_main_idle_strategy(driver, work_count)
+
+Call the Conductor (or Shared) Idle Strategy.
+
+# Arguments
+* `driver`: to idle.
+* `work_count`: to pass to idle strategy.
+### Prototype
+```c
+void aeron_driver_main_idle_strategy(aeron_driver_t *driver, int work_count);
+```
+"""
+function aeron_driver_main_idle_strategy(driver, work_count)
+    @ccall libaeron_driver.aeron_driver_main_idle_strategy(driver::Ptr{aeron_driver_t}, work_count::Cint)::Cvoid
+end
+
+"""
+    aeron_driver_close(driver)
+
+Close and delete [`aeron_driver_t`](@ref) struct.
+
+# Arguments
+* `driver`: to close and delete
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_close(aeron_driver_t *driver);
+```
+"""
+function aeron_driver_close(driver)
+    @ccall libaeron_driver.aeron_driver_close(driver::Ptr{aeron_driver_t})::Cint
+end
+
+"""
+    aeron_delete_directory(dirname)
+
+Delete the given aeron directory.
+
+# Arguments
+* `dirname`: to delete.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_delete_directory(const char *dirname);
+```
+"""
+function aeron_delete_directory(dirname)
+    @ccall libaeron_driver.aeron_delete_directory(dirname::Cstring)::Cint
+end
+
+"""
+    aeron_set_thread_affinity_on_start(state, role_name)
+
+Affinity setting function that complies with the [`aeron_agent_on_start_func_t`](@ref) structure that can be used as an agent start function. The state should be the [`aeron_driver_context_t`](@ref)* and the function will match the values "conductor", "sender", "receiver" and use the respective configuration options from the [`aeron_driver_context_t`](@ref).
+
+# Arguments
+* `state`: client information passed to function, should be the [`aeron_driver_context_t`](@ref)*.
+* `role_name`: name of the role specified on the agent.
+### Prototype
+```c
+void aeron_set_thread_affinity_on_start(void *state, const char *role_name);
+```
+"""
+function aeron_set_thread_affinity_on_start(state, role_name)
+    @ccall libaeron_driver.aeron_set_thread_affinity_on_start(state::Ptr{Cvoid}, role_name::Cstring)::Cvoid
+end
+
 const AERON_NULL_VALUE = -1
 
 const AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000
@@ -6222,6 +8932,212 @@ const ARCHIVE_ERROR_CODE_UNAUTHORISED_ACTION = 13
 const AERON_NULL_POSITION = AERON_NULL_VALUE
 
 const REPLAY_MERGE_PROGRESS_TIMEOUT_DEFAULT_MS = 5 * 1000
+
+const AERON_DIR_WARN_IF_EXISTS_ENV_VAR = "AERON_DIR_WARN_IF_EXISTS"
+
+const AERON_THREADING_MODE_ENV_VAR = "AERON_THREADING_MODE"
+
+const AERON_DIR_DELETE_ON_START_ENV_VAR = "AERON_DIR_DELETE_ON_START"
+
+const AERON_DIR_DELETE_ON_SHUTDOWN_ENV_VAR = "AERON_DIR_DELETE_ON_SHUTDOWN"
+
+const AERON_TO_CONDUCTOR_BUFFER_LENGTH_ENV_VAR = "AERON_CONDUCTOR_BUFFER_LENGTH"
+
+const AERON_TO_CLIENTS_BUFFER_LENGTH_ENV_VAR = "AERON_CLIENTS_BUFFER_LENGTH"
+
+const AERON_COUNTERS_VALUES_BUFFER_LENGTH_ENV_VAR = "AERON_COUNTERS_BUFFER_LENGTH"
+
+const AERON_ERROR_BUFFER_LENGTH_ENV_VAR = "AERON_ERROR_BUFFER_LENGTH"
+
+const AERON_CLIENT_LIVENESS_TIMEOUT_ENV_VAR = "AERON_CLIENT_LIVENESS_TIMEOUT"
+
+const AERON_TERM_BUFFER_LENGTH_ENV_VAR = "AERON_TERM_BUFFER_LENGTH"
+
+const AERON_IPC_TERM_BUFFER_LENGTH_ENV_VAR = "AERON_IPC_TERM_BUFFER_LENGTH"
+
+const AERON_TERM_BUFFER_SPARSE_FILE_ENV_VAR = "AERON_TERM_BUFFER_SPARSE_FILE"
+
+const AERON_PERFORM_STORAGE_CHECKS_ENV_VAR = "AERON_PERFORM_STORAGE_CHECKS"
+
+const AERON_LOW_FILE_STORE_WARNING_THRESHOLD_ENV_VAR = "AERON_LOW_FILE_STORE_WARNING_THRESHOLD"
+
+const AERON_SPIES_SIMULATE_CONNECTION_ENV_VAR = "AERON_SPIES_SIMULATE_CONNECTION"
+
+const AERON_FILE_PAGE_SIZE_ENV_VAR = "AERON_FILE_PAGE_SIZE"
+
+const AERON_MTU_LENGTH_ENV_VAR = "AERON_MTU_LENGTH"
+
+const AERON_IPC_MTU_LENGTH_ENV_VAR = "AERON_IPC_MTU_LENGTH"
+
+const AERON_IPC_PUBLICATION_TERM_WINDOW_LENGTH_ENV_VAR = "AERON_IPC_PUBLICATION_TERM_WINDOW_LENGTH"
+
+const AERON_PUBLICATION_TERM_WINDOW_LENGTH_ENV_VAR = "AERON_PUBLICATION_TERM_WINDOW_LENGTH"
+
+const AERON_PUBLICATION_LINGER_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_LINGER_TIMEOUT"
+
+const AERON_SOCKET_SO_RCVBUF_ENV_VAR = "AERON_SOCKET_SO_RCVBUF"
+
+const AERON_SOCKET_SO_SNDBUF_ENV_VAR = "AERON_SOCKET_SO_SNDBUF"
+
+const AERON_SOCKET_MULTICAST_TTL_ENV_VAR = "AERON_SOCKET_MULTICAST_TTL"
+
+const AERON_SEND_TO_STATUS_POLL_RATIO_ENV_VAR = "AERON_SEND_TO_STATUS_POLL_RATIO"
+
+const AERON_RCV_STATUS_MESSAGE_TIMEOUT_ENV_VAR = "AERON_RCV_STATUS_MESSAGE_TIMEOUT"
+
+const AERON_MULTICAST_MIN_FLOW_CONTROL_STRATEGY_NAME = "multicast_min"
+
+const AERON_MULTICAST_MAX_FLOW_CONTROL_STRATEGY_NAME = "multicast_max"
+
+const AERON_MULTICAST_TAGGED_FLOW_CONTROL_STRATEGY_NAME = "multicast_tagged"
+
+const AERON_UNICAST_MAX_FLOW_CONTROL_STRATEGY_NAME = "unicast_max"
+
+const AERON_MULTICAST_FLOWCONTROL_SUPPLIER_ENV_VAR = "AERON_MULTICAST_FLOWCONTROL_SUPPLIER"
+
+const AERON_UNICAST_FLOWCONTROL_SUPPLIER_ENV_VAR = "AERON_UNICAST_FLOWCONTROL_SUPPLIER"
+
+const AERON_IMAGE_LIVENESS_TIMEOUT_ENV_VAR = "AERON_IMAGE_LIVENESS_TIMEOUT"
+
+const AERON_RCV_INITIAL_WINDOW_LENGTH_ENV_VAR = "AERON_RCV_INITIAL_WINDOW_LENGTH"
+
+const AERON_CONGESTIONCONTROL_SUPPLIER_ENV_VAR = "AERON_CONGESTIONCONTROL_SUPPLIER"
+
+const AERON_CUBICCONGESTIONCONTROL_MEASURERTT_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_MEASURERTT"
+
+const AERON_CUBICCONGESTIONCONTROL_INITIALRTT_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_INITIALRTT"
+
+const AERON_CUBICCONGESTIONCONTROL_TCPMODE_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_TCPMODE"
+
+const AERON_LOSS_REPORT_BUFFER_LENGTH_ENV_VAR = "AERON_LOSS_REPORT_BUFFER_LENGTH"
+
+const AERON_PUBLICATION_UNBLOCK_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_UNBLOCK_TIMEOUT"
+
+const AERON_PUBLICATION_CONNECTION_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_CONNECTION_TIMEOUT"
+
+const AERON_TIMER_INTERVAL_ENV_VAR = "AERON_TIMER_INTERVAL"
+
+const AERON_SENDER_IDLE_STRATEGY_ENV_VAR = "AERON_SENDER_IDLE_STRATEGY"
+
+const AERON_CONDUCTOR_IDLE_STRATEGY_ENV_VAR = "AERON_CONDUCTOR_IDLE_STRATEGY"
+
+const AERON_RECEIVER_IDLE_STRATEGY_ENV_VAR = "AERON_RECEIVER_IDLE_STRATEGY"
+
+const AERON_SHAREDNETWORK_IDLE_STRATEGY_ENV_VAR = "AERON_SHAREDNETWORK_IDLE_STRATEGY"
+
+const AERON_SHARED_IDLE_STRATEGY_ENV_VAR = "AERON_SHARED_IDLE_STRATEGY"
+
+const AERON_SENDER_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_SENDER_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_CONDUCTOR_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_CONDUCTOR_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_RECEIVER_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_RECEIVER_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_SHAREDNETWORK_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_SHAREDNETWORK_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_SHARED_IDLE_STRATEGY_ENV_INIT_ARGS_VAR = "AERON_SHARED_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT_ENV_VAR = "AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT"
+
+const AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT_ENV_VAR = "AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT"
+
+const AERON_FLOW_CONTROL_GROUP_TAG_ENV_VAR = "AERON_FLOW_CONTROL_GROUP_TAG"
+
+const AERON_FLOW_CONTROL_GROUP_MIN_SIZE_ENV_VAR = "AERON_FLOW_CONTROL_GROUP_MIN_SIZE"
+
+const AERON_RECEIVER_GROUP_TAG_ENV_VAR = "AERON_RECEIVER_GROUP_TAG"
+
+const AERON_DRIVER_TERMINATION_VALIDATOR_ENV_VAR = "AERON_DRIVER_TERMINATION_VALIDATOR"
+
+const AERON_PRINT_CONFIGURATION_ON_START_ENV_VAR = "AERON_PRINT_CONFIGURATION"
+
+const AERON_RELIABLE_STREAM_ENV_VAR = "AERON_RELIABLE_STREAM"
+
+const AERON_TETHER_SUBSCRIPTIONS_ENV_VAR = "AERON_TETHER_SUBSCRIPTIONS"
+
+const AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT"
+
+const AERON_UNTETHERED_RESTING_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_RESTING_TIMEOUT"
+
+const AERON_NAK_MULTICAST_GROUP_SIZE_ENV_VAR = "AERON_NAK_MULTICAST_GROUP_SIZE"
+
+const AERON_NAK_MULTICAST_MAX_BACKOFF_ENV_VAR = "AERON_NAK_MULTICAST_MAX_BACKOFF"
+
+const AERON_NAK_UNICAST_DELAY_ENV_VAR = "AERON_NAK_UNICAST_DELAY"
+
+const AERON_NAK_UNICAST_RETRY_DELAY_RATIO_ENV_VAR = "AERON_NAK_UNICAST_RETRY_DELAY_RATIO"
+
+const AERON_MAX_RESEND_ENV_VAR = "AERON_MAX_RESEND"
+
+const AERON_RETRANSMIT_UNICAST_DELAY_ENV_VAR = "AERON_RETRANSMIT_UNICAST_DELAY"
+
+const AERON_RETRANSMIT_UNICAST_LINGER_ENV_VAR = "AERON_RETRANSMIT_UNICAST_LINGER"
+
+const AERON_RECEIVER_GROUP_CONSIDERATION_ENV_VAR = "AERON_RECEIVER_GROUP_CONSIDERATION"
+
+const AERON_REJOIN_STREAM_ENV_VAR = "AERON_REJOIN_STREAM"
+
+const AERON_DRIVER_CONNECT_ENV_VAR = "AERON_DRIVER_CONNECT"
+
+const AERON_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA_ENV_VAR = "AERON_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA"
+
+const AERON_CONDUCTOR_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA_ENV_VAR = "AERON_CONDUCTOR_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA"
+
+const AERON_UDP_CHANNEL_OUTGOING_INTERCEPTORS_ENV_VAR = "AERON_UDP_CHANNEL_OUTGOING_INTERCEPTORS"
+
+const AERON_UDP_CHANNEL_INCOMING_INTERCEPTORS_ENV_VAR = "AERON_UDP_CHANNEL_INCOMING_INTERCEPTORS"
+
+const AERON_PUBLICATION_RESERVED_SESSION_ID_LOW_ENV_VAR = "AERON_PUBLICATION_RESERVED_SESSION_ID_LOW"
+
+const AERON_PUBLICATION_RESERVED_SESSION_ID_HIGH_ENV_VAR = "AERON_PUBLICATION_RESERVED_SESSION_ID_HIGH"
+
+const AERON_DRIVER_RESOLVER_NAME_ENV_VAR = "AERON_DRIVER_RESOLVER_NAME"
+
+const AERON_DRIVER_RESOLVER_INTERFACE_ENV_VAR = "AERON_DRIVER_RESOLVER_INTERFACE"
+
+const AERON_DRIVER_RESOLVER_BOOTSTRAP_NEIGHBOR_ENV_VAR = "AERON_DRIVER_RESOLVER_BOOTSTRAP_NEIGHBOR"
+
+const AERON_NAME_RESOLVER_SUPPLIER_ENV_VAR = "AERON_NAME_RESOLVER_SUPPLIER"
+
+const AERON_NAME_RESOLVER_SUPPLIER_DEFAULT = "default"
+
+const AERON_NAME_RESOLVER_INIT_ARGS_ENV_VAR = "AERON_NAME_RESOLVER_INIT_ARGS"
+
+const AERON_DRIVER_RERESOLUTION_CHECK_INTERVAL_ENV_VAR = "AERON_DRIVER_RERESOLUTION_CHECK_INTERVAL"
+
+const AERON_DRIVER_SENDER_WILDCARD_PORT_RANGE_ENV_VAR = "AERON_SENDER_WILDCARD_PORT_RANGE"
+
+const AERON_DRIVER_RECEIVER_WILDCARD_PORT_RANGE_ENV_VAR = "AERON_RECEIVER_WILDCARD_PORT_RANGE"
+
+const AERON_DRIVER_CONDUCTOR_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_CONDUCTOR_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_SENDER_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_SENDER_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_RECEIVER_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_RECEIVER_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_NAME_RESOLVER_THRESHOLD_ENV_VAR = "AERON_DRIVER_NAME_RESOLVER_THRESHOLD"
+
+const AERON_RECEIVER_IO_VECTOR_CAPACITY_ENV_VAR = "AERON_RECEIVER_IO_VECTOR_CAPACITY"
+
+const AERON_SENDER_IO_VECTOR_CAPACITY_ENV_VAR = "AERON_SENDER_IO_VECTOR_CAPACITY"
+
+const AERON_NETWORK_PUBLICATION_MAX_MESSAGES_PER_SEND_ENV_VAR = "AERON_NETWORK_PUBLICATION_MAX_MESSAGES_PER_SEND"
+
+const AERON_DRIVER_RESOURCE_FREE_LIMIT_ENV_VAR = "AERON_DRIVER_RESOURCE_FREE_LIMIT"
+
+const AERON_DRIVER_ASYNC_EXECUTOR_THREADS_ENV_VAR = "AERON_DRIVER_ASYNC_EXECUTOR_THREADS"
+
+const AERON_CONDUCTOR_CPU_AFFINITY_ENV_VAR = "AERON_CONDUCTOR_CPU_AFFINITY"
+
+const AERON_RECEIVER_CPU_AFFINITY_ENV_VAR = "AERON_RECEIVER_CPU_AFFINITY"
+
+const AERON_SENDER_CPU_AFFINITY_ENV_VAR = "AERON_SENDER_CPU_AFFINITY"
+
+const AERON_DRIVER_DYNAMIC_LIBRARIES_ENV_VAR = "AERON_DRIVER_DYNAMIC_LIBRARIES"
+
+const AERON_ENABLE_EXPERIMENTAL_FEATURES_ENV_VAR = "AERON_ENABLE_EXPERIMENTAL_FEATURES"
+
+const AERON_DRIVER_STREAM_SESSION_LIMIT_ENV_VAR = "AERON_DRIVER_STREAM_SESSION_LIMIT"
 
 # exports
 const PREFIXES = ["aeron_", "AERON_", "ARCHIVE_"]
