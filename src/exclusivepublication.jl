@@ -222,12 +222,13 @@ function Base.close(p::ExclusivePublication)
 end
 
 """
+    offer(p::ExclusivePublication, buffer::AbstractVector{UInt8}) -> Int
+
 Offer a buffer to the exclusive publication.
 
 # Arguments
 - `p::ExclusivePublication`: The exclusive publication.
 - `buffer::AbstractVector{UInt8}`: The buffer to offer.
-- `reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing`: Optional reserved value supplier.
 
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
@@ -237,6 +238,8 @@ function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8})
 end
 
 """
+    offer(p::ExclusivePublication, buffer::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier) -> Int
+
 Offer a buffer to the exclusive publication with a reserved value supplier.
 
 # Arguments
@@ -255,12 +258,13 @@ function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8},
 end
 
 """
+    offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}) -> Int
+
 Offer multiple buffers to the exclusive publication.
 
 # Arguments
 - `p::ExclusivePublication`: The exclusive publication.
 - `buffers::AbstractVector{<:AbstractVector{UInt8}}`: The buffers to offer.
-- `reserved_value_supplier::Union{Nothing,AbstractReservedValueSupplier}=nothing`: Optional reserved value supplier.
 
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
@@ -270,6 +274,8 @@ function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector
 end
 
 """
+    offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier::AbstractReservedValueSupplier) -> Int
+
 Offer multiple buffers to the exclusive publication with a reserved value supplier.
 
 # Arguments
@@ -280,7 +286,7 @@ Offer multiple buffers to the exclusive publication with a reserved value suppli
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
 """
-function offer(p::ExclusivePublication, buffers::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier)
+function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier::AbstractReservedValueSupplier)
     _offer(p, buffers, reserved_value_supplier_cfunction(reserved_value_supplier), Ref(reserved_value_supplier))
 end
 

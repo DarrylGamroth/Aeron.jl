@@ -102,6 +102,39 @@ end
 
 const aeron_header_values_t = aeron_header_values_stct
 
+struct aeron_publication_error_values_stct
+    data::NTuple{72, UInt8}
+end
+
+function Base.getproperty(x::Ptr{aeron_publication_error_values_stct}, f::Symbol)
+    f === :registration_id && return Ptr{Int64}(x + 0)
+    f === :destination_registration_id && return Ptr{Int64}(x + 8)
+    f === :session_id && return Ptr{Int32}(x + 16)
+    f === :stream_id && return Ptr{Int32}(x + 20)
+    f === :receiver_id && return Ptr{Int64}(x + 24)
+    f === :group_tag && return Ptr{Int64}(x + 32)
+    f === :address_type && return Ptr{Int16}(x + 40)
+    f === :source_port && return Ptr{UInt16}(x + 42)
+    f === :source_address && return Ptr{NTuple{16, UInt8}}(x + 44)
+    f === :error_code && return Ptr{Int32}(x + 60)
+    f === :error_message_length && return Ptr{Int32}(x + 64)
+    f === :error_message && return Ptr{NTuple{1, UInt8}}(x + 68)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::aeron_publication_error_values_stct, f::Symbol)
+    r = Ref{aeron_publication_error_values_stct}(x)
+    ptr = Base.unsafe_convert(Ptr{aeron_publication_error_values_stct}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{aeron_publication_error_values_stct}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+const aeron_publication_error_values_t = aeron_publication_error_values_stct
+
 mutable struct aeron_subscription_stct end
 
 const aeron_subscription_t = aeron_subscription_stct
@@ -326,6 +359,47 @@ The error handler to be called when an error occurs.
 """
 const aeron_error_handler_t = Ptr{Cvoid}
 
+# typedef void ( * aeron_publication_error_frame_handler_t ) ( void * clientd , aeron_publication_error_values_t * error_frame )
+"""
+The error frame handler to be called when the driver notifies the client about an error frame being received. The data passed to this callback will only be valid for the lifetime of the callback. The user should use <code>[`aeron_publication_error_values_copy`](@ref)</code> if they require the data to live longer than that.
+"""
+const aeron_publication_error_frame_handler_t = Ptr{Cvoid}
+
+"""
+    aeron_publication_error_values_copy(dst, src)
+
+Copy an existing [`aeron_publication_error_values_t`](@ref) to the supplied pointer. The caller is responsible for freeing the allocated memory using [`aeron_publication_error_values_delete`](@ref) when the copy is not longer required.
+
+# Arguments
+* `dst`: to copy the values to.
+* `src`: to copy the values from.
+# Returns
+0 if this is successful, -1 otherwise. Will set [`aeron_errcode`](@ref)() and [`aeron_errmsg`](@ref)() on failure.
+### Prototype
+```c
+int aeron_publication_error_values_copy(aeron_publication_error_values_t **dst, aeron_publication_error_values_t *src);
+```
+"""
+function aeron_publication_error_values_copy(dst, src)
+    @ccall libaeron.aeron_publication_error_values_copy(dst::Ptr{Ptr{aeron_publication_error_values_t}}, src::Ptr{aeron_publication_error_values_t})::Cint
+end
+
+"""
+    aeron_publication_error_values_delete(to_delete)
+
+Delete a instance of [`aeron_publication_error_values_t`](@ref) that was created when making a copy ([`aeron_publication_error_values_copy`](@ref)). This should not be use on the pointer received via the aeron\\_frame\\_handler\\_t.
+
+# Arguments
+* `to_delete`: to be deleted.
+### Prototype
+```c
+void aeron_publication_error_values_delete(aeron_publication_error_values_t *to_delete);
+```
+"""
+function aeron_publication_error_values_delete(to_delete)
+    @ccall libaeron.aeron_publication_error_values_delete(to_delete::Ptr{aeron_publication_error_values_t})::Cvoid
+end
+
 # typedef void ( * aeron_notification_t ) ( void * clientd )
 """
 Generalised notification callback.
@@ -366,6 +440,42 @@ void *aeron_context_get_error_handler_clientd(aeron_context_t *context);
 """
 function aeron_context_get_error_handler_clientd(context)
     @ccall libaeron.aeron_context_get_error_handler_clientd(context::Ptr{aeron_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_context_set_publication_error_frame_handler(context, handler, clientd)
+
+### Prototype
+```c
+int aeron_context_set_publication_error_frame_handler(aeron_context_t *context, aeron_publication_error_frame_handler_t handler, void *clientd);
+```
+"""
+function aeron_context_set_publication_error_frame_handler(context, handler, clientd)
+    @ccall libaeron.aeron_context_set_publication_error_frame_handler(context::Ptr{aeron_context_t}, handler::aeron_publication_error_frame_handler_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_context_get_publication_error_frame_handler(context)
+
+### Prototype
+```c
+aeron_publication_error_frame_handler_t aeron_context_get_publication_error_frame_handler(aeron_context_t *context);
+```
+"""
+function aeron_context_get_publication_error_frame_handler(context)
+    @ccall libaeron.aeron_context_get_publication_error_frame_handler(context::Ptr{aeron_context_t})::aeron_publication_error_frame_handler_t
+end
+
+"""
+    aeron_context_get_publication_error_frame_handler_clientd(context)
+
+### Prototype
+```c
+void *aeron_context_get_publication_error_frame_handler_clientd(aeron_context_t *context);
+```
+"""
+function aeron_context_get_publication_error_frame_handler_clientd(context)
+    @ccall libaeron.aeron_context_get_publication_error_frame_handler_clientd(context::Ptr{aeron_context_t})::Ptr{Cvoid}
 end
 
 # typedef void ( * aeron_on_new_publication_t ) ( void * clientd , aeron_async_add_publication_t * async , const char * channel , int32_t stream_id , int32_t session_id , int64_t correlation_id )
@@ -1528,6 +1638,26 @@ int aeron_counters_reader_counter_type_id( aeron_counters_reader_t *counters_rea
 """
 function aeron_counters_reader_counter_type_id(counters_reader, counter_id, type_id)
     @ccall libaeron.aeron_counters_reader_counter_type_id(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, type_id::Ptr{Int32})::Cint
+end
+
+"""
+    aeron_counters_reader_metadata_key(counters_reader, counter_id, key_p)
+
+Get a pointer to the key of a counter's metadata
+
+# Arguments
+* `counters_reader`: that contains the counter
+* `counter_id`: to find
+* `key_p`: out pointer set to location of metadata key
+# Returns
+-1 on failure, 0 on success.
+### Prototype
+```c
+int aeron_counters_reader_metadata_key( aeron_counters_reader_t *counters_reader, int32_t counter_id, uint8_t **key_p);
+```
+"""
+function aeron_counters_reader_metadata_key(counters_reader, counter_id, key_p)
+    @ccall libaeron.aeron_counters_reader_metadata_key(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, key_p::Ptr{Ptr{UInt8}})::Cint
 end
 
 """
@@ -3655,7 +3785,7 @@ end
 """
     aeron_properties_buffer_load(buffer)
 
-Load properties from a string containing name=value pairs and set appropriate environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties from a string containing name=value pairs and set appropriate environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `buffer`: containing properties and values.
@@ -3673,7 +3803,7 @@ end
 """
     aeron_properties_file_load(filename)
 
-Load properties file and set appropriate environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties file and set appropriate environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `filename`: to load.
@@ -3691,7 +3821,7 @@ end
 """
     aeron_properties_http_load(url)
 
-Load properties from HTTP URL and set environment variables for the process so that subsequent calls to aeron\\_driver\\_context\\_init will use those values.
+Load properties from HTTP URL and set environment variables for the process so that subsequent calls to [`aeron_driver_context_init`](@ref) will use those values.
 
 # Arguments
 * `url`: to attempt to retrieve and load.
@@ -4075,6 +4205,4638 @@ function aeron_cnc_close(aeron_cnc)
     @ccall libaeron.aeron_cnc_close(aeron_cnc::Ptr{aeron_cnc_t})::Cvoid
 end
 
+# typedef void ( * aeron_idle_strategy_func_t ) ( void * state , int work_count )
+const aeron_idle_strategy_func_t = Ptr{Cvoid}
+
+# typedef int ( * aeron_idle_strategy_init_func_t ) ( void * * state , const char * env_var , const char * init_args )
+const aeron_idle_strategy_init_func_t = Ptr{Cvoid}
+
+"""
+    aeron_semantic_version_compose(major, minor, patch)
+
+### Prototype
+```c
+int32_t aeron_semantic_version_compose(uint8_t major, uint8_t minor, uint8_t patch);
+```
+"""
+function aeron_semantic_version_compose(major, minor, patch)
+    @ccall libaeron.aeron_semantic_version_compose(major::UInt8, minor::UInt8, patch::UInt8)::Int32
+end
+
+"""
+    aeron_semantic_version_major(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_major(int32_t version);
+```
+"""
+function aeron_semantic_version_major(version)
+    @ccall libaeron.aeron_semantic_version_major(version::Int32)::UInt8
+end
+
+"""
+    aeron_semantic_version_minor(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_minor(int32_t version);
+```
+"""
+function aeron_semantic_version_minor(version)
+    @ccall libaeron.aeron_semantic_version_minor(version::Int32)::UInt8
+end
+
+"""
+    aeron_semantic_version_patch(version)
+
+### Prototype
+```c
+uint8_t aeron_semantic_version_patch(int32_t version);
+```
+"""
+function aeron_semantic_version_patch(version)
+    @ccall libaeron.aeron_semantic_version_patch(version::Int32)::UInt8
+end
+
+# typedef void ( * aeron_fptr_t ) ( void )
+const aeron_fptr_t = Ptr{Cvoid}
+
+mutable struct aeron_archive_stct end
+
+const aeron_archive_t = aeron_archive_stct
+
+mutable struct aeron_archive_context_stct end
+
+const aeron_archive_context_t = aeron_archive_context_stct
+
+mutable struct aeron_archive_async_connect_stct end
+
+const aeron_archive_async_connect_t = aeron_archive_async_connect_stct
+
+struct aeron_archive_encoded_credentials_stct
+    data::Cstring
+    length::UInt32
+end
+
+const aeron_archive_encoded_credentials_t = aeron_archive_encoded_credentials_stct
+
+# typedef aeron_archive_encoded_credentials_t * ( * aeron_archive_credentials_encoded_credentials_supplier_func_t ) ( void * clientd )
+"""
+Callback to return encoded credentials.
+
+# Returns
+encoded credentials to include with the connect request
+"""
+const aeron_archive_credentials_encoded_credentials_supplier_func_t = Ptr{Cvoid}
+
+# typedef aeron_archive_encoded_credentials_t * ( * aeron_archive_credentials_challenge_supplier_func_t ) ( aeron_archive_encoded_credentials_t * encoded_challenge , void * clientd )
+"""
+Callback to return encoded credentials given a specific encoded challenge.
+
+# Arguments
+* `encoded_challenge`: to use to generate the encoded credentials
+# Returns
+encoded credentials to include with the challenge response
+"""
+const aeron_archive_credentials_challenge_supplier_func_t = Ptr{Cvoid}
+
+# typedef void ( * aeron_archive_credentials_free_func_t ) ( aeron_archive_encoded_credentials_t * credentials , void * clientd )
+"""
+Callback to return encoded credentials so they may be reused or freed.
+
+# Arguments
+* `credentials`: to reuse or free
+"""
+const aeron_archive_credentials_free_func_t = Ptr{Cvoid}
+
+# typedef void ( * aeron_archive_delegating_invoker_func_t ) ( void * clientd )
+"""
+Callback to allow execution of a delegating invoker to be run.
+"""
+const aeron_archive_delegating_invoker_func_t = Ptr{Cvoid}
+
+"""
+    aeron_archive_replay_params_stct
+
+Struct containing the available replay parameters.
+"""
+struct aeron_archive_replay_params_stct
+    bounding_limit_counter_id::Int32
+    file_io_max_length::Int32
+    position::Int64
+    length::Int64
+    replay_token::Int64
+    subscription_registration_id::Int64
+end
+
+"""
+Struct containing the available replay parameters.
+"""
+const aeron_archive_replay_params_t = aeron_archive_replay_params_stct
+
+"""
+    aeron_archive_replay_params_init(params)
+
+Initialize an [`aeron_archive_replay_params_t`](@ref) with the default values.
+
+### Prototype
+```c
+int aeron_archive_replay_params_init(aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_replay_params_init(params)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_params_init(params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_replication_params_stct
+
+Struct containing the available replication parameters.
+"""
+struct aeron_archive_replication_params_stct
+    stop_position::Int64
+    dst_recording_id::Int64
+    live_destination::Cstring
+    replication_channel::Cstring
+    src_response_channel::Cstring
+    channel_tag_id::Int64
+    subscription_tag_id::Int64
+    file_io_max_length::Int32
+    replication_session_id::Int32
+    encoded_credentials::Ptr{aeron_archive_encoded_credentials_t}
+end
+
+"""
+Struct containing the available replication parameters.
+"""
+const aeron_archive_replication_params_t = aeron_archive_replication_params_stct
+
+"""
+    aeron_archive_replication_params_init(params)
+
+Initialize an [`aeron_archive_replication_params_t`](@ref) with the default values
+
+### Prototype
+```c
+int aeron_archive_replication_params_init(aeron_archive_replication_params_t *params);
+```
+"""
+function aeron_archive_replication_params_init(params)
+    @ccall libaeron_archive_c_client.aeron_archive_replication_params_init(params::Ptr{aeron_archive_replication_params_t})::Cint
+end
+
+"""
+    aeron_archive_recording_descriptor_stct
+
+Struct containing the details of a recording
+"""
+struct aeron_archive_recording_descriptor_stct
+    control_session_id::Int64
+    correlation_id::Int64
+    recording_id::Int64
+    start_timestamp::Int64
+    stop_timestamp::Int64
+    start_position::Int64
+    stop_position::Int64
+    initial_term_id::Int32
+    segment_file_length::Int32
+    term_buffer_length::Int32
+    mtu_length::Int32
+    session_id::Int32
+    stream_id::Int32
+    stripped_channel::Cstring
+    stripped_channel_length::Csize_t
+    original_channel::Cstring
+    original_channel_length::Csize_t
+    source_identity::Cstring
+    source_identity_length::Csize_t
+end
+
+"""
+Struct containing the details of a recording
+"""
+const aeron_archive_recording_descriptor_t = aeron_archive_recording_descriptor_stct
+
+# typedef void ( * aeron_archive_recording_descriptor_consumer_func_t ) ( aeron_archive_recording_descriptor_t * recording_descriptor , void * clientd )
+"""
+Callback to return recording descriptors.
+"""
+const aeron_archive_recording_descriptor_consumer_func_t = Ptr{Cvoid}
+
+"""
+    aeron_archive_recording_subscription_descriptor_stct
+
+Struct containing the details of a recording subscription
+"""
+struct aeron_archive_recording_subscription_descriptor_stct
+    control_session_id::Int64
+    correlation_id::Int64
+    subscription_id::Int64
+    stream_id::Int32
+    stripped_channel::Cstring
+    stripped_channel_length::Csize_t
+end
+
+"""
+Struct containing the details of a recording subscription
+"""
+const aeron_archive_recording_subscription_descriptor_t = aeron_archive_recording_subscription_descriptor_stct
+
+# typedef void ( * aeron_archive_recording_subscription_descriptor_consumer_func_t ) ( aeron_archive_recording_subscription_descriptor_t * recording_subscription_descriptor , void * clientd )
+"""
+Callback to return recording subscription descriptors.
+"""
+const aeron_archive_recording_subscription_descriptor_consumer_func_t = Ptr{Cvoid}
+
+@cenum aeron_archive_client_recording_signal_en::Int32 begin
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_START = 0
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_STOP = 1
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_EXTEND = 2
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_REPLICATE = 3
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_MERGE = 4
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_SYNC = 5
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_DELETE = 6
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_REPLICATE_END = 7
+    AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_NULL_VALUE = -2147483648
+end
+
+const aeron_archive_client_recording_signal_t = aeron_archive_client_recording_signal_en
+
+"""
+    aeron_archive_recording_signal_stct
+
+Struct containing the details of a recording signal.
+"""
+struct aeron_archive_recording_signal_stct
+    control_session_id::Int64
+    recording_id::Int64
+    subscription_id::Int64
+    position::Int64
+    recording_signal_code::Int32
+end
+
+"""
+Struct containing the details of a recording signal.
+"""
+const aeron_archive_recording_signal_t = aeron_archive_recording_signal_stct
+
+# typedef void ( * aeron_archive_recording_signal_consumer_func_t ) ( aeron_archive_recording_signal_t * recording_signal , void * clientd )
+"""
+Callback to return recording signals.
+"""
+const aeron_archive_recording_signal_consumer_func_t = Ptr{Cvoid}
+
+@cenum aeron_archive_source_location_en::UInt32 begin
+    AERON_ARCHIVE_SOURCE_LOCATION_LOCAL = 0
+    AERON_ARCHIVE_SOURCE_LOCATION_REMOTE = 1
+end
+
+const aeron_archive_source_location_t = aeron_archive_source_location_en
+
+"""
+    aeron_archive_context_init(ctx)
+
+Create an [`aeron_archive_context_t`](@ref) struct.
+
+# Arguments
+* `ctx`: context to create and initialize
+### Prototype
+```c
+int aeron_archive_context_init(aeron_archive_context_t **ctx);
+```
+"""
+function aeron_archive_context_init(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_init(ctx::Ptr{Ptr{aeron_archive_context_t}})::Cint
+end
+
+"""
+    aeron_archive_context_close(ctx)
+
+Close and delete the [`aeron_archive_context_t`](@ref) struct.
+
+# Arguments
+* `ctx`: context to delete
+### Prototype
+```c
+int aeron_archive_context_close(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_close(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_close(ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_context_set_aeron(ctx, aeron)
+
+Specify the client used for communicating with the local Media Driver. <p> This client will be closed with the [`aeron_archive_t`](@ref) is closed if [`aeron_archive_context_set_owns_aeron_client`](@ref) is true.
+
+### Prototype
+```c
+int aeron_archive_context_set_aeron(aeron_archive_context_t *ctx, aeron_t *aeron);
+```
+"""
+function aeron_archive_context_set_aeron(ctx, aeron)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_aeron(ctx::Ptr{aeron_archive_context_t}, aeron::Ptr{aeron_t})::Cint
+end
+
+"""
+    aeron_archive_context_get_aeron(ctx)
+
+### Prototype
+```c
+aeron_t *aeron_archive_context_get_aeron(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_aeron(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_aeron(ctx::Ptr{aeron_archive_context_t})::Ptr{aeron_t}
+end
+
+"""
+    aeron_archive_context_set_owns_aeron_client(ctx, owns_aeron_client)
+
+Specify whether or not this context owns the client and, therefore, takes responsibility for closing it.
+
+### Prototype
+```c
+int aeron_archive_context_set_owns_aeron_client(aeron_archive_context_t *ctx, bool owns_aeron_client);
+```
+"""
+function aeron_archive_context_set_owns_aeron_client(ctx, owns_aeron_client)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_owns_aeron_client(ctx::Ptr{aeron_archive_context_t}, owns_aeron_client::Bool)::Cint
+end
+
+"""
+    aeron_archive_context_get_owns_aeron_client(ctx)
+
+### Prototype
+```c
+bool aeron_archive_context_get_owns_aeron_client(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_owns_aeron_client(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_owns_aeron_client(ctx::Ptr{aeron_archive_context_t})::Bool
+end
+
+"""
+    aeron_archive_context_set_aeron_directory_name(ctx, aeron_directory_name)
+
+Specify the top level Aeron directory used for communication between the Aeron client and the Media Driver.
+
+### Prototype
+```c
+int aeron_archive_context_set_aeron_directory_name(aeron_archive_context_t *ctx, const char *aeron_directory_name);
+```
+"""
+function aeron_archive_context_set_aeron_directory_name(ctx, aeron_directory_name)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_aeron_directory_name(ctx::Ptr{aeron_archive_context_t}, aeron_directory_name::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_aeron_directory_name(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_aeron_directory_name(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_aeron_directory_name(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_aeron_directory_name(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_request_channel(ctx, control_request_channel)
+
+Specify the channel used for sending requests to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_request_channel(aeron_archive_context_t *ctx, const char *control_request_channel);
+```
+"""
+function aeron_archive_context_set_control_request_channel(ctx, control_request_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_request_channel(ctx::Ptr{aeron_archive_context_t}, control_request_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_request_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_control_request_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_request_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_request_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_request_stream_id(ctx, control_request_stream_id)
+
+Specify the stream used for sending requests to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_request_stream_id(aeron_archive_context_t *ctx, int32_t control_request_stream_id);
+```
+"""
+function aeron_archive_context_set_control_request_stream_id(ctx, control_request_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_request_stream_id(ctx::Ptr{aeron_archive_context_t}, control_request_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_request_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_control_request_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_request_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_request_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_control_response_channel(ctx, control_response_channel)
+
+Specify the channel used for receiving responses from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_response_channel(aeron_archive_context_t *ctx, const char *control_response_channel);
+```
+"""
+function aeron_archive_context_set_control_response_channel(ctx, control_response_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_response_channel(ctx::Ptr{aeron_archive_context_t}, control_response_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_response_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_control_response_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_response_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_response_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_control_response_stream_id(ctx, control_response_stream_id)
+
+Specify the stream used for receiving responses from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_response_stream_id(aeron_archive_context_t *ctx, int32_t control_response_stream_id);
+```
+"""
+function aeron_archive_context_set_control_response_stream_id(ctx, control_response_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_response_stream_id(ctx::Ptr{aeron_archive_context_t}, control_response_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_response_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_control_response_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_response_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_response_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_recording_events_channel(ctx, recording_events_channel)
+
+Specify the channel used for receiving recording events from the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_events_channel(aeron_archive_context_t *ctx, const char *recording_events_channel);
+```
+"""
+function aeron_archive_context_set_recording_events_channel(ctx, recording_events_channel)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_events_channel(ctx::Ptr{aeron_archive_context_t}, recording_events_channel::Cstring)::Cint
+end
+
+"""
+    aeron_archive_context_get_recording_events_channel(ctx)
+
+### Prototype
+```c
+const char *aeron_archive_context_get_recording_events_channel(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_recording_events_channel(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_recording_events_channel(ctx::Ptr{aeron_archive_context_t})::Cstring
+end
+
+"""
+    aeron_archive_context_set_recording_events_stream_id(ctx, recording_events_stream_id)
+
+Specify the stream id used for recording events channel.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_events_stream_id(aeron_archive_context_t *ctx, int32_t recording_events_stream_id);
+```
+"""
+function aeron_archive_context_set_recording_events_stream_id(ctx, recording_events_stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_events_stream_id(ctx::Ptr{aeron_archive_context_t}, recording_events_stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_context_get_recording_events_stream_id(ctx)
+
+### Prototype
+```c
+int32_t aeron_archive_context_get_recording_events_stream_id(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_recording_events_stream_id(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_recording_events_stream_id(ctx::Ptr{aeron_archive_context_t})::Int32
+end
+
+"""
+    aeron_archive_context_set_message_timeout_ns(ctx, message_timeout_ns)
+
+Specify the message timeout, in nanoseconds, to wait for sending or receiving a message.
+
+### Prototype
+```c
+int aeron_archive_context_set_message_timeout_ns(aeron_archive_context_t *ctx, uint64_t message_timeout_ns);
+```
+"""
+function aeron_archive_context_set_message_timeout_ns(ctx, message_timeout_ns)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_message_timeout_ns(ctx::Ptr{aeron_archive_context_t}, message_timeout_ns::UInt64)::Cint
+end
+
+"""
+    aeron_archive_context_get_message_timeout_ns(ctx)
+
+### Prototype
+```c
+uint64_t aeron_archive_context_get_message_timeout_ns(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_message_timeout_ns(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_message_timeout_ns(ctx::Ptr{aeron_archive_context_t})::UInt64
+end
+
+"""
+    aeron_archive_context_set_control_term_buffer_length(ctx, control_term_buffer_length)
+
+Specify the default term buffer length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_term_buffer_length(aeron_archive_context_t *ctx, size_t control_term_buffer_length);
+```
+"""
+function aeron_archive_context_set_control_term_buffer_length(ctx, control_term_buffer_length)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_term_buffer_length(ctx::Ptr{aeron_archive_context_t}, control_term_buffer_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_term_buffer_length(ctx)
+
+### Prototype
+```c
+size_t aeron_archive_context_get_control_term_buffer_length(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_term_buffer_length(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_term_buffer_length(ctx::Ptr{aeron_archive_context_t})::Csize_t
+end
+
+"""
+    aeron_archive_context_set_control_mtu_length(ctx, control_mtu_length)
+
+Specify the default MTU length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_mtu_length(aeron_archive_context_t *ctx, size_t control_mtu_length);
+```
+"""
+function aeron_archive_context_set_control_mtu_length(ctx, control_mtu_length)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_mtu_length(ctx::Ptr{aeron_archive_context_t}, control_mtu_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_mtu_length(ctx)
+
+### Prototype
+```c
+size_t aeron_archive_context_get_control_mtu_length(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_mtu_length(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_mtu_length(ctx::Ptr{aeron_archive_context_t})::Csize_t
+end
+
+"""
+    aeron_archive_context_set_control_term_buffer_sparse(ctx, control_term_buffer_sparse)
+
+Specify the default MTU length for the control request/response channels.
+
+### Prototype
+```c
+int aeron_archive_context_set_control_term_buffer_sparse(aeron_archive_context_t *ctx, bool control_term_buffer_sparse);
+```
+"""
+function aeron_archive_context_set_control_term_buffer_sparse(ctx, control_term_buffer_sparse)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_control_term_buffer_sparse(ctx::Ptr{aeron_archive_context_t}, control_term_buffer_sparse::Bool)::Cint
+end
+
+"""
+    aeron_archive_context_get_control_term_buffer_sparse(ctx)
+
+### Prototype
+```c
+bool aeron_archive_context_get_control_term_buffer_sparse(aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_context_get_control_term_buffer_sparse(ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_context_get_control_term_buffer_sparse(ctx::Ptr{aeron_archive_context_t})::Bool
+end
+
+"""
+    aeron_archive_context_set_idle_strategy(ctx, idle_strategy_func, idle_strategy_state)
+
+Specify the idle strategy function and associated state used by the client between polling calls.
+
+### Prototype
+```c
+int aeron_archive_context_set_idle_strategy( aeron_archive_context_t *ctx, aeron_idle_strategy_func_t idle_strategy_func, void *idle_strategy_state);
+```
+"""
+function aeron_archive_context_set_idle_strategy(ctx, idle_strategy_func, idle_strategy_state)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_idle_strategy(ctx::Ptr{aeron_archive_context_t}, idle_strategy_func::aeron_idle_strategy_func_t, idle_strategy_state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_credentials_supplier(ctx, encoded_credentials, on_challenge, on_free, clientd)
+
+Specify the various credentials callbacks to use when connecting to the Aeron Archive.
+
+### Prototype
+```c
+int aeron_archive_context_set_credentials_supplier( aeron_archive_context_t *ctx, aeron_archive_credentials_encoded_credentials_supplier_func_t encoded_credentials, aeron_archive_credentials_challenge_supplier_func_t on_challenge, aeron_archive_credentials_free_func_t on_free, void *clientd);
+```
+"""
+function aeron_archive_context_set_credentials_supplier(ctx, encoded_credentials, on_challenge, on_free, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_credentials_supplier(ctx::Ptr{aeron_archive_context_t}, encoded_credentials::aeron_archive_credentials_encoded_credentials_supplier_func_t, on_challenge::aeron_archive_credentials_challenge_supplier_func_t, on_free::aeron_archive_credentials_free_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_recording_signal_consumer(ctx, on_recording_signal, clientd)
+
+Specify the callback to which recording signals are dispatched while polling for control responses.
+
+### Prototype
+```c
+int aeron_archive_context_set_recording_signal_consumer( aeron_archive_context_t *ctx, aeron_archive_recording_signal_consumer_func_t on_recording_signal, void *clientd);
+```
+"""
+function aeron_archive_context_set_recording_signal_consumer(ctx, on_recording_signal, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_recording_signal_consumer(ctx::Ptr{aeron_archive_context_t}, on_recording_signal::aeron_archive_recording_signal_consumer_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_error_handler(ctx, error_handler, clientd)
+
+Specify the callback to which errors are dispatched while executing archive client commands.
+
+### Prototype
+```c
+int aeron_archive_context_set_error_handler( aeron_archive_context_t *ctx, aeron_error_handler_t error_handler, void *clientd);
+```
+"""
+function aeron_archive_context_set_error_handler(ctx, error_handler, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_error_handler(ctx::Ptr{aeron_archive_context_t}, error_handler::aeron_error_handler_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_context_set_delegating_invoker(ctx, delegating_invoker_func, clientd)
+
+Specify the callback to be invoked in addition to any invoker used by the Aeron instance. <p> Useful when running in a low thread count environment.
+
+### Prototype
+```c
+int aeron_archive_context_set_delegating_invoker( aeron_archive_context_t *ctx, aeron_archive_delegating_invoker_func_t delegating_invoker_func, void *clientd);
+```
+"""
+function aeron_archive_context_set_delegating_invoker(ctx, delegating_invoker_func, clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_context_set_delegating_invoker(ctx::Ptr{aeron_archive_context_t}, delegating_invoker_func::aeron_archive_delegating_invoker_func_t, clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_async_connect(async, ctx)
+
+Begin an attempt at creating a connection which can be completed by calling [`aeron_archive_async_connect_poll`](@ref).
+
+# Arguments
+* `async`: [`aeron_archive_async_connect_t`](@ref) to create and initialize
+* `ctx`: [`aeron_archive_context_t`](@ref) for the archive connection
+### Prototype
+```c
+int aeron_archive_async_connect(aeron_archive_async_connect_t **async, aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_async_connect(async, ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_async_connect(async::Ptr{Ptr{aeron_archive_async_connect_t}}, ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_async_connect_poll(aeron_archive, async)
+
+Poll for a complete connection.
+
+# Arguments
+* `aeron_archive`: [`aeron_archive_t`](@ref) that will be created/initialized upon successful connection
+* `async`: [`aeron_archive_async_connect_t`](@ref) to poll
+# Returns
+-1 for failure, 0 for 'try again', and 1 for success <p> Note that after a return of either -1 or 1, the provided [`aeron_archive_async_connect_t`](@ref) will have been deleted. <p> Also note that after a return of 1, the aeron\\_archive pointer will be set to a ready to use [`aeron_archive_t`](@ref).
+### Prototype
+```c
+int aeron_archive_async_connect_poll(aeron_archive_t **aeron_archive, aeron_archive_async_connect_t *async);
+```
+"""
+function aeron_archive_async_connect_poll(aeron_archive, async)
+    @ccall libaeron_archive_c_client.aeron_archive_async_connect_poll(aeron_archive::Ptr{Ptr{aeron_archive_t}}, async::Ptr{aeron_archive_async_connect_t})::Cint
+end
+
+"""
+    aeron_archive_connect(aeron_archive, ctx)
+
+Connect to an Aeron Archive.
+
+# Arguments
+* `aeron_archive`: [`aeron_archive_t`](@ref) that will be created/initialized upon successful connection
+* `ctx`: [`aeron_archive_context_t`](@ref) for the archive connection
+### Prototype
+```c
+int aeron_archive_connect(aeron_archive_t **aeron_archive, aeron_archive_context_t *ctx);
+```
+"""
+function aeron_archive_connect(aeron_archive, ctx)
+    @ccall libaeron_archive_c_client.aeron_archive_connect(aeron_archive::Ptr{Ptr{aeron_archive_t}}, ctx::Ptr{aeron_archive_context_t})::Cint
+end
+
+"""
+    aeron_archive_close(aeron_archive)
+
+Close the connection to the Aeron Archive and free up associated resources.
+
+### Prototype
+```c
+int aeron_archive_close(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_close(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_close(aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_get_archive_context(aeron_archive)
+
+Retrieve the underlying [`aeron_archive_context_t`](@ref) used to configure the provided [`aeron_archive_t`](@ref).
+
+### Prototype
+```c
+aeron_archive_context_t *aeron_archive_get_archive_context(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_archive_context(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_archive_context(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_archive_context_t}
+end
+
+"""
+    aeron_archive_get_and_own_archive_context(aeron_archive)
+
+Retrieve the underlying [`aeron_archive_context_t`](@ref) used to configure the provided [`aeron_archive_t`](@ref). <p> Additionally, calling this function transfers ownership of the returned [`aeron_archive_context_t`](@ref) to the caller. i.e. it is now the the caller's responsibility to close the context. This is useful when wrapping the C library in other, higher level languages.
+
+### Prototype
+```c
+aeron_archive_context_t *aeron_archive_get_and_own_archive_context(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_and_own_archive_context(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_and_own_archive_context(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_archive_context_t}
+end
+
+"""
+    aeron_archive_get_archive_id(aeron_archive)
+
+Retrieve the archive id of the connected Aeron Archive.
+
+### Prototype
+```c
+int64_t aeron_archive_get_archive_id(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_archive_id(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_archive_id(aeron_archive::Ptr{aeron_archive_t})::Int64
+end
+
+"""
+    aeron_archive_get_control_response_subscription(aeron_archive)
+
+Retrieve the underlying [`aeron_subscription_t`](@ref) used for reading responses from the connected Aeron Archive.
+
+### Prototype
+```c
+aeron_subscription_t *aeron_archive_get_control_response_subscription(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_control_response_subscription(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_control_response_subscription(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_subscription_t}
+end
+
+"""
+    aeron_archive_get_and_own_control_response_subscription(aeron_archive)
+
+Retrieve the underlying [`aeron_subscription_t`](@ref) used for reading responses from the connected Aeron Archive. <p> Additionally, calling this function transfers ownership of the returned [`aeron_subscription_t`](@ref) to the caller. i.e. it is now the caller's responsibility to close the subscription. This is useful when wrapping the C library in other, high level languages.
+
+### Prototype
+```c
+aeron_subscription_t *aeron_archive_get_and_own_control_response_subscription(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_get_and_own_control_response_subscription(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_get_and_own_control_response_subscription(aeron_archive::Ptr{aeron_archive_t})::Ptr{aeron_subscription_t}
+end
+
+"""
+    aeron_archive_control_session_id(aeron_archive)
+
+### Prototype
+```c
+int64_t aeron_archive_control_session_id(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_control_session_id(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_control_session_id(aeron_archive::Ptr{aeron_archive_t})::Int64
+end
+
+"""
+    aeron_archive_poll_for_recording_signals(count_p, aeron_archive)
+
+Poll for recording signals, dispatching them to the configured [`aeron_archive_recording_signal_consumer_func_t`](@ref) in the context
+
+# Arguments
+* `count_p`: out param that indicates the number of recording signals dispatched.
+# Returns
+0 for success, -1 for failure.
+### Prototype
+```c
+int aeron_archive_poll_for_recording_signals(int32_t *count_p, aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_poll_for_recording_signals(count_p, aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_poll_for_recording_signals(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_poll_for_error_response(aeron_archive, buffer, buffer_length)
+
+Poll the response stream once for an error. If another message is present then it will be skipped over, so only call when not expecting another response.
+
+# Returns
+0 if an error sent from the Aeron Archive is found, in which case, the provided buffer contains the error message. If there was no error, the buffer will be an empty string. <p> -1 if an error occurs while attempting to read from the subscription.
+### Prototype
+```c
+int aeron_archive_poll_for_error_response(aeron_archive_t *aeron_archive, char *buffer, size_t buffer_length);
+```
+"""
+function aeron_archive_poll_for_error_response(aeron_archive, buffer, buffer_length)
+    @ccall libaeron_archive_c_client.aeron_archive_poll_for_error_response(aeron_archive::Ptr{aeron_archive_t}, buffer::Cstring, buffer_length::Csize_t)::Cint
+end
+
+"""
+    aeron_archive_check_for_error_response(aeron_archive)
+
+Poll the response stream once for an error.
+
+# Returns
+0 if no error is found OR if an error is found but an error handler is specified in the context. <p> -1 if an error is found and no error handler is specified. The error message can be retrieved by calling [`aeron_errmsg`](@ref)()
+### Prototype
+```c
+int aeron_archive_check_for_error_response(aeron_archive_t *aeron_archive);
+```
+"""
+function aeron_archive_check_for_error_response(aeron_archive)
+    @ccall libaeron_archive_c_client.aeron_archive_check_for_error_response(aeron_archive::Ptr{aeron_archive_t})::Cint
+end
+
+"""
+    aeron_archive_add_recorded_publication(publication_p, aeron_archive, channel, stream_id)
+
+Add a publication and set it up to be recorded.
+
+# Arguments
+* `publication_p`: out param set to the [`aeron_publication_t`](@ref) upon success
+* `aeron_archive`: the archive client
+* `channel`: the channel for the publication
+* `stream_id`: the stream id for the publication
+### Prototype
+```c
+int aeron_archive_add_recorded_publication( aeron_publication_t **publication_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_add_recorded_publication(publication_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_add_recorded_publication(publication_p::Ptr{Ptr{aeron_publication_t}}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p, aeron_archive, channel, stream_id)
+
+Add an exclusive publication and set it up to be recorded.
+
+# Arguments
+* `publication_p`: out param set to the [`aeron_exclusive_publication_t`](@ref) upon success
+* `aeron_archive`: the archive client
+* `channel`: the channel for the exclusive publication
+* `stream_id`: the stream id for the exclusive publication
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_add_recorded_exclusive_publication( aeron_exclusive_publication_t **exclusive_publication_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_add_recorded_exclusive_publication(exclusive_publication_p::Ptr{Ptr{aeron_exclusive_publication_t}}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_start_recording(subscription_id_p, aeron_archive, recording_channel, recording_stream_id, source_location, auto_stop)
+
+Start recording a channel/stream pairing. <p> Channels that include session id parameters are considered different than channels without session ids. If a publication matches both a session id specific channel recording and a non session id specific recording, it will be recorded twice.
+
+# Arguments
+* `subscription_id_p`: out param set to the subscription id of the recording
+* `aeron_archive`: the archive client
+* `recording_channel`: the channel of the publication to be recorded
+* `recording_stream_id`: the stream id of the publication to be recorded
+* `source_location`: the source location of the publication to be recorded
+* `auto_stop`: should the recording be automatically stopped when complete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_start_recording( int64_t *subscription_id_p, aeron_archive_t *aeron_archive, const char *recording_channel, int32_t recording_stream_id, aeron_archive_source_location_t source_location, bool auto_stop);
+```
+"""
+function aeron_archive_start_recording(subscription_id_p, aeron_archive, recording_channel, recording_stream_id, source_location, auto_stop)
+    @ccall libaeron_archive_c_client.aeron_archive_start_recording(subscription_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_channel::Cstring, recording_stream_id::Int32, source_location::aeron_archive_source_location_t, auto_stop::Bool)::Cint
+end
+
+"""
+    aeron_archive_get_recording_position(recording_position_p, aeron_archive, recording_id)
+
+Fetch the position recorded for the specified recording.
+
+# Arguments
+* `recording_position_p`: out param set to the recording position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_recording_position( int64_t *recording_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_recording_position(recording_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_recording_position(recording_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_start_position(start_position_p, aeron_archive, recording_id)
+
+Fetch the start position for the specified recording.
+
+# Arguments
+* `start_position_p`: out param set to the start position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_start_position( int64_t *start_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_start_position(start_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_start_position(start_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_stop_position(stop_position_p, aeron_archive, recording_id)
+
+Fetch the stop position for the specified recording.
+
+# Arguments
+* `stop_position_p`: out param set to the stop position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_stop_position( int64_t *stop_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_stop_position(stop_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_stop_position(stop_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_get_max_recorded_position(max_recorded_position_p, aeron_archive, recording_id)
+
+Fetch the stop or active position for the specified recording.
+
+# Arguments
+* `max_recorded_position_p`: out param set to the stop or active position of the specified recording
+* `aeron_archive`: the archive client
+* `recording_id`: the active recording id
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_get_max_recorded_position( int64_t *max_recorded_position_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_get_max_recorded_position(max_recorded_position_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_get_max_recorded_position(max_recorded_position_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_subscription(aeron_archive, subscription_id)
+
+Stop recording for the specified subscription id. This is the subscription id returned from [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref).
+
+# Arguments
+* `aeron_archive`: the archive client
+* `subscription_id`: the subscription id for the recording in the Aeron Archive
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_subscription( aeron_archive_t *aeron_archive, int64_t subscription_id);
+```
+"""
+function aeron_archive_stop_recording_subscription(aeron_archive, subscription_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_subscription(aeron_archive::Ptr{aeron_archive_t}, subscription_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_subscription(stopped_p, aeron_archive, subscription_id)
+
+Try to stop a recording for the specified subscription id. This is the subscription id returned from [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref).
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the subscription is not currently active
+* `aeron_archive`: the archive client
+* `subscription_id`: the subscription id for the recording in the Aeron Archive
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_subscription( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t subscription_id);
+```
+"""
+function aeron_archive_try_stop_recording_subscription(stopped_p, aeron_archive, subscription_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_subscription(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, subscription_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_channel_and_stream(aeron_archive, channel, stream_id)
+
+Stop recording for the specified channel and stream. <p> Channels that include session id parameters are considered different than channels without session ids. Stopping a recording on a channel without a session id parameter will not stop the recording of any session id specific recordings that use the same channel and stream id.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `channel`: the channel of the recording to be stopped
+* `stream_id`: the stream id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_channel_and_stream( aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_stop_recording_channel_and_stream(aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_channel_and_stream(aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_channel_and_stream(stopped_p, aeron_archive, channel, stream_id)
+
+Try to stop recording for the specified channel and stream. <p> Channels that include session id parameters are considered different than channels without session ids. Stopping a recording on a channel without a session id parameter will not stop the recording of any session id specific recordings that use the same channel and stream id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the channel/stream pair is not currently active
+* `aeron_archive`: the archive client
+* `channel`: the channel of the recording to be stopped
+* `stream_id`: the stream id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_channel_and_stream( bool *stopped_p, aeron_archive_t *aeron_archive, const char *channel, int32_t stream_id);
+```
+"""
+function aeron_archive_try_stop_recording_channel_and_stream(stopped_p, aeron_archive, channel, stream_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_channel_and_stream(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, channel::Cstring, stream_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_try_stop_recording_by_identity(stopped_p, aeron_archive, recording_id)
+
+Stop recording for the specified recording id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the recording is not currently active
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording to be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_recording_by_identity( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_try_stop_recording_by_identity(stopped_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_recording_by_identity(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_recording_publication(aeron_archive, publication)
+
+Stop recording a session id specific recording that pertains to the given publication.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `publication`: the publication to stop recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_publication( aeron_archive_t *aeron_archive, aeron_publication_t *publication);
+```
+"""
+function aeron_archive_stop_recording_publication(aeron_archive, publication)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_publication(aeron_archive::Ptr{aeron_archive_t}, publication::Ptr{aeron_publication_t})::Cint
+end
+
+"""
+    aeron_archive_stop_recording_exclusive_publication(aeron_archive, exclusive_publication)
+
+Stop recording a session id specific recording that pertains to the given exclusive publication.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `exclusive_publication`: the exclusive publication to stop recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_recording_exclusive_publication( aeron_archive_t *aeron_archive, aeron_exclusive_publication_t *exclusive_publication);
+```
+"""
+function aeron_archive_stop_recording_exclusive_publication(aeron_archive, exclusive_publication)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_recording_exclusive_publication(aeron_archive::Ptr{aeron_archive_t}, exclusive_publication::Ptr{aeron_exclusive_publication_t})::Cint
+end
+
+"""
+    aeron_archive_find_last_matching_recording(recording_id_p, aeron_archive, min_recording_id, channel_fragment, stream_id, session_id)
+
+Find the last recording that matches the given criteria.
+
+# Arguments
+* `recording_id_p`: out param for the recording id that matches
+* `aeron_archive`: the archive client
+* `min_recording_id`: the lowest recording id to search back to
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `session_id`: the session id of the recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_find_last_matching_recording( int64_t *recording_id_p, aeron_archive_t *aeron_archive, int64_t min_recording_id, const char *channel_fragment, int32_t stream_id, int32_t session_id);
+```
+"""
+function aeron_archive_find_last_matching_recording(recording_id_p, aeron_archive, min_recording_id, channel_fragment, stream_id, session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_find_last_matching_recording(recording_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, min_recording_id::Int64, channel_fragment::Cstring, stream_id::Int32, session_id::Int32)::Cint
+end
+
+"""
+    aeron_archive_list_recording(count_p, aeron_archive, recording_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List a recording descriptor for a single recording id.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recording( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recording(count_p, aeron_archive, recording_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recording(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_list_recordings(count_p, aeron_archive, from_recording_id, record_count, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List all recording descriptors starting at a particular recording id, with a limit of total descriptors delivered.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `from_recording_id`: the id at which to begin the listing
+* `record_count`: the limit of total descriptors to deliver
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recordings( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t from_recording_id, int32_t record_count, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recordings(count_p, aeron_archive, from_recording_id, record_count, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recordings(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, from_recording_id::Int64, record_count::Int32, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_list_recordings_for_uri(count_p, aeron_archive, from_recording_id, record_count, channel_fragment, stream_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+
+List all recording descriptors for a given channel fragment and stream id, starting at a particular recording id, with a limit of total descriptors delivered.
+
+# Arguments
+* `count_p`: out param indicating the number of descriptors found
+* `aeron_archive`: the archive client
+* `from_recording_id`: the id at which to begin the listing
+* `record_count`: the limit of total descriptors to deliver
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `recording_descriptor_consumer`: to be called for each descriptor
+* `recording_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recordings_for_uri( int32_t *count_p, aeron_archive_t *aeron_archive, int64_t from_recording_id, int32_t record_count, const char *channel_fragment, int32_t stream_id, aeron_archive_recording_descriptor_consumer_func_t recording_descriptor_consumer, void *recording_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recordings_for_uri(count_p, aeron_archive, from_recording_id, record_count, channel_fragment, stream_id, recording_descriptor_consumer, recording_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recordings_for_uri(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, from_recording_id::Int64, record_count::Int32, channel_fragment::Cstring, stream_id::Int32, recording_descriptor_consumer::aeron_archive_recording_descriptor_consumer_func_t, recording_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_start_replay(replay_session_id_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+
+Start a replay <p> The lower 32-bits of the replay session id contain the session id of the image of the received replay and can be obtained by casting the replay session id to an int32\\_t. All 64-bits are required to uniquely identify the replay when calling [`aeron_archive_stop_replay`](@ref).
+
+# Arguments
+* `replay_session_id_p`: out param set to the replay session id
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `replay_channel`: the channel to which the replay should be sent
+* `replay_stream_id`: the stream id to which the replay should be sent
+* `params`: the [`aeron_archive_replay_params_t`](@ref) that control the behaviour of the replay
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_start_replay( int64_t *replay_session_id_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *replay_channel, int32_t replay_stream_id, aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_start_replay(replay_session_id_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_start_replay(replay_session_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, replay_channel::Cstring, replay_stream_id::Int32, params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_replay(subscription_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+
+Start a replay.
+
+# Arguments
+* `subscription_p`: out param set to the subscription created for consuming the replay
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `replay_channel`: the channel to which the replay should be sent
+* `replay_stream_id`: the stream id to which the replay should be sent
+* `params`: the [`aeron_archive_replay_params_t`](@ref) that control the behaviour of the replay
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay( aeron_subscription_t **subscription_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *replay_channel, int32_t replay_stream_id, aeron_archive_replay_params_t *params);
+```
+"""
+function aeron_archive_replay(subscription_p, aeron_archive, recording_id, replay_channel, replay_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_replay(subscription_p::Ptr{Ptr{aeron_subscription_t}}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, replay_channel::Cstring, replay_stream_id::Int32, params::Ptr{aeron_archive_replay_params_t})::Cint
+end
+
+"""
+    aeron_archive_truncate_recording(count_p, aeron_archive, recording_id, position)
+
+Truncate a stopped recording to the specified position. The position must be less than the stopped position. The position must be on a fragment boundary. Truncating a recording to the start position effectively deletes the recording.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording
+* `position`: the position to which the recording will be truncated
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_truncate_recording( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, int64_t position);
+```
+"""
+function aeron_archive_truncate_recording(count_p, aeron_archive, recording_id, position)
+    @ccall libaeron_archive_c_client.aeron_archive_truncate_recording(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, position::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_replay(aeron_archive, replay_session_id)
+
+Stop a replay session.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `replay_session_id`: the replay session id indicating the replay to stop
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_replay( aeron_archive_t *aeron_archive, int64_t replay_session_id);
+```
+"""
+function aeron_archive_stop_replay(aeron_archive, replay_session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_replay(aeron_archive::Ptr{aeron_archive_t}, replay_session_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_stop_all_replays(aeron_archive, recording_id)
+
+Stop all replays matching a recording id. If recording\\_id is [`AERON_NULL_VALUE`](@ref) then match all replays.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the recording for which all replays will be stopped
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_all_replays( aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_stop_all_replays(aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_all_replays(aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_list_recording_subscriptions(count_p, aeron_archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, recording_subscription_descriptor_consumer, recording_subscription_descriptor_consumer_clientd)
+
+List active recording subscriptions in the Aeron Archive. These are the result of calling [`aeron_archive_start_recording`](@ref) or [`aeron_archive_extend_recording`](@ref). The subscription id in the returned descriptor can be used when calling [`aeron_archive_stop_recording_subscription`](@ref).
+
+# Arguments
+* `count_p`: out param set to the count of matched subscriptions
+* `aeron_archive`: the archive client
+* `pseudo_index`: the index into the active list at which to begin listing
+* `subscription_count`: the limit of total descriptors to deliver
+* `channel_fragment`: for a 'contains' match on the original channel stored with the Aeron Archive
+* `stream_id`: the stream id of the recording
+* `apply_stream_id`: whether or not the stream id should be matched
+* `recording_subscription_descriptor_consumer`: to be called for each descriptor
+* `recording_subscription_descriptor_consumer_clientd`: to be passed for each descriptor
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_list_recording_subscriptions( int32_t *count_p, aeron_archive_t *aeron_archive, int32_t pseudo_index, int32_t subscription_count, const char *channel_fragment, int32_t stream_id, bool apply_stream_id, aeron_archive_recording_subscription_descriptor_consumer_func_t recording_subscription_descriptor_consumer, void *recording_subscription_descriptor_consumer_clientd);
+```
+"""
+function aeron_archive_list_recording_subscriptions(count_p, aeron_archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, recording_subscription_descriptor_consumer, recording_subscription_descriptor_consumer_clientd)
+    @ccall libaeron_archive_c_client.aeron_archive_list_recording_subscriptions(count_p::Ptr{Int32}, aeron_archive::Ptr{aeron_archive_t}, pseudo_index::Int32, subscription_count::Int32, channel_fragment::Cstring, stream_id::Int32, apply_stream_id::Bool, recording_subscription_descriptor_consumer::aeron_archive_recording_subscription_descriptor_consumer_func_t, recording_subscription_descriptor_consumer_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_archive_purge_recording(deleted_segments_count_p, aeron_archive, recording_id)
+
+Purge a stopped recording. i.e. Mark the recording as INVALID at the Archive and delete the corresponding segment files. The space in the Catalog will be reclaimed upon compaction.
+
+# Arguments
+* `deleted_segments_count_p`: out param set to the number of deleted segments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the stopped recording to be purged
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_purge_recording( int64_t *deleted_segments_count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_purge_recording(deleted_segments_count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_purge_recording(deleted_segments_count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_extend_recording(subscription_id_p, aeron_archive, recording_id, recording_channel, recording_stream_id, source_location, auto_stop)
+
+Extend an existing, non-active recording for a channel and stream pairing. <p> The channel must be configured with the initial position from which it will be extended. This can be done with aeron\\_uri\\_string\\_builder\\_set\\_initial\\_position. The details required to initialize can be found by calling [`aeron_archive_list_recording`](@ref).
+
+# Arguments
+* `subscription_id_p`: out param set to the subscription id of the recording
+* `aeron_archive`: the archive client
+* `recording_id`: the id of the existing recording
+* `recording_channel`: the channel of the publication to be recorded
+* `recording_stream_id`: the stream id of the publication to be recorded
+* `source_location`: the source location of the publication to be recorded
+* `auto_stop`: should the recording be automatically stopped when complete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_extend_recording( int64_t *subscription_id_p, aeron_archive_t *aeron_archive, int64_t recording_id, const char *recording_channel, int32_t recording_stream_id, aeron_archive_source_location_t source_location, bool auto_stop);
+```
+"""
+function aeron_archive_extend_recording(subscription_id_p, aeron_archive, recording_id, recording_channel, recording_stream_id, source_location, auto_stop)
+    @ccall libaeron_archive_c_client.aeron_archive_extend_recording(subscription_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, recording_channel::Cstring, recording_stream_id::Int32, source_location::aeron_archive_source_location_t, auto_stop::Bool)::Cint
+end
+
+"""
+    aeron_archive_replicate(replication_id_p, aeron_archive, src_recording_id, src_control_channel, src_control_stream_id, params)
+
+Replicate a recording from a source Archive to a destination. This can be considered a backup for a primary Archive. The source recording will be replayed via the provided replay channel and use the original stream id. The behavior of the replication will be governed by the values specified in the [`aeron_archive_replication_params_t`](@ref). <p> For a source recording that is still active, the replay can merge with the live stream and then follow it directly and no longer require the replay from the source. This would require a multicast live destination. <p> Errors will be reported asynchronously and can be checked for with [`aeron_archive_check_for_error_response`](@ref) and [`aeron_archive_poll_for_error_response`](@ref).
+
+# Arguments
+* `replication_id_p`: out param set to the replication id that can be used to stop the replication
+* `aeron_archive`: the archive client
+* `src_recording_id`: the recording id that must exist at the source Archive
+* `src_control_channel`: remote control channel for the source archive on which to instruct the replay
+* `src_control_stream_id`: remote control stream id for the source archive on which to instruct the replay
+* `params`: optional parameters to configure the behavior of the replication
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replicate( int64_t *replication_id_p, aeron_archive_t *aeron_archive, int64_t src_recording_id, const char *src_control_channel, int32_t src_control_stream_id, aeron_archive_replication_params_t *params);
+```
+"""
+function aeron_archive_replicate(replication_id_p, aeron_archive, src_recording_id, src_control_channel, src_control_stream_id, params)
+    @ccall libaeron_archive_c_client.aeron_archive_replicate(replication_id_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, src_recording_id::Int64, src_control_channel::Cstring, src_control_stream_id::Int32, params::Ptr{aeron_archive_replication_params_t})::Cint
+end
+
+"""
+    aeron_archive_stop_replication(aeron_archive, replication_id)
+
+Stop a replication by the replication id.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `replication_id`: the replication id retrieved when calling [`aeron_archive_replicate`](@ref)
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_stop_replication( aeron_archive_t *aeron_archive, int64_t replication_id);
+```
+"""
+function aeron_archive_stop_replication(aeron_archive, replication_id)
+    @ccall libaeron_archive_c_client.aeron_archive_stop_replication(aeron_archive::Ptr{aeron_archive_t}, replication_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_try_stop_replication(stopped_p, aeron_archive, replication_id)
+
+Try to stop a replication by the replication id.
+
+# Arguments
+* `stopped_p`: out param indicating true if stopped, or false if the recording is not currently active
+* `aeron_archive`: the archive client
+* `replication_id`: the replication id retrieved when calling [`aeron_archive_replicate`](@ref)
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_try_stop_replication( bool *stopped_p, aeron_archive_t *aeron_archive, int64_t replication_id);
+```
+"""
+function aeron_archive_try_stop_replication(stopped_p, aeron_archive, replication_id)
+    @ccall libaeron_archive_c_client.aeron_archive_try_stop_replication(stopped_p::Ptr{Bool}, aeron_archive::Ptr{aeron_archive_t}, replication_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_detach_segments(aeron_archive, recording_id, new_start_position)
+
+Detach segments from the beginning of a recording up to the provided new start position. <p> The new start position must be the first byte position of a segment after the existing start position. <p> It is not possible to detach segments which are active for recording or being replayed.
+
+# Arguments
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+* `new_start_position`: the new starting position for the recording after the segments are detached
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_detach_segments( aeron_archive_t *aeron_archive, int64_t recording_id, int64_t new_start_position);
+```
+"""
+function aeron_archive_detach_segments(aeron_archive, recording_id, new_start_position)
+    @ccall libaeron_archive_c_client.aeron_archive_detach_segments(aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, new_start_position::Int64)::Cint
+end
+
+"""
+    aeron_archive_delete_detached_segments(count_p, aeron_archive, recording_id)
+
+Delete segments which have been previously detached from a recording.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_delete_detached_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_delete_detached_segments(count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_delete_detached_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_purge_segments(count_p, aeron_archive, recording_id, new_start_position)
+
+Purge (Detach and delete) segments from the beginning of a recording up to the provided new start position. <p> The new start position must be the first byte position of a segment after the existing start position. <p> It is not possible to detach segments which are active for recording or being replayed.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+* `new_start_position`: the new starting position for the recording after the segments are detached
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_purge_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id, int64_t new_start_position);
+```
+"""
+function aeron_archive_purge_segments(count_p, aeron_archive, recording_id, new_start_position)
+    @ccall libaeron_archive_c_client.aeron_archive_purge_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64, new_start_position::Int64)::Cint
+end
+
+"""
+    aeron_archive_attach_segments(count_p, aeron_archive, recording_id)
+
+Attach segments to the beginning of a recording to restore history that was previously detached. <p> Segment files must match the existing recording and join exactly to the start position of the recording they are being attached to.
+
+# Arguments
+* `count_p`: out param set to the number of segments attached
+* `aeron_archive`: the archive client
+* `recording_id`: the id of an existing recording
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_attach_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t recording_id);
+```
+"""
+function aeron_archive_attach_segments(count_p, aeron_archive, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_attach_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_migrate_segments(count_p, aeron_archive, src_recording_id, dst_recording_id)
+
+Migrate segments from a source recording and attach them to the beginning of a destination recording. <p> The source recording must match the destination recording for segment length, term length, mtu length, stream id, plus the stop position and term id of the source must join with the start position of the destination and be on a segment boundary. <p> The source recording will be effectively truncated back to its start position after the migration.
+
+# Arguments
+* `count_p`: out param set to the number of segments deleted
+* `aeron_archive`: the archive client
+* `src_recording_id`: the id of an existing recording from which segments will be migrated
+* `dst_recording_id`: the id of an existing recording to which segments will be migrated
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_migrate_segments( int64_t *count_p, aeron_archive_t *aeron_archive, int64_t src_recording_id, int64_t dst_recording_id);
+```
+"""
+function aeron_archive_migrate_segments(count_p, aeron_archive, src_recording_id, dst_recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_migrate_segments(count_p::Ptr{Int64}, aeron_archive::Ptr{aeron_archive_t}, src_recording_id::Int64, dst_recording_id::Int64)::Cint
+end
+
+"""
+    aeron_archive_segment_file_base_position(start_position, position, term_buffer_length, segment_file_length)
+
+Position of the recorded stream at the base of a segment file. <p> If a recording starts within a term then the base position can be before the recording started.
+
+# Arguments
+* `start_position`: start position of the stream
+* `position`: position in the stream to calculate the segment base position from.
+* `term_buffer_length`: term buffer length of the stream
+* `segment_file_length`: segment file length, which is a multiple of term buffer length
+# Returns
+the position of the recorded stream at the beginning of a segment file
+### Prototype
+```c
+int64_t aeron_archive_segment_file_base_position( int64_t start_position, int64_t position, int32_t term_buffer_length, int32_t segment_file_length);
+```
+"""
+function aeron_archive_segment_file_base_position(start_position, position, term_buffer_length, segment_file_length)
+    @ccall libaeron_archive_c_client.aeron_archive_segment_file_base_position(start_position::Int64, position::Int64, term_buffer_length::Int32, segment_file_length::Int32)::Int64
+end
+
+"""
+    aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader, recording_id)
+
+Find the active counter id for a stream based on the recording id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `recording_id`: the recording id of an active recording
+# Returns
+the counter id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int32_t aeron_archive_recording_pos_find_counter_id_by_recording_id(aeron_counters_reader_t *counters_reader, int64_t recording_id);
+```
+"""
+function aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_find_counter_id_by_recording_id(counters_reader::Ptr{aeron_counters_reader_t}, recording_id::Int64)::Int32
+end
+
+"""
+    aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader, session_id)
+
+Find the active counter id for a stream based on the session id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `session_id`: the session id of an active recording
+# Returns
+the counter id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int32_t aeron_archive_recording_pos_find_counter_id_by_session_id(aeron_counters_reader_t *counters_reader, int32_t session_id);
+```
+"""
+function aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader, session_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_find_counter_id_by_session_id(counters_reader::Ptr{aeron_counters_reader_t}, session_id::Int32)::Int32
+end
+
+"""
+    aeron_archive_recording_pos_get_recording_id(counters_reader, counter_id)
+
+Get the recording id for a given counter id.
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id of an active recording
+# Returns
+the recording id if found, otherwise [`AERON_NULL_COUNTER_ID`](@ref)
+### Prototype
+```c
+int64_t aeron_archive_recording_pos_get_recording_id(aeron_counters_reader_t *counters_reader, int32_t counter_id);
+```
+"""
+function aeron_archive_recording_pos_get_recording_id(counters_reader, counter_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_get_recording_id(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32)::Int64
+end
+
+"""
+    aeron_archive_recording_pos_get_source_identity(counters_reader, counter_id, dst, len_p)
+
+Get the source identity for the recording. <p> See source\\_identity in [`aeron_image_constants_t`](@ref).
+
+# Arguments
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id of an active recording
+* `dst`: a destination buffer into which the source identity will be written
+* `len_p`: a pointer to a size\\_t that initially indicates the length of the dst buffer. After the function return successfully, len\\_p will be set to the length of the source identity string in dst
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_recording_pos_get_source_identity(aeron_counters_reader_t *counters_reader, int32_t counter_id, const char *dst, size_t *len_p);
+```
+"""
+function aeron_archive_recording_pos_get_source_identity(counters_reader, counter_id, dst, len_p)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_get_source_identity(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, dst::Cstring, len_p::Ptr{Csize_t})::Cint
+end
+
+"""
+    aeron_archive_recording_pos_is_active(is_active, counters_reader, counter_id, recording_id)
+
+Is the recording counter still active?
+
+# Arguments
+* `is_active`: out param set to true if the counter is still active
+* `counters_reader`: an [`aeron_counters_reader_t`](@ref) to search within
+* `counter_id`: the counter id to search for
+* `recording_id`: the recording id to match against
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_recording_pos_is_active(bool *is_active, aeron_counters_reader_t *counters_reader, int32_t counter_id, int64_t recording_id);
+```
+"""
+function aeron_archive_recording_pos_is_active(is_active, counters_reader, counter_id, recording_id)
+    @ccall libaeron_archive_c_client.aeron_archive_recording_pos_is_active(is_active::Ptr{Bool}, counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, recording_id::Int64)::Cint
+end
+
+mutable struct aeron_archive_replay_merge_stct end
+
+const aeron_archive_replay_merge_t = aeron_archive_replay_merge_stct
+
+"""
+    aeron_archive_replay_merge_init(replay_merge, subscription, aeron_archive, replay_channel, replay_destination, live_destination, recording_id, start_position, epoch_clock, merge_progress_timeout_ms)
+
+Create an [`aeron_archive_replay_merge_t`](@ref) to manage the merging of a replayed stream into a live stream.
+
+# Arguments
+* `replay_merge`: the [`aeron_archive_replay_merge_t`](@ref) to create and initialize
+* `subscription`: the subscription to use for the replay and live stream. Must be a multi-destination subscription
+* `aeron_archive`: the archive client
+* `replay_channel`: the channel to use for the replay
+* `replay_destination`: the replay channel to use for the destination added by the subscription
+* `live_destination`: the live stream channel to use for the destination added by the subscription
+* `recording_id`: the recording id of the archive to replay
+* `start_position`: the start position of the replay
+* `epoch_clock`: the clock to use for progress checks
+* `merge_progress_timeout_ms`: the timeout to use for progress checks
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_init( aeron_archive_replay_merge_t **replay_merge, aeron_subscription_t *subscription, aeron_archive_t *aeron_archive, const char *replay_channel, const char *replay_destination, const char *live_destination, int64_t recording_id, int64_t start_position, long long epoch_clock, int64_t merge_progress_timeout_ms);
+```
+"""
+function aeron_archive_replay_merge_init(replay_merge, subscription, aeron_archive, replay_channel, replay_destination, live_destination, recording_id, start_position, epoch_clock, merge_progress_timeout_ms)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_init(replay_merge::Ptr{Ptr{aeron_archive_replay_merge_t}}, subscription::Ptr{aeron_subscription_t}, aeron_archive::Ptr{aeron_archive_t}, replay_channel::Cstring, replay_destination::Cstring, live_destination::Cstring, recording_id::Int64, start_position::Int64, epoch_clock::Clonglong, merge_progress_timeout_ms::Int64)::Cint
+end
+
+"""
+    aeron_archive_replay_merge_close(replay_merge)
+
+Close and delete the [`aeron_archive_replay_merge_t`](@ref) struct.
+
+# Arguments
+* `replay_merge`: the [`aeron_archive_replay_merge_t`](@ref) to close and delete
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_close(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_close(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_close(replay_merge::Ptr{aeron_archive_replay_merge_t})::Cint
+end
+
+"""
+    aeron_archive_replay_merge_do_work(work_count_p, replay_merge)
+
+Process the operation of the merge. Do not call the processing of fragments on the subscription.
+
+# Arguments
+* `work_count_p`: an indicator of work done
+* `replay_merge`: the replay\\_merge to process
+# Returns
+0 for success, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_do_work(int *work_count_p, aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_do_work(work_count_p, replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_do_work(work_count_p::Ptr{Cint}, replay_merge::Ptr{aeron_archive_replay_merge_t})::Cint
+end
+
+"""
+    aeron_archive_replay_merge_poll(replay_merge, handler, clientd, fragment_limit)
+
+Poll the image used for the merging replay and live stream. The [`aeron_archive_replay_merge_do_work`](@ref) will be called before the poll so that processing of the merge can be done.
+
+# Arguments
+* `replay_merge`: the replay\\_merge to process/poll
+* `handler`: the handler to call for incoming fragments
+* `clientd`: the clientd to provide to the handler
+* `fragment_limit`: the max number of fragments to process before returning
+# Returns
+>= 0 indicates the number of fragments processed, -1 for failure
+### Prototype
+```c
+int aeron_archive_replay_merge_poll( aeron_archive_replay_merge_t *replay_merge, aeron_fragment_handler_t handler, void *clientd, int fragment_limit);
+```
+"""
+function aeron_archive_replay_merge_poll(replay_merge, handler, clientd, fragment_limit)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_poll(replay_merge::Ptr{aeron_archive_replay_merge_t}, handler::aeron_fragment_handler_t, clientd::Ptr{Cvoid}, fragment_limit::Cint)::Cint
+end
+
+"""
+    aeron_archive_replay_merge_image(replay_merge)
+
+The image used for the replay and live stream.
+
+# Arguments
+* `replay_merge`: the replay\\_merge that owns the image.
+# Returns
+the [`aeron_image_t`](@ref)
+### Prototype
+```c
+aeron_image_t *aeron_archive_replay_merge_image(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_image(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_image(replay_merge::Ptr{aeron_archive_replay_merge_t})::Ptr{aeron_image_t}
+end
+
+"""
+    aeron_archive_replay_merge_is_merged(replay_merge)
+
+Is the live stream merged and the replay stopped?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if merged, false otherwise
+### Prototype
+```c
+bool aeron_archive_replay_merge_is_merged(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_is_merged(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_merged(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
+"""
+    aeron_archive_replay_merge_has_failed(replay_merge)
+
+Has the replay\\_merge failed due to an error?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if an error occurred
+### Prototype
+```c
+bool aeron_archive_replay_merge_has_failed(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_has_failed(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_has_failed(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
+"""
+    aeron_archive_replay_merge_is_live_added(replay_merge)
+
+Is the live destination added to the subscription?
+
+# Arguments
+* `replay_merge`: the replay\\_merge to check
+# Returns
+true if the live destination is added to the subscription
+### Prototype
+```c
+bool aeron_archive_replay_merge_is_live_added(aeron_archive_replay_merge_t *replay_merge);
+```
+"""
+function aeron_archive_replay_merge_is_live_added(replay_merge)
+    @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_live_added(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
+end
+
+mutable struct aeron_driver_context_stct end
+
+const aeron_driver_context_t = aeron_driver_context_stct
+
+mutable struct aeron_driver_stct end
+
+const aeron_driver_t = aeron_driver_stct
+
+"""
+    aeron_driver_context_set_dir(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_dir(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_dir(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_dir_warn_if_exists(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_warn_if_exists(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_warn_if_exists(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_warn_if_exists(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_warn_if_exists(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_warn_if_exists(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_warn_if_exists(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_warn_if_exists(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+@cenum aeron_threading_mode_enum::UInt32 begin
+    AERON_THREADING_MODE_DEDICATED = 0
+    AERON_THREADING_MODE_SHARED_NETWORK = 1
+    AERON_THREADING_MODE_SHARED = 2
+    AERON_THREADING_MODE_INVOKER = 3
+end
+
+const aeron_threading_mode_t = aeron_threading_mode_enum
+
+"""
+    aeron_driver_context_set_threading_mode(context, mode)
+
+### Prototype
+```c
+int aeron_driver_context_set_threading_mode(aeron_driver_context_t *context, aeron_threading_mode_t mode);
+```
+"""
+function aeron_driver_context_set_threading_mode(context, mode)
+    @ccall libaeron_driver.aeron_driver_context_set_threading_mode(context::Ptr{aeron_driver_context_t}, mode::aeron_threading_mode_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_threading_mode(context)
+
+### Prototype
+```c
+aeron_threading_mode_t aeron_driver_context_get_threading_mode(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_threading_mode(context)
+    @ccall libaeron_driver.aeron_driver_context_get_threading_mode(context::Ptr{aeron_driver_context_t})::aeron_threading_mode_t
+end
+
+"""
+    aeron_driver_context_set_dir_delete_on_start(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_delete_on_start(aeron_driver_context_t * context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_delete_on_start(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_delete_on_start(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_delete_on_start(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_delete_on_start(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_delete_on_start(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_delete_on_start(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_dir_delete_on_shutdown(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_dir_delete_on_shutdown(aeron_driver_context_t * context, bool value);
+```
+"""
+function aeron_driver_context_set_dir_delete_on_shutdown(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_dir_delete_on_shutdown(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_dir_delete_on_shutdown(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_dir_delete_on_shutdown(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_dir_delete_on_shutdown(context)
+    @ccall libaeron_driver.aeron_driver_context_get_dir_delete_on_shutdown(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_to_conductor_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_to_conductor_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_to_conductor_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_to_conductor_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_to_conductor_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_to_conductor_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_to_conductor_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_to_conductor_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_to_clients_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_to_clients_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_to_clients_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_to_clients_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_to_clients_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_to_clients_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_to_clients_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_to_clients_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_counters_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_counters_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_counters_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_counters_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_counters_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_counters_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_counters_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_counters_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_error_buffer_length(context, length)
+
+### Prototype
+```c
+int aeron_driver_context_set_error_buffer_length(aeron_driver_context_t *context, size_t length);
+```
+"""
+function aeron_driver_context_set_error_buffer_length(context, length)
+    @ccall libaeron_driver.aeron_driver_context_set_error_buffer_length(context::Ptr{aeron_driver_context_t}, length::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_error_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_error_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_error_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_error_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_client_liveness_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_client_liveness_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_client_liveness_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_client_liveness_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_client_liveness_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_client_liveness_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_client_liveness_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_client_liveness_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_term_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_term_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_term_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_term_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_term_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_term_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_term_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_term_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_term_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_term_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_term_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_term_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_term_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_term_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_term_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_term_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_term_buffer_sparse_file(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_term_buffer_sparse_file(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_term_buffer_sparse_file(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_term_buffer_sparse_file(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_term_buffer_sparse_file(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_term_buffer_sparse_file(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_term_buffer_sparse_file(context)
+    @ccall libaeron_driver.aeron_driver_context_get_term_buffer_sparse_file(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_perform_storage_checks(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_perform_storage_checks(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_perform_storage_checks(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_perform_storage_checks(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_perform_storage_checks(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_perform_storage_checks(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_perform_storage_checks(context)
+    @ccall libaeron_driver.aeron_driver_context_get_perform_storage_checks(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_low_file_store_warning_threshold(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_low_file_store_warning_threshold(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_low_file_store_warning_threshold(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_low_file_store_warning_threshold(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_low_file_store_warning_threshold(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_low_file_store_warning_threshold(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_low_file_store_warning_threshold(context)
+    @ccall libaeron_driver.aeron_driver_context_get_low_file_store_warning_threshold(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_spies_simulate_connection(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_spies_simulate_connection(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_spies_simulate_connection(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_spies_simulate_connection(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_spies_simulate_connection(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_spies_simulate_connection(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_spies_simulate_connection(context)
+    @ccall libaeron_driver.aeron_driver_context_get_spies_simulate_connection(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_file_page_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_file_page_size(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_file_page_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_file_page_size(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_file_page_size(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_file_page_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_file_page_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_file_page_size(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_mtu_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_mtu_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_mtu_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_mtu_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_mtu_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_mtu_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_mtu_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_mtu_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_mtu_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_mtu_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_mtu_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_mtu_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_mtu_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_mtu_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_mtu_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_mtu_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_ipc_publication_term_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_ipc_publication_term_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_ipc_publication_term_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_ipc_publication_term_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_ipc_publication_term_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_ipc_publication_term_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_ipc_publication_term_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_ipc_publication_term_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_term_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_term_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_publication_term_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_term_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_term_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_publication_term_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_term_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_term_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_linger_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_linger_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_linger_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_linger_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_linger_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_linger_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_linger_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_linger_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_socket_so_rcvbuf(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_so_rcvbuf(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_socket_so_rcvbuf(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_so_rcvbuf(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_so_rcvbuf(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_socket_so_rcvbuf(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_so_rcvbuf(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_so_rcvbuf(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_socket_so_sndbuf(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_so_sndbuf(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_socket_so_sndbuf(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_so_sndbuf(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_so_sndbuf(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_socket_so_sndbuf(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_so_sndbuf(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_so_sndbuf(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_socket_multicast_ttl(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_socket_multicast_ttl(aeron_driver_context_t *context, uint8_t value);
+```
+"""
+function aeron_driver_context_set_socket_multicast_ttl(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_socket_multicast_ttl(context::Ptr{aeron_driver_context_t}, value::UInt8)::Cint
+end
+
+"""
+    aeron_driver_context_get_socket_multicast_ttl(context)
+
+### Prototype
+```c
+uint8_t aeron_driver_context_get_socket_multicast_ttl(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_socket_multicast_ttl(context)
+    @ccall libaeron_driver.aeron_driver_context_get_socket_multicast_ttl(context::Ptr{aeron_driver_context_t})::UInt8
+end
+
+"""
+    aeron_driver_context_set_send_to_status_poll_ratio(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_send_to_status_poll_ratio(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_send_to_status_poll_ratio(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_send_to_status_poll_ratio(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_send_to_status_poll_ratio(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_send_to_status_poll_ratio(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_send_to_status_poll_ratio(context)
+    @ccall libaeron_driver.aeron_driver_context_get_send_to_status_poll_ratio(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_rcv_status_message_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rcv_status_message_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_rcv_status_message_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rcv_status_message_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_rcv_status_message_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_rcv_status_message_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rcv_status_message_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rcv_status_message_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+mutable struct aeron_flow_control_strategy_stct end
+
+const aeron_flow_control_strategy_t = aeron_flow_control_strategy_stct
+
+mutable struct aeron_counters_manager_stct end
+
+const aeron_counters_manager_t = aeron_counters_manager_stct
+
+mutable struct aeron_udp_channel_stct end
+
+const aeron_udp_channel_t = aeron_udp_channel_stct
+
+# typedef int ( * aeron_flow_control_strategy_supplier_func_t ) ( aeron_flow_control_strategy_t * * strategy , aeron_driver_context_t * context , aeron_counters_manager_t * counters_manager , const aeron_udp_channel_t * channel , int32_t stream_id , int32_t session_id , int64_t registration_id , int32_t initial_term_id , size_t term_length )
+const aeron_flow_control_strategy_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_flow_control_strategy_supplier_by_name(name)
+
+Return a flow control strategy supplier function pointer associated with the given name. This only will find strategies built into the driver and will not try to dynamically load nor find any in the current executable.
+
+# Arguments
+* `name`: of the strategy
+# Returns
+function pointer to supplier associated with the name
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_flow_control_strategy_supplier_by_name(const char *name);
+```
+"""
+function aeron_flow_control_strategy_supplier_by_name(name)
+    @ccall libaeron_driver.aeron_flow_control_strategy_supplier_by_name(name::Cstring)::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_multicast_flowcontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_multicast_flowcontrol_supplier( aeron_driver_context_t *context, aeron_flow_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_multicast_flowcontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_multicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_flow_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_multicast_flowcontrol_supplier(context)
+
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_driver_context_get_multicast_flowcontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_multicast_flowcontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_multicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_unicast_flowcontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_unicast_flowcontrol_supplier( aeron_driver_context_t *context, aeron_flow_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_unicast_flowcontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_unicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_flow_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_unicast_flowcontrol_supplier(context)
+
+### Prototype
+```c
+aeron_flow_control_strategy_supplier_func_t aeron_driver_context_get_unicast_flowcontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_unicast_flowcontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_unicast_flowcontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_flow_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_image_liveness_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_image_liveness_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_image_liveness_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_image_liveness_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_image_liveness_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_image_liveness_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_image_liveness_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_image_liveness_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_rcv_initial_window_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rcv_initial_window_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_rcv_initial_window_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rcv_initial_window_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_rcv_initial_window_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_rcv_initial_window_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rcv_initial_window_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rcv_initial_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+mutable struct aeron_congestion_control_strategy_stct end
+
+const aeron_congestion_control_strategy_t = aeron_congestion_control_strategy_stct
+
+mutable struct sockaddr_storage end
+
+# typedef int ( * aeron_congestion_control_strategy_supplier_func_t ) ( aeron_congestion_control_strategy_t * * strategy , aeron_udp_channel_t * channel , int32_t stream_id , int32_t session_id , int64_t registration_id , int32_t term_length , int32_t sender_mtu_length , struct sockaddr_storage * control_address , struct sockaddr_storage * src_address , aeron_driver_context_t * context , aeron_counters_manager_t * counters_manager )
+const aeron_congestion_control_strategy_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_congestioncontrol_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_congestioncontrol_supplier( aeron_driver_context_t *context, aeron_congestion_control_strategy_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_congestioncontrol_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_congestioncontrol_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_congestion_control_strategy_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_congestioncontrol_supplier(context)
+
+### Prototype
+```c
+aeron_congestion_control_strategy_supplier_func_t aeron_driver_context_get_congestioncontrol_supplier( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_congestioncontrol_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_congestioncontrol_supplier(context::Ptr{aeron_driver_context_t})::aeron_congestion_control_strategy_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_loss_report_buffer_length(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_loss_report_buffer_length(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_loss_report_buffer_length(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_loss_report_buffer_length(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_loss_report_buffer_length(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_loss_report_buffer_length(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_loss_report_buffer_length(context)
+    @ccall libaeron_driver.aeron_driver_context_get_loss_report_buffer_length(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_publication_unblock_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_unblock_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_unblock_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_unblock_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_unblock_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_unblock_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_unblock_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_unblock_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_publication_connection_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_connection_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_publication_connection_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_connection_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_connection_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_publication_connection_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_connection_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_connection_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_timer_interval_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_timer_interval_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_timer_interval_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_timer_interval_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_timer_interval_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_timer_interval_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_timer_interval_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_timer_interval_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_sender_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sender_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sender_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_conductor_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_conductor_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_conductor_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_receiver_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_receiver_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_receiver_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sharednetwork_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sharednetwork_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sharednetwork_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sharednetwork_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sharednetwork_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sharednetwork_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sharednetwork_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sharednetwork_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_shared_idle_strategy(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_shared_idle_strategy(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_shared_idle_strategy(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_shared_idle_strategy(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_shared_idle_strategy(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_shared_idle_strategy(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_shared_idle_strategy(context)
+    @ccall libaeron_driver.aeron_driver_context_get_shared_idle_strategy(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sender_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sender_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sender_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_conductor_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_conductor_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_conductor_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_receiver_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_receiver_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_receiver_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sharednetwork_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sharednetwork_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_sharednetwork_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sharednetwork_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_shared_idle_strategy_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_shared_idle_strategy_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_shared_idle_strategy_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_shared_idle_strategy_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_shared_idle_strategy_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_shared_idle_strategy_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_shared_idle_strategy_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_shared_idle_strategy_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_agent_on_start_function(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_agent_on_start_function( aeron_driver_context_t *context, aeron_agent_on_start_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_agent_on_start_function(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_agent_on_start_function(context::Ptr{aeron_driver_context_t}, value::aeron_agent_on_start_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_agent_on_start_function(context)
+
+### Prototype
+```c
+aeron_agent_on_start_func_t aeron_driver_context_get_agent_on_start_function(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_agent_on_start_function(context)
+    @ccall libaeron_driver.aeron_driver_context_get_agent_on_start_function(context::Ptr{aeron_driver_context_t})::aeron_agent_on_start_func_t
+end
+
+"""
+    aeron_driver_context_get_agent_on_start_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_agent_on_start_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_agent_on_start_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_agent_on_start_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_counters_free_to_reuse_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_counters_free_to_reuse_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_counters_free_to_reuse_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_counters_free_to_reuse_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_flow_control_receiver_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_receiver_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_receiver_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_receiver_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_receiver_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_flow_control_receiver_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_receiver_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_receiver_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_flow_control_group_tag(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_group_tag(aeron_driver_context_t *context, int64_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_group_tag(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_group_tag(context::Ptr{aeron_driver_context_t}, value::Int64)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_group_tag(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_flow_control_group_tag(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_group_tag(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_group_tag(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_flow_control_group_min_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_flow_control_group_min_size(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_flow_control_group_min_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_flow_control_group_min_size(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_flow_control_group_min_size(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_flow_control_group_min_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_flow_control_group_min_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_flow_control_group_min_size(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_receiver_group_tag(context, is_present, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_group_tag(aeron_driver_context_t *context, bool is_present, int64_t value);
+```
+"""
+function aeron_driver_context_set_receiver_group_tag(context, is_present, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_group_tag(context::Ptr{aeron_driver_context_t}, is_present::Bool, value::Int64)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_group_tag_is_present(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_receiver_group_tag_is_present(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_tag_is_present(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_tag_is_present(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_get_receiver_group_tag_value(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_receiver_group_tag_value(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_tag_value(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_tag_value(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+# typedef bool ( * aeron_driver_termination_validator_func_t ) ( void * state , uint8_t * buffer , int32_t length )
+const aeron_driver_termination_validator_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_driver_termination_validator(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_termination_validator( aeron_driver_context_t *context, aeron_driver_termination_validator_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_driver_termination_validator(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_termination_validator(context::Ptr{aeron_driver_context_t}, value::aeron_driver_termination_validator_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_termination_validator(context)
+
+### Prototype
+```c
+aeron_driver_termination_validator_func_t aeron_driver_context_get_driver_termination_validator( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_validator(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_validator(context::Ptr{aeron_driver_context_t})::aeron_driver_termination_validator_func_t
+end
+
+"""
+    aeron_driver_context_get_driver_termination_validator_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_driver_termination_validator_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_validator_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_validator_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+# typedef void ( * aeron_driver_termination_hook_func_t ) ( void * clientd )
+const aeron_driver_termination_hook_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_driver_termination_hook(context, value, state)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_termination_hook( aeron_driver_context_t *context, aeron_driver_termination_hook_func_t value, void *state);
+```
+"""
+function aeron_driver_context_set_driver_termination_hook(context, value, state)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_termination_hook(context::Ptr{aeron_driver_context_t}, value::aeron_driver_termination_hook_func_t, state::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_termination_hook(context)
+
+### Prototype
+```c
+aeron_driver_termination_hook_func_t aeron_driver_context_get_driver_termination_hook(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_hook(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_hook(context::Ptr{aeron_driver_context_t})::aeron_driver_termination_hook_func_t
+end
+
+"""
+    aeron_driver_context_get_driver_termination_hook_state(context)
+
+### Prototype
+```c
+void *aeron_driver_context_get_driver_termination_hook_state(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_termination_hook_state(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_termination_hook_state(context::Ptr{aeron_driver_context_t})::Ptr{Cvoid}
+end
+
+"""
+    aeron_driver_context_set_print_configuration(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_print_configuration(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_print_configuration(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_print_configuration(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_print_configuration(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_print_configuration(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_print_configuration(context)
+    @ccall libaeron_driver.aeron_driver_context_get_print_configuration(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_reliable_stream(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_reliable_stream(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_reliable_stream(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_reliable_stream(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_reliable_stream(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_reliable_stream(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_reliable_stream(context)
+    @ccall libaeron_driver.aeron_driver_context_get_reliable_stream(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_tether_subscriptions(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_tether_subscriptions(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_tether_subscriptions(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_tether_subscriptions(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_tether_subscriptions(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_tether_subscriptions(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_tether_subscriptions(context)
+    @ccall libaeron_driver.aeron_driver_context_get_tether_subscriptions(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_untethered_window_limit_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_untethered_window_limit_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_untethered_window_limit_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_untethered_window_limit_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_untethered_window_limit_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_untethered_window_limit_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_untethered_window_limit_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_untethered_window_limit_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_untethered_resting_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_untethered_resting_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_untethered_resting_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_untethered_resting_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_untethered_resting_timeout_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_untethered_resting_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_untethered_resting_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_untethered_resting_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_driver_timeout_ms(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_driver_timeout_ms(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_driver_timeout_ms(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_driver_timeout_ms(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_driver_timeout_ms(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_driver_timeout_ms(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_driver_timeout_ms(context)
+    @ccall libaeron_driver.aeron_driver_context_get_driver_timeout_ms(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_multicast_group_size(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_multicast_group_size(aeron_driver_context_t *context, size_t value);
+```
+"""
+function aeron_driver_context_set_nak_multicast_group_size(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_multicast_group_size(context::Ptr{aeron_driver_context_t}, value::Csize_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_multicast_group_size(context)
+
+### Prototype
+```c
+size_t aeron_driver_context_get_nak_multicast_group_size(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_multicast_group_size(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_multicast_group_size(context::Ptr{aeron_driver_context_t})::Csize_t
+end
+
+"""
+    aeron_driver_context_set_nak_multicast_max_backoff_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_multicast_max_backoff_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_multicast_max_backoff_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_multicast_max_backoff_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_multicast_max_backoff_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_multicast_max_backoff_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_multicast_max_backoff_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_multicast_max_backoff_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_unicast_delay_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_unicast_delay_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_unicast_delay_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_unicast_delay_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_unicast_delay_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_unicast_delay_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_unicast_delay_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_unicast_delay_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_nak_unicast_retry_delay_ratio(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_nak_unicast_retry_delay_ratio(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_nak_unicast_retry_delay_ratio(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_nak_unicast_retry_delay_ratio(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_nak_unicast_retry_delay_ratio(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_nak_unicast_retry_delay_ratio(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_nak_unicast_retry_delay_ratio(context)
+    @ccall libaeron_driver.aeron_driver_context_get_nak_unicast_retry_delay_ratio(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_max_resend(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_max_resend(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_max_resend(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_max_resend(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_max_resend(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_max_resend(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_max_resend(context)
+    @ccall libaeron_driver.aeron_driver_context_get_max_resend(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_retransmit_unicast_delay_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_retransmit_unicast_delay_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_retransmit_unicast_delay_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_retransmit_unicast_delay_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_retransmit_unicast_delay_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_retransmit_unicast_delay_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_retransmit_unicast_delay_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_retransmit_unicast_delay_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+"""
+    aeron_driver_context_set_retransmit_unicast_linger_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_retransmit_unicast_linger_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_retransmit_unicast_linger_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_retransmit_unicast_linger_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_retransmit_unicast_linger_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_retransmit_unicast_linger_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_retransmit_unicast_linger_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_retransmit_unicast_linger_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+@cenum aeron_inferable_boolean_enum::UInt32 begin
+    AERON_FORCE_FALSE = 0
+    AERON_FORCE_TRUE = 1
+    AERON_INFER = 2
+end
+
+const aeron_inferable_boolean_t = aeron_inferable_boolean_enum
+
+"""
+    aeron_driver_context_set_receiver_group_consideration(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_group_consideration( aeron_driver_context_t *context, aeron_inferable_boolean_t value);
+```
+"""
+function aeron_driver_context_set_receiver_group_consideration(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_group_consideration(context::Ptr{aeron_driver_context_t}, value::aeron_inferable_boolean_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_group_consideration(context)
+
+### Prototype
+```c
+aeron_inferable_boolean_t aeron_driver_context_get_receiver_group_consideration(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_group_consideration(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_group_consideration(context::Ptr{aeron_driver_context_t})::aeron_inferable_boolean_t
+end
+
+"""
+    aeron_driver_context_set_rejoin_stream(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_rejoin_stream(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_rejoin_stream(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_rejoin_stream(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_rejoin_stream(context)
+
+### Prototype
+```c
+bool aeron_driver_context_get_rejoin_stream(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_rejoin_stream(context)
+    @ccall libaeron_driver.aeron_driver_context_get_rejoin_stream(context::Ptr{aeron_driver_context_t})::Bool
+end
+
+"""
+    aeron_driver_context_set_connect_enabled(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_connect_enabled(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_connect_enabled(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_connect_enabled(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_connect_enabled(context)
+
+### Prototype
+```c
+int aeron_driver_context_get_connect_enabled(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_connect_enabled(context)
+    @ccall libaeron_driver.aeron_driver_context_get_connect_enabled(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+mutable struct aeron_udp_channel_transport_bindings_stct end
+
+const aeron_udp_channel_transport_bindings_t = aeron_udp_channel_transport_bindings_stct
+
+"""
+    aeron_driver_context_set_udp_channel_transport_bindings(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_transport_bindings( aeron_driver_context_t *context, aeron_udp_channel_transport_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_transport_bindings(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_transport_bindings(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_transport_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_transport_bindings(context)
+
+### Prototype
+```c
+aeron_udp_channel_transport_bindings_t *aeron_driver_context_get_udp_channel_transport_bindings( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_transport_bindings(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_transport_bindings(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_transport_bindings_t}
+end
+
+mutable struct aeron_udp_channel_interceptor_bindings_stct end
+
+const aeron_udp_channel_interceptor_bindings_t = aeron_udp_channel_interceptor_bindings_stct
+
+"""
+    aeron_driver_context_set_udp_channel_outgoing_interceptors(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_outgoing_interceptors( aeron_driver_context_t *context, aeron_udp_channel_interceptor_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_outgoing_interceptors(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_outgoing_interceptors(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_interceptor_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_outgoing_interceptors(context)
+
+### Prototype
+```c
+aeron_udp_channel_interceptor_bindings_t *aeron_driver_context_get_udp_channel_outgoing_interceptors( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_outgoing_interceptors(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_outgoing_interceptors(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_interceptor_bindings_t}
+end
+
+"""
+    aeron_driver_context_set_udp_channel_incoming_interceptors(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_udp_channel_incoming_interceptors( aeron_driver_context_t *context, aeron_udp_channel_interceptor_bindings_t *value);
+```
+"""
+function aeron_driver_context_set_udp_channel_incoming_interceptors(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_udp_channel_incoming_interceptors(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_udp_channel_interceptor_bindings_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_udp_channel_incoming_interceptors(context)
+
+### Prototype
+```c
+aeron_udp_channel_interceptor_bindings_t *aeron_driver_context_get_udp_channel_incoming_interceptors( aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_udp_channel_incoming_interceptors(context)
+    @ccall libaeron_driver.aeron_driver_context_get_udp_channel_incoming_interceptors(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_interceptor_bindings_t}
+end
+
+"""
+    aeron_driver_context_set_publication_reserved_session_id_low(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_reserved_session_id_low(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_publication_reserved_session_id_low(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_reserved_session_id_low(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_reserved_session_id_low(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_publication_reserved_session_id_low(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_reserved_session_id_low(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_reserved_session_id_low(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_publication_reserved_session_id_high(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_publication_reserved_session_id_high(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_publication_reserved_session_id_high(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_publication_reserved_session_id_high(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_publication_reserved_session_id_high(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_publication_reserved_session_id_high(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_publication_reserved_session_id_high(context)
+    @ccall libaeron_driver.aeron_driver_context_get_publication_reserved_session_id_high(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+mutable struct aeron_name_resolver_stct end
+
+const aeron_name_resolver_t = aeron_name_resolver_stct
+
+# typedef int ( * aeron_name_resolver_supplier_func_t ) ( aeron_name_resolver_t * resolver , const char * args , aeron_driver_context_t * context )
+const aeron_name_resolver_supplier_func_t = Ptr{Cvoid}
+
+"""
+    aeron_driver_context_set_resolver_name(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_name(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_name(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_name(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_name(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_name(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_name(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_name(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_resolver_interface(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_interface(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_interface(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_interface(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_interface(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_interface(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_interface(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_interface(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_resolver_bootstrap_neighbor(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resolver_bootstrap_neighbor(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_resolver_bootstrap_neighbor(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resolver_bootstrap_neighbor(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_resolver_bootstrap_neighbor(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_resolver_bootstrap_neighbor(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resolver_bootstrap_neighbor(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resolver_bootstrap_neighbor(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_name_resolver_supplier(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_supplier( aeron_driver_context_t *context, aeron_name_resolver_supplier_func_t value);
+```
+"""
+function aeron_driver_context_set_name_resolver_supplier(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_supplier(context::Ptr{aeron_driver_context_t}, value::aeron_name_resolver_supplier_func_t)::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_supplier(context)
+
+### Prototype
+```c
+aeron_name_resolver_supplier_func_t aeron_driver_context_get_name_resolver_supplier(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_supplier(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_supplier(context::Ptr{aeron_driver_context_t})::aeron_name_resolver_supplier_func_t
+end
+
+"""
+    aeron_driver_context_set_name_resolver_init_args(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_init_args(aeron_driver_context_t *context, const char *value);
+```
+"""
+function aeron_driver_context_set_name_resolver_init_args(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_init_args(context::Ptr{aeron_driver_context_t}, value::Cstring)::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_init_args(context)
+
+### Prototype
+```c
+const char *aeron_driver_context_get_name_resolver_init_args(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_init_args(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_init_args(context::Ptr{aeron_driver_context_t})::Cstring
+end
+
+"""
+    aeron_driver_context_set_re_resolution_check_interval_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_re_resolution_check_interval_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_re_resolution_check_interval_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_re_resolution_check_interval_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_re_resolution_check_interval_ns(context)
+
+### Prototype
+```c
+uint64_t aeron_driver_context_get_re_resolution_check_interval_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_re_resolution_check_interval_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_re_resolution_check_interval_ns(context::Ptr{aeron_driver_context_t})::UInt64
+end
+
+mutable struct aeron_duty_cycle_tracker_stct end
+
+const aeron_duty_cycle_tracker_t = aeron_duty_cycle_tracker_stct
+
+"""
+    aeron_driver_context_set_conductor_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_conductor_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_conductor_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_sender_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_sender_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_sender_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_receiver_duty_cycle_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_duty_cycle_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_receiver_duty_cycle_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_duty_cycle_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_duty_cycle_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_receiver_duty_cycle_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_duty_cycle_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_duty_cycle_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_name_resolver_time_tracker(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_name_resolver_time_tracker( aeron_driver_context_t *context, aeron_duty_cycle_tracker_t *value);
+```
+"""
+function aeron_driver_context_set_name_resolver_time_tracker(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_time_tracker(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_duty_cycle_tracker_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_name_resolver_time_tracker(context)
+
+### Prototype
+```c
+aeron_duty_cycle_tracker_t *aeron_driver_context_get_name_resolver_time_tracker(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_time_tracker(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_time_tracker(context::Ptr{aeron_driver_context_t})::Ptr{aeron_duty_cycle_tracker_t}
+end
+
+"""
+    aeron_driver_context_set_sender_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_wildcard_port_range( aeron_driver_context_t *context, uint16_t low_port, uint16_t high_port);
+```
+"""
+function aeron_driver_context_set_sender_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::UInt16, high_port::UInt16)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_get_sender_wildcard_port_range( aeron_driver_context_t *context, uint16_t *low_port, uint16_t *high_port);
+```
+"""
+function aeron_driver_context_get_sender_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::Ptr{UInt16}, high_port::Ptr{UInt16})::Cint
+end
+
+"""
+    aeron_driver_context_set_receiver_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_wildcard_port_range( aeron_driver_context_t *context, uint16_t low_port, uint16_t high_port);
+```
+"""
+function aeron_driver_context_set_receiver_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::UInt16, high_port::UInt16)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_wildcard_port_range(context, low_port, high_port)
+
+### Prototype
+```c
+int aeron_driver_context_get_receiver_wildcard_port_range( aeron_driver_context_t *context, uint16_t *low_port, uint16_t *high_port);
+```
+"""
+function aeron_driver_context_get_receiver_wildcard_port_range(context, low_port, high_port)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::Ptr{UInt16}, high_port::Ptr{UInt16})::Cint
+end
+
+mutable struct aeron_port_manager_stct end
+
+const aeron_port_manager_t = aeron_port_manager_stct
+
+"""
+    aeron_driver_context_set_sender_port_manager(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_port_manager( aeron_driver_context_t *context, aeron_port_manager_t *value);
+```
+"""
+function aeron_driver_context_set_sender_port_manager(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_port_manager(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_port_manager_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_port_manager(context)
+
+### Prototype
+```c
+aeron_port_manager_t *aeron_driver_context_get_sender_port_manager(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_port_manager(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_port_manager(context::Ptr{aeron_driver_context_t})::Ptr{aeron_port_manager_t}
+end
+
+"""
+    aeron_driver_context_set_receiver_port_manager(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_port_manager( aeron_driver_context_t *context, aeron_port_manager_t *value);
+```
+"""
+function aeron_driver_context_set_receiver_port_manager(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_port_manager(context::Ptr{aeron_driver_context_t}, value::Ptr{aeron_port_manager_t})::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_port_manager(context)
+
+### Prototype
+```c
+aeron_port_manager_t *aeron_driver_context_get_receiver_port_manager(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_port_manager(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_port_manager(context::Ptr{aeron_driver_context_t})::Ptr{aeron_port_manager_t}
+end
+
+"""
+    aeron_driver_context_set_conductor_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_conductor_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_conductor_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_conductor_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_conductor_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_sender_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_sender_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_sender_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_sender_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_sender_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_receiver_cycle_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_receiver_cycle_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_receiver_cycle_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_cycle_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_receiver_cycle_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_receiver_cycle_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_cycle_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_cycle_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_name_resolver_threshold_ns(context, value)
+
+### Prototype
+```c
+int64_t aeron_driver_context_set_name_resolver_threshold_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_name_resolver_threshold_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_name_resolver_threshold_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Int64
+end
+
+"""
+    aeron_driver_context_get_name_resolver_threshold_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_name_resolver_threshold_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_name_resolver_threshold_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_name_resolver_threshold_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
+    aeron_driver_context_set_receiver_io_vector_capacity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_io_vector_capacity(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_receiver_io_vector_capacity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_io_vector_capacity(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_io_vector_capacity(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_receiver_io_vector_capacity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_io_vector_capacity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_io_vector_capacity(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_sender_io_vector_capacity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_io_vector_capacity(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_sender_io_vector_capacity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_io_vector_capacity(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_io_vector_capacity(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_sender_io_vector_capacity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_io_vector_capacity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_io_vector_capacity(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_network_publication_max_messages_per_send(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_network_publication_max_messages_per_send(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_network_publication_max_messages_per_send(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_network_publication_max_messages_per_send(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_network_publication_max_messages_per_send(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_network_publication_max_messages_per_send(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_network_publication_max_messages_per_send(context)
+    @ccall libaeron_driver.aeron_driver_context_get_network_publication_max_messages_per_send(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_resource_free_limit(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_resource_free_limit(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_resource_free_limit(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_resource_free_limit(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_resource_free_limit(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_resource_free_limit(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_resource_free_limit(context)
+    @ccall libaeron_driver.aeron_driver_context_get_resource_free_limit(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_async_executor_threads(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_async_executor_threads(aeron_driver_context_t *context, uint32_t value);
+```
+"""
+function aeron_driver_context_set_async_executor_threads(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_async_executor_threads(context::Ptr{aeron_driver_context_t}, value::UInt32)::Cint
+end
+
+"""
+    aeron_driver_context_get_async_executor_threads(context)
+
+### Prototype
+```c
+uint32_t aeron_driver_context_get_async_executor_threads(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_async_executor_threads(context)
+    @ccall libaeron_driver.aeron_driver_context_get_async_executor_threads(context::Ptr{aeron_driver_context_t})::UInt32
+end
+
+"""
+    aeron_driver_context_set_enable_experimental_features(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_enable_experimental_features(aeron_driver_context_t *context, bool value);
+```
+"""
+function aeron_driver_context_set_enable_experimental_features(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_enable_experimental_features(context::Ptr{aeron_driver_context_t}, value::Bool)::Cint
+end
+
+"""
+    aeron_driver_context_get_enable_experimental_features(context)
+
+### Prototype
+```c
+int aeron_driver_context_get_enable_experimental_features(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_enable_experimental_features(context)
+    @ccall libaeron_driver.aeron_driver_context_get_enable_experimental_features(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_context_set_stream_session_limit(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_stream_session_limit(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_stream_session_limit(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_stream_session_limit(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_stream_session_limit(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_stream_session_limit(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_stream_session_limit(context)
+    @ccall libaeron_driver.aeron_driver_context_get_stream_session_limit(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_init(context)
+
+Create a [`aeron_driver_context_t`](@ref) struct and initialize with default values.
+
+# Arguments
+* `context`: to create and initialize
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_context_init(aeron_driver_context_t **context);
+```
+"""
+function aeron_driver_context_init(context)
+    @ccall libaeron_driver.aeron_driver_context_init(context::Ptr{Ptr{aeron_driver_context_t}})::Cint
+end
+
+"""
+    aeron_driver_context_close(context)
+
+Close and delete [`aeron_driver_context_t`](@ref) struct.
+
+# Arguments
+* `context`: to close and delete
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_context_close(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_close(context)
+    @ccall libaeron_driver.aeron_driver_context_close(context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_init(driver, context)
+
+Create a [`aeron_driver_t`](@ref) struct and initialize from the [`aeron_driver_context_t`](@ref) struct.
+
+The given [`aeron_driver_context_t`](@ref) struct will be used exclusively by the driver. Do not reuse between drivers.
+
+# Arguments
+* `driver`: to create and initialize.
+* `context`: to use for initialization.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_init(aeron_driver_t **driver, aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_init(driver, context)
+    @ccall libaeron_driver.aeron_driver_init(driver::Ptr{Ptr{aeron_driver_t}}, context::Ptr{aeron_driver_context_t})::Cint
+end
+
+"""
+    aeron_driver_start(driver, manual_main_loop)
+
+Start an [`aeron_driver_t`](@ref) given the threading mode. This may spawn threads for the Sender, Receiver, and Conductor depending on threading mode used.
+
+# Arguments
+* `driver`: to start.
+* `manual_main_loop`: to be called by the caller for the Conductor do\\_work cycle.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_start(aeron_driver_t *driver, bool manual_main_loop);
+```
+"""
+function aeron_driver_start(driver, manual_main_loop)
+    @ccall libaeron_driver.aeron_driver_start(driver::Ptr{aeron_driver_t}, manual_main_loop::Bool)::Cint
+end
+
+"""
+    aeron_driver_main_do_work(driver)
+
+Call the Conductor (or Shared) main do\\_work duty cycle once.
+
+Driver must have been created with manual\\_main\\_loop set to true.
+
+# Arguments
+* `driver`: to call do\\_work duty cycle on.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_main_do_work(aeron_driver_t *driver);
+```
+"""
+function aeron_driver_main_do_work(driver)
+    @ccall libaeron_driver.aeron_driver_main_do_work(driver::Ptr{aeron_driver_t})::Cint
+end
+
+"""
+    aeron_driver_main_idle_strategy(driver, work_count)
+
+Call the Conductor (or Shared) Idle Strategy.
+
+# Arguments
+* `driver`: to idle.
+* `work_count`: to pass to idle strategy.
+### Prototype
+```c
+void aeron_driver_main_idle_strategy(aeron_driver_t *driver, int work_count);
+```
+"""
+function aeron_driver_main_idle_strategy(driver, work_count)
+    @ccall libaeron_driver.aeron_driver_main_idle_strategy(driver::Ptr{aeron_driver_t}, work_count::Cint)::Cvoid
+end
+
+"""
+    aeron_driver_close(driver)
+
+Close and delete [`aeron_driver_t`](@ref) struct.
+
+# Arguments
+* `driver`: to close and delete
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_driver_close(aeron_driver_t *driver);
+```
+"""
+function aeron_driver_close(driver)
+    @ccall libaeron_driver.aeron_driver_close(driver::Ptr{aeron_driver_t})::Cint
+end
+
+"""
+    aeron_delete_directory(dirname)
+
+Delete the given aeron directory.
+
+# Arguments
+* `dirname`: to delete.
+# Returns
+0 for success and -1 for error.
+### Prototype
+```c
+int aeron_delete_directory(const char *dirname);
+```
+"""
+function aeron_delete_directory(dirname)
+    @ccall libaeron_driver.aeron_delete_directory(dirname::Cstring)::Cint
+end
+
+"""
+    aeron_set_thread_affinity_on_start(state, role_name)
+
+Affinity setting function that complies with the [`aeron_agent_on_start_func_t`](@ref) structure that can be used as an agent start function. The state should be the [`aeron_driver_context_t`](@ref)* and the function will match the values "conductor", "sender", "receiver" and use the respective configuration options from the [`aeron_driver_context_t`](@ref).
+
+# Arguments
+* `state`: client information passed to function, should be the [`aeron_driver_context_t`](@ref)*.
+* `role_name`: name of the role specified on the agent.
+### Prototype
+```c
+void aeron_set_thread_affinity_on_start(void *state, const char *role_name);
+```
+"""
+function aeron_set_thread_affinity_on_start(state, role_name)
+    @ccall libaeron_driver.aeron_set_thread_affinity_on_start(state::Ptr{Cvoid}, role_name::Cstring)::Cvoid
+end
+
 const AERON_NULL_VALUE = -1
 
 const AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000
@@ -4086,6 +8848,10 @@ const AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT = -1002
 const AERON_CLIENT_ERROR_BUFFER_FULL = -1003
 
 const AERON_CLIENT_MAX_LOCAL_ADDRESS_STR_LEN = 64
+
+const AERON_RESPONSE_ADDRESS_TYPE_IPV4 = 0x01
+
+const AERON_RESPONSE_ADDRESS_TYPE_IPV6 = 0x02
 
 const AERON_DIR_ENV_VAR = "AERON_DIR"
 
@@ -4133,8 +8899,248 @@ const AERON_PUBLICATION_MAX_POSITION_EXCEEDED = -(Clong(5))
 
 const AERON_PUBLICATION_ERROR = -(Clong(6))
 
+const AERON_MAX_PATH = 4096
+
+const ARCHIVE_ERROR_CODE_GENERIC = 0
+
+const ARCHIVE_ERROR_CODE_ACTIVE_LISTING = 1
+
+const ARCHIVE_ERROR_CODE_ACTIVE_RECORDING = 2
+
+const ARCHIVE_ERROR_CODE_ACTIVE_SUBSCRIPTION = 3
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_SUBSCRIPTION = 4
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_RECORDING = 5
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_REPLAY = 6
+
+const ARCHIVE_ERROR_CODE_MAX_REPLAYS = 7
+
+const ARCHIVE_ERROR_CODE_MAX_RECORDINGS = 8
+
+const ARCHIVE_ERROR_CODE_INVALID_EXTENSION = 9
+
+const ARCHIVE_ERROR_CODE_AUTHENTICATION_REJECTED = 10
+
+const ARCHIVE_ERROR_CODE_STORAGE_SPACE = 11
+
+const ARCHIVE_ERROR_CODE_UNKNOWN_REPLICATION = 12
+
+const ARCHIVE_ERROR_CODE_UNAUTHORISED_ACTION = 13
+
+const AERON_NULL_POSITION = AERON_NULL_VALUE
+
+const REPLAY_MERGE_PROGRESS_TIMEOUT_DEFAULT_MS = 5 * 1000
+
+const AERON_DIR_WARN_IF_EXISTS_ENV_VAR = "AERON_DIR_WARN_IF_EXISTS"
+
+const AERON_THREADING_MODE_ENV_VAR = "AERON_THREADING_MODE"
+
+const AERON_DIR_DELETE_ON_START_ENV_VAR = "AERON_DIR_DELETE_ON_START"
+
+const AERON_DIR_DELETE_ON_SHUTDOWN_ENV_VAR = "AERON_DIR_DELETE_ON_SHUTDOWN"
+
+const AERON_TO_CONDUCTOR_BUFFER_LENGTH_ENV_VAR = "AERON_CONDUCTOR_BUFFER_LENGTH"
+
+const AERON_TO_CLIENTS_BUFFER_LENGTH_ENV_VAR = "AERON_CLIENTS_BUFFER_LENGTH"
+
+const AERON_COUNTERS_VALUES_BUFFER_LENGTH_ENV_VAR = "AERON_COUNTERS_BUFFER_LENGTH"
+
+const AERON_ERROR_BUFFER_LENGTH_ENV_VAR = "AERON_ERROR_BUFFER_LENGTH"
+
+const AERON_CLIENT_LIVENESS_TIMEOUT_ENV_VAR = "AERON_CLIENT_LIVENESS_TIMEOUT"
+
+const AERON_TERM_BUFFER_LENGTH_ENV_VAR = "AERON_TERM_BUFFER_LENGTH"
+
+const AERON_IPC_TERM_BUFFER_LENGTH_ENV_VAR = "AERON_IPC_TERM_BUFFER_LENGTH"
+
+const AERON_TERM_BUFFER_SPARSE_FILE_ENV_VAR = "AERON_TERM_BUFFER_SPARSE_FILE"
+
+const AERON_PERFORM_STORAGE_CHECKS_ENV_VAR = "AERON_PERFORM_STORAGE_CHECKS"
+
+const AERON_LOW_FILE_STORE_WARNING_THRESHOLD_ENV_VAR = "AERON_LOW_FILE_STORE_WARNING_THRESHOLD"
+
+const AERON_SPIES_SIMULATE_CONNECTION_ENV_VAR = "AERON_SPIES_SIMULATE_CONNECTION"
+
+const AERON_FILE_PAGE_SIZE_ENV_VAR = "AERON_FILE_PAGE_SIZE"
+
+const AERON_MTU_LENGTH_ENV_VAR = "AERON_MTU_LENGTH"
+
+const AERON_IPC_MTU_LENGTH_ENV_VAR = "AERON_IPC_MTU_LENGTH"
+
+const AERON_IPC_PUBLICATION_TERM_WINDOW_LENGTH_ENV_VAR = "AERON_IPC_PUBLICATION_TERM_WINDOW_LENGTH"
+
+const AERON_PUBLICATION_TERM_WINDOW_LENGTH_ENV_VAR = "AERON_PUBLICATION_TERM_WINDOW_LENGTH"
+
+const AERON_PUBLICATION_LINGER_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_LINGER_TIMEOUT"
+
+const AERON_SOCKET_SO_RCVBUF_ENV_VAR = "AERON_SOCKET_SO_RCVBUF"
+
+const AERON_SOCKET_SO_SNDBUF_ENV_VAR = "AERON_SOCKET_SO_SNDBUF"
+
+const AERON_SOCKET_MULTICAST_TTL_ENV_VAR = "AERON_SOCKET_MULTICAST_TTL"
+
+const AERON_SEND_TO_STATUS_POLL_RATIO_ENV_VAR = "AERON_SEND_TO_STATUS_POLL_RATIO"
+
+const AERON_RCV_STATUS_MESSAGE_TIMEOUT_ENV_VAR = "AERON_RCV_STATUS_MESSAGE_TIMEOUT"
+
+const AERON_MULTICAST_MIN_FLOW_CONTROL_STRATEGY_NAME = "multicast_min"
+
+const AERON_MULTICAST_MAX_FLOW_CONTROL_STRATEGY_NAME = "multicast_max"
+
+const AERON_MULTICAST_TAGGED_FLOW_CONTROL_STRATEGY_NAME = "multicast_tagged"
+
+const AERON_UNICAST_MAX_FLOW_CONTROL_STRATEGY_NAME = "unicast_max"
+
+const AERON_MULTICAST_FLOWCONTROL_SUPPLIER_ENV_VAR = "AERON_MULTICAST_FLOWCONTROL_SUPPLIER"
+
+const AERON_UNICAST_FLOWCONTROL_SUPPLIER_ENV_VAR = "AERON_UNICAST_FLOWCONTROL_SUPPLIER"
+
+const AERON_IMAGE_LIVENESS_TIMEOUT_ENV_VAR = "AERON_IMAGE_LIVENESS_TIMEOUT"
+
+const AERON_RCV_INITIAL_WINDOW_LENGTH_ENV_VAR = "AERON_RCV_INITIAL_WINDOW_LENGTH"
+
+const AERON_CONGESTIONCONTROL_SUPPLIER_ENV_VAR = "AERON_CONGESTIONCONTROL_SUPPLIER"
+
+const AERON_CUBICCONGESTIONCONTROL_MEASURERTT_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_MEASURERTT"
+
+const AERON_CUBICCONGESTIONCONTROL_INITIALRTT_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_INITIALRTT"
+
+const AERON_CUBICCONGESTIONCONTROL_TCPMODE_ENV_VAR = "AERON_CUBICCONGESTIONCONTROL_TCPMODE"
+
+const AERON_LOSS_REPORT_BUFFER_LENGTH_ENV_VAR = "AERON_LOSS_REPORT_BUFFER_LENGTH"
+
+const AERON_PUBLICATION_UNBLOCK_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_UNBLOCK_TIMEOUT"
+
+const AERON_PUBLICATION_CONNECTION_TIMEOUT_ENV_VAR = "AERON_PUBLICATION_CONNECTION_TIMEOUT"
+
+const AERON_TIMER_INTERVAL_ENV_VAR = "AERON_TIMER_INTERVAL"
+
+const AERON_SENDER_IDLE_STRATEGY_ENV_VAR = "AERON_SENDER_IDLE_STRATEGY"
+
+const AERON_CONDUCTOR_IDLE_STRATEGY_ENV_VAR = "AERON_CONDUCTOR_IDLE_STRATEGY"
+
+const AERON_RECEIVER_IDLE_STRATEGY_ENV_VAR = "AERON_RECEIVER_IDLE_STRATEGY"
+
+const AERON_SHAREDNETWORK_IDLE_STRATEGY_ENV_VAR = "AERON_SHAREDNETWORK_IDLE_STRATEGY"
+
+const AERON_SHARED_IDLE_STRATEGY_ENV_VAR = "AERON_SHARED_IDLE_STRATEGY"
+
+const AERON_SENDER_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_SENDER_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_CONDUCTOR_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_CONDUCTOR_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_RECEIVER_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_RECEIVER_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_SHAREDNETWORK_IDLE_STRATEGY_INIT_ARGS_ENV_VAR = "AERON_SHAREDNETWORK_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_SHARED_IDLE_STRATEGY_ENV_INIT_ARGS_VAR = "AERON_SHARED_IDLE_STRATEGY_INIT_ARGS"
+
+const AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT_ENV_VAR = "AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT"
+
+const AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT_ENV_VAR = "AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT"
+
+const AERON_FLOW_CONTROL_GROUP_TAG_ENV_VAR = "AERON_FLOW_CONTROL_GROUP_TAG"
+
+const AERON_FLOW_CONTROL_GROUP_MIN_SIZE_ENV_VAR = "AERON_FLOW_CONTROL_GROUP_MIN_SIZE"
+
+const AERON_RECEIVER_GROUP_TAG_ENV_VAR = "AERON_RECEIVER_GROUP_TAG"
+
+const AERON_DRIVER_TERMINATION_VALIDATOR_ENV_VAR = "AERON_DRIVER_TERMINATION_VALIDATOR"
+
+const AERON_PRINT_CONFIGURATION_ON_START_ENV_VAR = "AERON_PRINT_CONFIGURATION"
+
+const AERON_RELIABLE_STREAM_ENV_VAR = "AERON_RELIABLE_STREAM"
+
+const AERON_TETHER_SUBSCRIPTIONS_ENV_VAR = "AERON_TETHER_SUBSCRIPTIONS"
+
+const AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT"
+
+const AERON_UNTETHERED_RESTING_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_RESTING_TIMEOUT"
+
+const AERON_NAK_MULTICAST_GROUP_SIZE_ENV_VAR = "AERON_NAK_MULTICAST_GROUP_SIZE"
+
+const AERON_NAK_MULTICAST_MAX_BACKOFF_ENV_VAR = "AERON_NAK_MULTICAST_MAX_BACKOFF"
+
+const AERON_NAK_UNICAST_DELAY_ENV_VAR = "AERON_NAK_UNICAST_DELAY"
+
+const AERON_NAK_UNICAST_RETRY_DELAY_RATIO_ENV_VAR = "AERON_NAK_UNICAST_RETRY_DELAY_RATIO"
+
+const AERON_MAX_RESEND_ENV_VAR = "AERON_MAX_RESEND"
+
+const AERON_RETRANSMIT_UNICAST_DELAY_ENV_VAR = "AERON_RETRANSMIT_UNICAST_DELAY"
+
+const AERON_RETRANSMIT_UNICAST_LINGER_ENV_VAR = "AERON_RETRANSMIT_UNICAST_LINGER"
+
+const AERON_RECEIVER_GROUP_CONSIDERATION_ENV_VAR = "AERON_RECEIVER_GROUP_CONSIDERATION"
+
+const AERON_REJOIN_STREAM_ENV_VAR = "AERON_REJOIN_STREAM"
+
+const AERON_DRIVER_CONNECT_ENV_VAR = "AERON_DRIVER_CONNECT"
+
+const AERON_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA_ENV_VAR = "AERON_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA"
+
+const AERON_CONDUCTOR_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA_ENV_VAR = "AERON_CONDUCTOR_UDP_CHANNEL_TRANSPORT_BINDINGS_MEDIA"
+
+const AERON_UDP_CHANNEL_OUTGOING_INTERCEPTORS_ENV_VAR = "AERON_UDP_CHANNEL_OUTGOING_INTERCEPTORS"
+
+const AERON_UDP_CHANNEL_INCOMING_INTERCEPTORS_ENV_VAR = "AERON_UDP_CHANNEL_INCOMING_INTERCEPTORS"
+
+const AERON_PUBLICATION_RESERVED_SESSION_ID_LOW_ENV_VAR = "AERON_PUBLICATION_RESERVED_SESSION_ID_LOW"
+
+const AERON_PUBLICATION_RESERVED_SESSION_ID_HIGH_ENV_VAR = "AERON_PUBLICATION_RESERVED_SESSION_ID_HIGH"
+
+const AERON_DRIVER_RESOLVER_NAME_ENV_VAR = "AERON_DRIVER_RESOLVER_NAME"
+
+const AERON_DRIVER_RESOLVER_INTERFACE_ENV_VAR = "AERON_DRIVER_RESOLVER_INTERFACE"
+
+const AERON_DRIVER_RESOLVER_BOOTSTRAP_NEIGHBOR_ENV_VAR = "AERON_DRIVER_RESOLVER_BOOTSTRAP_NEIGHBOR"
+
+const AERON_NAME_RESOLVER_SUPPLIER_ENV_VAR = "AERON_NAME_RESOLVER_SUPPLIER"
+
+const AERON_NAME_RESOLVER_SUPPLIER_DEFAULT = "default"
+
+const AERON_NAME_RESOLVER_INIT_ARGS_ENV_VAR = "AERON_NAME_RESOLVER_INIT_ARGS"
+
+const AERON_DRIVER_RERESOLUTION_CHECK_INTERVAL_ENV_VAR = "AERON_DRIVER_RERESOLUTION_CHECK_INTERVAL"
+
+const AERON_DRIVER_SENDER_WILDCARD_PORT_RANGE_ENV_VAR = "AERON_SENDER_WILDCARD_PORT_RANGE"
+
+const AERON_DRIVER_RECEIVER_WILDCARD_PORT_RANGE_ENV_VAR = "AERON_RECEIVER_WILDCARD_PORT_RANGE"
+
+const AERON_DRIVER_CONDUCTOR_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_CONDUCTOR_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_SENDER_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_SENDER_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_RECEIVER_CYCLE_THRESHOLD_ENV_VAR = "AERON_DRIVER_RECEIVER_CYCLE_THRESHOLD"
+
+const AERON_DRIVER_NAME_RESOLVER_THRESHOLD_ENV_VAR = "AERON_DRIVER_NAME_RESOLVER_THRESHOLD"
+
+const AERON_RECEIVER_IO_VECTOR_CAPACITY_ENV_VAR = "AERON_RECEIVER_IO_VECTOR_CAPACITY"
+
+const AERON_SENDER_IO_VECTOR_CAPACITY_ENV_VAR = "AERON_SENDER_IO_VECTOR_CAPACITY"
+
+const AERON_NETWORK_PUBLICATION_MAX_MESSAGES_PER_SEND_ENV_VAR = "AERON_NETWORK_PUBLICATION_MAX_MESSAGES_PER_SEND"
+
+const AERON_DRIVER_RESOURCE_FREE_LIMIT_ENV_VAR = "AERON_DRIVER_RESOURCE_FREE_LIMIT"
+
+const AERON_DRIVER_ASYNC_EXECUTOR_THREADS_ENV_VAR = "AERON_DRIVER_ASYNC_EXECUTOR_THREADS"
+
+const AERON_CONDUCTOR_CPU_AFFINITY_ENV_VAR = "AERON_CONDUCTOR_CPU_AFFINITY"
+
+const AERON_RECEIVER_CPU_AFFINITY_ENV_VAR = "AERON_RECEIVER_CPU_AFFINITY"
+
+const AERON_SENDER_CPU_AFFINITY_ENV_VAR = "AERON_SENDER_CPU_AFFINITY"
+
+const AERON_DRIVER_DYNAMIC_LIBRARIES_ENV_VAR = "AERON_DRIVER_DYNAMIC_LIBRARIES"
+
+const AERON_ENABLE_EXPERIMENTAL_FEATURES_ENV_VAR = "AERON_ENABLE_EXPERIMENTAL_FEATURES"
+
+const AERON_DRIVER_STREAM_SESSION_LIMIT_ENV_VAR = "AERON_DRIVER_STREAM_SESSION_LIMIT"
+
 # exports
-const PREFIXES = ["aeron_", "AERON_"]
+const PREFIXES = ["aeron_", "AERON_", "ARCHIVE_"]
 for name in names(@__MODULE__; all=true), prefix in PREFIXES
     if startswith(string(name), prefix)
         @eval export $name

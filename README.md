@@ -19,7 +19,21 @@ Pkg.add("Aeron")
 
 ## Usage
 
-**Note:** A media driver must be running before executing any samples. To start a media driver in the Julia environment:
+**Note:** A media driver must be running before executing any samples.
+
+To start an embedded media driver:
+```julia
+using Aeron
+media_driver = MediaDriver.launch_embedded()
+```
+
+The embedded media driver creates a unique Aeron directory. To use it pass the directory to the client context.
+```julia
+dirname = MediaDriver.aeron_dir(media_driver)
+context = Aeron.Context(dirname)
+```
+
+To start an external media driver process in the Julia environment:
 
 ```julia
 using Aeron

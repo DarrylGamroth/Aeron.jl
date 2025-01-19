@@ -1,10 +1,11 @@
 [general]
+library_names = { "aeronc.h" = "libaeron", "aeronmd.h" = "libaeron_driver", "aeron_archive.h" = "libaeron_archive_c_client" }
 library_name = "libaeron"
 output_file_path = "../src/LibAeron.jl"
 module_name = "LibAeron"
 jll_pkg_name = "Aeron_jll"
 prologue_file_path = "./prologue.jl"
-export_symbol_prefixes = ["aeron_", "AERON_"]
+export_symbol_prefixes = ["aeron_", "AERON_", "ARCHIVE_"]
 use_julia_native_enum_type = false
 auto_mutability = false
 extract_c_comment_style = "doxygen"

@@ -46,6 +46,7 @@ end
 
 """
     async_add_subscription(c::Client, uri::AbstractString, stream_id) -> AsyncAddSubscription
+
 Add a subscription asynchronously.
 
 # Arguments
