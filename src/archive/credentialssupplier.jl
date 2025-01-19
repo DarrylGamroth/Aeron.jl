@@ -4,15 +4,11 @@ Base.@kwdef struct CredentialsSupplier
     clientd::Any = nothing
 end
 
-struct EncodedCredentials
-    data::String
+function Base.convert(::Type{aeron_archive_encoded_credentials_t}, ec::String)
+    aeron_archive_encoded_credentials_t(Base.pointer(ec), length(ec))
 end
 
-function Base.convert(::Type{aeron_archive_encoded_credentials_t}, ec::EncodedCredentials)
-    aeron_archive_encoded_credentials_t(Base.pointer(ec.data), length(ec.data))
-end
-
-function Base.cconvert(::Type{Ptr{aeron_archive_encoded_credentials_t}}, ec::EncodedCredentials)
+function Base.cconvert(::Type{Ptr{aeron_archive_encoded_credentials_t}}, ec::String)
     Ref(convert(aeron_archive_encoded_credentials_t, ec))
 end
 
@@ -45,9 +41,9 @@ function credentials_encoded_challenge_supplier_cfunction(::T) where {T}
 end
 
 function default_encoded_credentials_supplier(arg)
-    return EncodedCredentials("")
+    return ""
 end
 
 function default_encoded_challenge_supplier(encoded_challenge, arg)
-    return EncodedCredentials("")
+    return ""
 end

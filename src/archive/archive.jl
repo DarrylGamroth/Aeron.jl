@@ -15,11 +15,7 @@ mutable struct Archive
                 zeros(UInt8, 256),
                 false)
         ) do a
-            _, success = @atomicreplace a.is_closed false => true
-            if success
-                close(a.control_response_subscription)
-                aeron_archive_close(a.archive)
-            end
+            close(a)
         end
     end
 end
@@ -180,7 +176,7 @@ function Base.convert(::Type{aeron_archive_recording_signal_t}, signal::Recordin
 end
 
 function Base.convert(::Type{RecordingSignal.T}, signal::aeron_archive_recording_signal_t)
-    RecordingSignal(signal)
+    RecordingSignal.T(signal)
 end
 
 @enumx SourceLocation::UInt32 begin
@@ -193,7 +189,7 @@ function Base.convert(::Type{aeron_archive_source_location_t}, source_location::
 end
 
 function Base.convert(::Type{SourceLocation.T}, source_location::aeron_archive_source_location_t)
-    SourceLocation(source_location)
+    SourceLocation.T(source_location)
 end
 
 Base.@kwdef struct ReplayParams
@@ -241,7 +237,7 @@ Base.@kwdef struct ReplicationParams
     subscription_tag_id::Int64 = AERON_NULL_VALUE
     file_io_max_length::Int32 = AERON_NULL_VALUE
     replication_session_id::Int32 = AERON_NULL_VALUE
-    encoded_credentials::Union{Nothing,EncodedCredentials} = nothing
+    encoded_credentials::Union{Nothing,String} = nothing
 end
 
 function Base.convert(::Type{aeron_archive_replication_params_t}, params::ReplicationParams)

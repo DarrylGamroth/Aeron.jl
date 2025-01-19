@@ -2,6 +2,7 @@
 Context()
 
 Create a new `Context` object and initialize it with default values.
+The default values are read from environment variables.
 
 # Throws
 - `ErrorException` if initialization fails.
@@ -42,9 +43,28 @@ Create a new `Context` object and set the media driver directory.
 # Returns
 - A new `Context` object with the specified media driver directory.
 """
-function Context(dirname::AbstractString)
+function Context(aerondir::AbstractString)
     c = Context()
-    aeron_dir!(c, dirname)
+    aeron_dir!(c, aerondir)
+    return c
+end
+
+"""
+    Context(control_request_channel, control_response_channel)
+
+Create a new `Context` object and set the control request and response channels.
+
+# Arguments
+- `control_request_channel`: The control request channel.
+- `control_response_channel`: The control response channel.
+
+# Returns
+- A new `Context` object with the specified control request and response channels.
+"""
+function Context(control_request_channel::AbstractString, control_response_channel::AbstractString)
+    c = Context()
+    control_request_channel!(c, control_request_channel)
+    control_response_channel!(c, control_response_channel)
     return c
 end
 
