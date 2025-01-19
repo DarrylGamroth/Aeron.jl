@@ -620,7 +620,7 @@ function segment_file_base_position(start_position, position, term_buffer_length
     aeron_archive_segment_file_base_position(start_position, position, term_buffer_length, segment_file_length)
 end
 
-function find_by_recording_id(c::Aeron.CountersReader, recording_id)
+function find_counter_by_recording_id(c::Aeron.CountersReader, recording_id)
     counter_id = aeron_archive_recording_pos_find_counter_id_by_recording_id(c.counters_reader, recording_id)
     if counter_id < 0
         return nothing
@@ -628,7 +628,7 @@ function find_by_recording_id(c::Aeron.CountersReader, recording_id)
     return counter_id
 end
 
-function find_by_session_id(c::Aeron.CountersReader, session_id)
+function find_counter_by_session_id(c::Aeron.CountersReader, session_id)
     counter_id = aeron_archive_recording_pos_find_counter_id_by_session_id(c.counters_reader, session_id)
     if counter_id < 0
         return nothing

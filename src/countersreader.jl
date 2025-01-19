@@ -75,7 +75,7 @@ function counter_foreach(callback::Function, c::CountersReader, clientd=nothing)
 end
 
 """
-    find_by_type_id_and_registration_id(c::CountersReader, type_id::Int32, registration_id::Int64) -> Union{Nothing, Int32}
+    find_counter_by_type_id_and_registration_id(c::CountersReader, type_id::Int32, registration_id::Int64) -> Union{Nothing, Int32}
 
 Finds the counter ID by type ID and registration ID.
 
@@ -89,7 +89,7 @@ Finds the counter ID by type ID and registration ID.
 
 - `Union{Nothing, Int32}`: The counter ID if found, otherwise `nothing`.
 """
-function find_by_type_id_and_registration_id(c::CountersReader, type_id, registration_id)
+function find_counter_by_type_id_and_registration_id(c::CountersReader, type_id, registration_id)
     counter_id = aeron_counters_reader_find_by_type_id_and_registration_id(c.counters_reader, type_id, registration_id)
     if counter_id < 0
         return nothing
