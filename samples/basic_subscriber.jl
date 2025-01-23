@@ -64,11 +64,8 @@ function main(ARGS)
             Aeron.aeron_dir!(context, aeron_dir)
         end
 
-        Aeron.on_available_image!(print_available_image, context)
-        Aeron.on_unavailable_image!(print_unavailable_image, context)
-
         aeron = Aeron.Client(context)
-        subscription = Aeron.add_subscription(aeron, channel, stream_id)
+        subscription = Aeron.add_subscription(aeron, channel, stream_id, print_available_image, print_unavailable_image)
         fragment_handler = Aeron.FragmentHandler(poll_handler, subscription)
         fragment_assembler = Aeron.FragmentAssembler(fragment_handler)
 
