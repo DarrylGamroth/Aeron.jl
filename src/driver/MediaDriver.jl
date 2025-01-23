@@ -1092,7 +1092,7 @@ context(d::Driver) = d.context
 
 function launch(c::Context=Context())
     driver = Driver(c)
-    start(driver, true)
+    start(driver)
 
     return driver
 end
