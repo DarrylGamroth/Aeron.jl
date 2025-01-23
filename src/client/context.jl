@@ -17,8 +17,6 @@ mutable struct Context
     on_available_counter::Tuple{Function, Any}
     on_unavailable_counter::Tuple{Function, Any}
     on_close_client::Tuple{Function, Any}
-    on_available_image::Tuple{Function, Any}
-    on_unavailable_image::Tuple{Function, Any}
 
     function Context()
         p = Ref{Ptr{aeron_context_t}}(C_NULL)
@@ -508,34 +506,6 @@ function on_close_client!(callback::Function, c::Context, clientd=nothing)
     end
 end
 
-"""
-    on_available_image!(callback, c, clientd)
-
-Set the available image handler callback function.
-
-# Arguments
-- `callback`: The callback function to set.
-- `c`: The `Context` object.
-- `clientd=nothing`: The client data to pass to the callback function.
-"""
-function on_available_image!(callback::Function, c::Context, clientd=nothing)
-    c.on_available_image = (callback, clientd)
-end
-
-"""
-    on_unavailable_image!(callback, c, clientd)
-
-Set the unavailable image handler callback function.
-
-# Arguments
-- `callback`: The callback function to set.
-- `c`: The `Context` object.
-- `clientd=nothing`: The client data to pass to the callback function.
-"""
-function on_unavailable_image!(callback::Function, c::Context, clientd=nothing)
-    c.on_unavailable_image = (callback, clientd)
-end
-
 ###################
 
 """
@@ -549,9 +519,5 @@ Attach default callback functions to the `Context` object.
 function attach_callbacks_to_context(c::Context)
     error_handler!(c) do _, errcode, message
         @error "Error: code=$errcode message=$message"
-    end
-    on_available_image!(c) do _, _, _
-    end
-    on_unavailable_image!(c) do _, _, _
     end
 end
