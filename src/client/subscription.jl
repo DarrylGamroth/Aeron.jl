@@ -45,7 +45,7 @@ struct AsyncAddSubscription
 end
 
 """
-    async_add_subscription(c::Client, uri::AbstractString, stream_id,
+    async_add_subscription(c::Client, uri::AbstractString, stream_id;
                            on_available_image::Union{Nothing, Function}=nothing,
                            on_unavailable_image::Union{Nothing, Function}=nothing) -> AsyncAddSubscription
 
@@ -61,7 +61,7 @@ Add a subscription asynchronously.
 # Returns
 - `AsyncAddSubscription`: The asynchronous add subscription object.
 """
-function async_add_subscription(c::Client, uri::AbstractString, stream_id,
+function async_add_subscription(c::Client, uri::AbstractString, stream_id;
     on_available_image::Union{Nothing,Function}=nothing,
     on_unavailable_image::Union{Nothing,Function}=nothing)
 
@@ -100,7 +100,7 @@ function poll(a::AsyncAddSubscription)
 end
 
 """
-    add_subscription(c::Client, uri::AbstractString, stream_id,
+    add_subscription(c::Client, uri::AbstractString, stream_id;
                      on_available_image::Union{Nothing,Function}=nothing,
                      on_unavailable_image::Union{Nothing,Function}=nothing) -> Subscription
 
@@ -116,11 +116,12 @@ Add a subscription and wait for it to be available.
 # Returns
 - `Subscription`: The subscription object.
 """
-function add_subscription(c::Client, uri::AbstractString, stream_id,
+function add_subscription(c::Client, uri::AbstractString, stream_id;
     on_available_image::Union{Nothing,Function}=nothing,
     on_unavailable_image::Union{Nothing,Function}=nothing)
 
-    async = async_add_subscription(c, uri, stream_id, on_available_image, on_unavailable_image)
+    async = async_add_subscription(c, uri, stream_id;
+        on_available_image=on_available_image, on_unavailable_image=on_unavailable_image)
     while true
         subscription = poll(async)
         if subscription !== nothing
