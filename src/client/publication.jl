@@ -2,24 +2,24 @@ mutable struct Publication
     publication::Ptr{aeron_publication_t}
     const constants::aeron_publication_constants_t
     const iovecs::Vector{aeron_iovec_t}
-    const allocated::Bool
+    const is_owned::Bool
 
     """
     Create a new `Publication` instance.
 
     # Arguments
     - `publication::Ptr{aeron_publication_t}`: Pointer to the Aeron publication.
-    - `allocated::Bool=false`: Indicates if the publication is allocated.
+    - `is_owned::Bool=false`: Indicates if the publication is owned by this instance.
     """
-    function Publication(publication::Ptr{aeron_publication_t}, allocated::Bool=false)
+    function Publication(publication::Ptr{aeron_publication_t}, is_owned::Bool=false)
         constants = Ref{aeron_publication_constants_t}()
         if aeron_publication_constants(publication, constants) < 0
             throwerror()
         end
 
         finalizer(new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), allocated)) do p
-            if p.allocated == true
+            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), is_owned)) do p
+            if p.is_owned == true
                 aeron_publication_close(p.publication, C_NULL, C_NULL)
             end
         end
@@ -213,7 +213,7 @@ Close the publication.
 - `p::Publication`: The publication to close.
 """
 function Base.close(p::Publication)
-    if p.allocated == true
+    if p.is_owned == true
         if aeron_publication_close(p.publication, C_NULL, C_NULL) < 0
             throwerror()
         end

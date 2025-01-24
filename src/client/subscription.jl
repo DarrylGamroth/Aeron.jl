@@ -1,23 +1,23 @@
 mutable struct Subscription
     subscription::Ptr{aeron_subscription_t}
     const constants::aeron_subscription_constants_t
-    const allocated::Bool
+    const is_owned::Bool
 
     """
     Create a new Subscription object.
 
     # Arguments
     - `subscription::Ptr{aeron_subscription_t}`: Pointer to the Aeron subscription.
-    - `allocated::Bool=false`: Indicates if the subscription is allocated.
+    - `is_owned::Bool=false`: Indicates if the subscription is owned by this instance.
     """
-    function Subscription(subscription::Ptr{aeron_subscription_t}, allocated::Bool=false)
+    function Subscription(subscription::Ptr{aeron_subscription_t}, is_owned::Bool=false)
         constants = Ref{aeron_subscription_constants_t}()
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
 
-        finalizer(new(subscription, constants[], allocated)) do s
-            if s.allocated == true
+        finalizer(new(subscription, constants[], is_owned)) do s
+            if s.is_owned == true
                 aeron_subscription_close(s.subscription, C_NULL, C_NULL)
             end
         end
@@ -235,7 +235,7 @@ Close a subscription.
 - `s::Subscription`: The subscription object.
 """
 function Base.close(s::Subscription)
-    if s.allocated == true
+    if s.is_owned == true
         if aeron_subscription_close(s.subscription, C_NULL, C_NULL) < 0
             throwerror()
         end

@@ -7,24 +7,26 @@ Represents an Aeron counter, which is used for tracking various metrics.
 
 - `counter::Ptr{aeron_counter_t}`: Pointer to the underlying Aeron counter structure.
 - `constants::aeron_counter_constants_t`: Constants associated with the counter.
-- `allocated::Bool`: Indicates whether the counter was allocated.
+- `is_owned::Bool`: Indicates whether the counter is owned by this instance.
 
 # Constructor
 
-- `Counter(counter::Ptr{aeron_counter_t}, allocated::Bool=false)`: Creates a new `Counter` instance with the given Aeron counter pointer and allocation status.
+- `Counter(counter::Ptr{aeron_counter_t}, is_owned::Bool=false)`
+
+Creates a new `Counter` instance with the given Aeron counter pointer and allocation status.
 """
 mutable struct Counter
     counter::Ptr{aeron_counter_t}
     constants::aeron_counter_constants_t
-    const allocated::Bool
-    function Counter(counter::Ptr{aeron_counter_t}, allocated::Bool=false)
+    const is_owned::Bool
+    function Counter(counter::Ptr{aeron_counter_t}, is_owned::Bool=false)
         constants = Ref{aeron_counter_constants_t}()
         if aeron_counter_constants(counter, constants) < 0
             throwerror()
         end
         
-        finalizer(new(counter, constants[], allocated)) do c
-            if c.allocated == true
+        finalizer(new(counter, constants[], is_owned)) do c
+            if c.is_owned == true
                 aeron_counter_close(c.counter, C_NULL, C_NULL)
             end
         end
@@ -138,7 +140,7 @@ Closes the `Counter` `c`, releasing any allocated resources.
 - `c::Counter`: The counter to close.
 """
 function Base.close(c::Counter)
-    if c.allocated == true
+    if c.is_owned == true
         if aeron_counter_close(c.counter, C_NULL, C_NULL) < 0
             throwerror()
         end
