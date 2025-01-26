@@ -258,18 +258,18 @@ function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8},
 end
 
 """
-    offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}) -> Int
+    offer(p::ExclusivePublication, buffers::Union{NTuple{N,T},AbstractVector{T}}) where {T<:AbstractVector{UInt8},N}
 
 Offer multiple buffers to the exclusive publication.
 
 # Arguments
 - `p::ExclusivePublication`: The exclusive publication.
-- `buffers::AbstractVector{<:AbstractVector{UInt8}}`: The buffers to offer.
+- `buffers::Union{NTuple{N,T},AbstractVector{T}}`: The buffers to offer.
 
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
 """
-function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}})
+function offer(p::ExclusivePublication, buffers::Union{NTuple{N,T},AbstractVector{T}}) where {T<:AbstractVector{UInt8},N}
     _offer(p, buffers, C_NULL, C_NULL)
 end
 
@@ -286,16 +286,22 @@ Offer multiple buffers to the exclusive publication with a reserved value suppli
 # Returns
 - `Int`: The new stream position otherwise a negative error value.
 """
-function offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier::AbstractReservedValueSupplier)
+function offer(p::ExclusivePublication,
+    buffers::Union{NTuple{N,T},AbstractVector{T}},
+    reserved_value_supplier::AbstractReservedValueSupplier) where {T<:AbstractVector{UInt8},N}
     _offer(p, buffers, reserved_value_supplier_cfunction(reserved_value_supplier), Ref(reserved_value_supplier))
 end
 
-function _offer(p::ExclusivePublication, buffers::AbstractVector{<:AbstractVector{UInt8}}, reserved_value_supplier, clientd)
+function _offer(p::ExclusivePublication,
+    buffers::Union{NTuple{N,T},AbstractVector{T}},
+    reserved_value_supplier,
+    clientd) where {T<:AbstractVector{UInt8},N}
+
     n = length(buffers)
     resize!(p.iovecs, n)
     GC.@preserve buffers begin
         for (i, buffer) in enumerate(buffers)
-            @inbounds p.iovecs[i] = aeron_iovec_t(pointer(buffer), length(buffer))
+            @inbounds p.iovecs[i] = aeron_iovec_t(Base.pointer(buffer), Base.length(buffer))
         end
         aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, reserved_value_supplier, clientd)
     end
