@@ -7,7 +7,7 @@ Represents a fragment assembler that reassembles fragmented messages and passes 
 
 - `FragmentAssembler(on_fragment::T)`: Creates a new `FragmentAssembler` with the given fragment handler.
 """
-mutable struct FragmentAssembler{T<:Function,C,F<:AbstractFragmentHandler} <: AbstractFragmentHandler
+mutable struct FragmentAssembler{T,C,F<:AbstractFragmentHandler} <: AbstractFragmentHandler
     on_fragment::T
     clientd::C
     fragment_handler::F

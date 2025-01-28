@@ -7,7 +7,7 @@ Represents a controlled fragment assembler that reassembles fragmented messages 
 
 - `ControlledFragmentAssembler(on_fragment::T)`: Creates a new `ControlledFragmentAssembler` with the given controlled fragment handler.
 """
-mutable struct ControlledFragmentAssembler{T<:Function,C,F<:AbstractControlledFragmentHandler} <: AbstractControlledFragmentHandler
+mutable struct ControlledFragmentAssembler{T,C,F<:AbstractControlledFragmentHandler} <: AbstractControlledFragmentHandler
     on_fragment::T
     clientd::C
     fragment_handler::F

@@ -22,7 +22,7 @@ Returns the client data passed to the handler function.
 function clientd end
 
 """
-    struct FragmentHandler{T<:Function, C} <: AbstractFragmentHandler
+    struct FragmentHandler{T, C} <: AbstractFragmentHandler
 
 Represents a fragment handler with a callback function and client data.
 
@@ -40,11 +40,11 @@ Represents a fragment handler with a callback function and client data.
 - `on_fragment::T`: The function called when a fragment is received. The signature of the function is `function(clientd::Any, buffer::AbstractVector{UInt8}, header::Header) -> Nothing`.
 - `clientd::Any=nothing`: Client data passed to the handler function.
 """
-mutable struct FragmentHandler{T<:Function, C} <: AbstractFragmentHandler
+mutable struct FragmentHandler{T,C} <: AbstractFragmentHandler
     on_fragment::T
     clientd::C
-    function FragmentHandler(on_fragment::T, clientd::C=nothing) where {T<:Function, C}
-        new{T, C}(on_fragment, clientd)
+    function FragmentHandler(on_fragment::T, clientd::C=nothing) where {T,C}
+        new{T,C}(on_fragment, clientd)
     end
 end
 
