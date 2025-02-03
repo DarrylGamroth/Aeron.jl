@@ -40,7 +40,7 @@ Represents a fragment handler with a callback function and client data.
 - `on_fragment::T`: The function called when a fragment is received. The signature of the function is `function(clientd::Any, buffer::AbstractVector{UInt8}, header::Header) -> Nothing`.
 - `clientd::Any=nothing`: Client data passed to the handler function.
 """
-mutable struct FragmentHandler{T,C} <: AbstractFragmentHandler
+struct FragmentHandler{T,C} <: AbstractFragmentHandler
     on_fragment::T
     clientd::C
     function FragmentHandler(on_fragment::T, clientd::C=nothing) where {T,C}
