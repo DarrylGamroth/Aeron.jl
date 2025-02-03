@@ -18,7 +18,7 @@ mutable struct Publication
         end
 
         finalizer(new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), is_owned)) do p
+            sizehint!(aeron_iovec_t[], IOVECS_NUM), is_owned)) do p
             if p.is_owned == true
                 aeron_publication_close(p.publication, C_NULL, C_NULL)
             end
