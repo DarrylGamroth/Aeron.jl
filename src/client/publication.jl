@@ -247,9 +247,11 @@ Offer a buffer to the publication with a reserved value supplier.
 - `Int`: The new stream position otherwise a negative error value.
 """
 function offer(p::Publication, buffer::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier)
-    aeron_publication_offer(p.publication, buffer, length(buffer),
-        reserved_value_supplier_cfunction(reserved_value_supplier),
-        Ref(reserved_value_supplier))
+    GC.@preserve reserved_value_supplier begin
+        aeron_publication_offer(p.publication, buffer, length(buffer),
+            reserved_value_supplier_cfunction(reserved_value_supplier),
+            Ref(reserved_value_supplier))
+    end
 end
 
 """

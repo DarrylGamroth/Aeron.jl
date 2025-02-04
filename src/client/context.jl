@@ -375,8 +375,10 @@ Set the error handler callback function.
 function error_handler!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.error_handler = cb
-    if aeron_context_set_error_handler(c.context, error_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_error_handler(c.context, error_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -396,8 +398,10 @@ Set the new publication handler callback function.
 function on_new_publication!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_new_publication = cb
-    if aeron_context_set_on_new_publication(c.context, new_publication_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_new_publication(c.context, new_publication_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -417,8 +421,10 @@ Set the new exclusive publication handler callback function.
 function on_new_exclusive_publication!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_new_exclusive_publication = cb
-    if aeron_context_set_on_new_exclusive_publication(c.context, new_exclusive_publication_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_new_exclusive_publication(c.context, new_exclusive_publication_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -438,8 +444,10 @@ Set the new subscription handler callback function.
 function on_new_subscription!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_new_subscription = cb
-    if aeron_context_set_on_new_subscription(c.context, new_subscription_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_new_subscription(c.context, new_subscription_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -459,8 +467,10 @@ Set the available counter handler callback function.
 function on_available_counter!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_available_counter = cb
-    if aeron_context_set_on_available_counter(c.context, available_counter_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_available_counter(c.context, available_counter_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -480,8 +490,10 @@ Set the unavailable counter handler callback function.
 function on_unavailable_counter!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_unavailable_counter = cb
-    if aeron_context_set_on_unavailable_counter(c.context, unavailable_counter_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_unavailable_counter(c.context, unavailable_counter_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 
@@ -501,8 +513,10 @@ Set the close client handler callback function.
 function on_close_client!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.on_close_client = cb
-    if aeron_context_set_on_close_client(c.context, close_client_handler_cfunction(cb), Ref(cb)) < 0
-        throwerror()
+    GC.@preserve cb begin
+        if aeron_context_set_on_close_client(c.context, close_client_handler_cfunction(cb), Ref(cb)) < 0
+            throwerror()
+        end
     end
 end
 

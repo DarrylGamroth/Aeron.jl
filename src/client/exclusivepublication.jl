@@ -248,9 +248,11 @@ Offer a buffer to the exclusive publication with a reserved value supplier.
 """
 function offer(p::ExclusivePublication, buffer::AbstractVector{UInt8},
     reserved_value_supplier::AbstractReservedValueSupplier)
-    aeron_exclusive_publication_offer(p.publication, buffer, length(buffer),
-        reserved_value_supplier_cfunction(reserved_value_supplier),
-        Ref(reserved_value_supplier))
+    GC.@preserve reserved_value_supplier begin
+        aeron_exclusive_publication_offer(p.publication, buffer, length(buffer),
+            reserved_value_supplier_cfunction(reserved_value_supplier),
+            Ref(reserved_value_supplier))
+    end
 end
 
 """

@@ -69,12 +69,14 @@ function async_add_subscription(c::Client, uri::AbstractString, stream_id;
 
     async = Ref{Ptr{aeron_async_add_subscription_t}}(C_NULL)
 
-    if aeron_async_add_subscription(async, c.client, uri, stream_id,
-        on_available_image === nothing ? C_NULL : available_image_handler_cfunction(on_available_image),
-        on_available_image === nothing ? C_NULL : Ref(on_available_image),
-        on_unavailable_image === nothing ? C_NULL : unavailable_image_handler_cfunction(on_unavailable_image),
-        on_unavailable_image === nothing ? C_NULL : Ref(on_unavailable_image)) < 0
-        throwerror()
+    GC.@preserve on_available_image on_unavailable_image begin
+        if aeron_async_add_subscription(async, c.client, uri, stream_id,
+            on_available_image === nothing ? C_NULL : available_image_handler_cfunction(on_available_image),
+            on_available_image === nothing ? C_NULL : Ref(on_available_image),
+            on_unavailable_image === nothing ? C_NULL : unavailable_image_handler_cfunction(on_unavailable_image),
+            on_unavailable_image === nothing ? C_NULL : Ref(on_unavailable_image)) < 0
+            throwerror()
+        end
     end
     return AsyncAddSubscription(async[], c)
 end
@@ -347,8 +349,10 @@ To assemble messages that span multiple fragments then use `FragmentAssembler`.
 - `Int32`: The number of fragments processed.
 """
 function poll(s::Subscription, fragment_handler::AbstractFragmentHandler, fragment_limit)
-    num_fragments = aeron_subscription_poll(s.subscription,
-        on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    GC.@preserve fragment_handler begin
+        num_fragments = aeron_subscription_poll(s.subscription,
+            on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    end
 
     if num_fragments < 0
         throwerror()
@@ -376,8 +380,10 @@ To assemble messages that span multiple fragments then use aeron_controlled_frag
 - `Int32`: The number of fragments processed.
 """
 function poll(s::Subscription, fragment_handler::AbstractControlledFragmentHandler, fragment_limit)
-    num_fragments = aeron_subscription_controlled_poll(s.subscription,
-        on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    GC.@preserve fragment_handler begin
+        num_fragments = aeron_subscription_controlled_poll(s.subscription,
+            on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    end
 
     if num_fragments < 0
         throwerror()
@@ -401,8 +407,10 @@ This method is useful for operations like bulk archiving and messaging indexing.
 - `Int32`: The number of bytes consumed.
 """
 function poll(s::Subscription, block_handler::AbstractBlockHandler, block_length_limit)
-    bytes = aeron_subscription_block_poll(s.subscription,
-        on_block_cfunction(block_handler), Ref(block_handler), block_length_limit)
+    GC.@preserve block_handler begin
+        bytes = aeron_subscription_block_poll(s.subscription,
+            on_block_cfunction(block_handler), Ref(block_handler), block_length_limit)
+    end
 
     if bytes < 0
         throwerror()

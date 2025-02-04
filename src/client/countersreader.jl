@@ -72,7 +72,9 @@ Iterates over the counters in the `CountersReader` and calls the given function 
 """
 function counter_foreach(callback::Function, c::CountersReader, clientd=nothing)
     cb = (callback, clientd)
-    aeron_counters_reader_foreach_counter(c.counters_reader, counter_foreach_cfunction(cb), Ref(cb))
+    GC.@preserve cb begin
+        aeron_counters_reader_foreach_counter(c.counters_reader, counter_foreach_cfunction(cb), Ref(cb))
+    end
 end
 
 """

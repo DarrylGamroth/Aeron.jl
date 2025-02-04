@@ -27,8 +27,10 @@ function Base.close(r::ReplayMerge)
 end
 
 function poll(r::ReplayMerge, fragment_handler::Aeron.AbstractFragmentHandler, fragment_limit)
-    num_fragments = aeron_archive_replay_merge_poll(r.replay_merge,
-        Aeron.on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    GC.@preserve fragment_handler begin
+        num_fragments = aeron_archive_replay_merge_poll(r.replay_merge,
+            Aeron.on_fragment_cfunction(fragment_handler), Ref(fragment_handler), fragment_limit)
+    end
 
     if num_fragments < 0
         Aeron.throwerror()

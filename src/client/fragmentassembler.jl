@@ -14,10 +14,12 @@ mutable struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragment
     function FragmentAssembler(fragment_handler::T) where {T}
         assembler = Ref{Ptr{aeron_fragment_assembler_t}}(C_NULL)
 
-        if aeron_fragment_assembler_create(assembler,
-            on_fragment_cfunction(fragment_handler),
-            Ref(fragment_handler)) < 0
-            throwerror()
+        GC.@preserve fragment_handler begin
+            if aeron_fragment_assembler_create(assembler,
+                on_fragment_cfunction(fragment_handler),
+                Ref(fragment_handler)) < 0
+                throwerror()
+            end
         end
 
         finalizer(new{T}(fragment_handler, assembler[])) do f

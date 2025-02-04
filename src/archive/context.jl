@@ -232,12 +232,14 @@ end
 ###############
 
 function credentials_supplier!(c::Context, supplier::CredentialsSupplier)
-    if aeron_archive_context_set_credentials_supplier(c.context,
-        credentials_encoded_credentials_supplier_cfunction(supplier),
-        credentials_encoded_challenge_supplier_cfunction(supplier),
-        C_NULL,
-        Ref(supplier)) < 0
-        Aeron.throwerror()
+    GC.@preserve supplier begin
+        if aeron_archive_context_set_credentials_supplier(c.context,
+            credentials_encoded_credentials_supplier_cfunction(supplier),
+            credentials_encoded_challenge_supplier_cfunction(supplier),
+            C_NULL,
+            Ref(supplier)) < 0
+            Aeron.throwerror()
+        end
     end
 end
 
@@ -253,8 +255,10 @@ end
 function recording_signal_consumer!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.signal_consumer = cb
-    if aeron_archive_context_set_recording_signal_consumer(c.context, recording_signal_consumer_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_context_set_recording_signal_consumer(c.context, recording_signal_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
 end
 
@@ -282,8 +286,10 @@ Set the error handler callback function.
 function error_handler!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.error_handler = cb
-    if aeron_archive_context_set_error_handler(c.context, error_handler_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_context_set_error_handler(c.context, error_handler_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
 end
 

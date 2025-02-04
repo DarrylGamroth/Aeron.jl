@@ -456,9 +456,11 @@ end
 function list_recording(callback::Function, a::Archive, recording_id, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
-    if aeron_archive_list_recording(count, a.archive, recording_id,
-        recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_list_recording(count, a.archive, recording_id,
+            recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
     return count[]
 end
@@ -466,9 +468,11 @@ end
 function list_recordings(callback::Function, a::Archive, from_recording_id, record_count, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
-    if aeron_archive_list_recordings(count, a.archive, from_recording_id, record_count,
-        recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_list_recordings(count, a.archive, from_recording_id, record_count,
+            recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
     return count[]
 end
@@ -476,9 +480,11 @@ end
 function list_recordings_for_uri(callback::Function, a::Archive, from_recording_id, record_count, channel_fragment, stream_id, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
-    if aeron_archive_list_recordings_for_uri(count, a.archive, from_recording_id, record_count, channel_fragment, stream_id,
-        recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_list_recordings_for_uri(count, a.archive, from_recording_id, record_count, channel_fragment, stream_id,
+            recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
     return count[]
 end
@@ -532,10 +538,12 @@ function list_recording_subscriptions(callback::Function,
     a::Archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
-    if aeron_archive_list_recording_subscriptions(count, a.archive, pseudo_index, subscription_count,
-        channel_fragment, stream_id, apply_stream_id,
-        recording_subscription_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
-        Aeron.throwerror()
+    GC.@preserve cb begin
+        if aeron_archive_list_recording_subscriptions(count, a.archive, pseudo_index, subscription_count,
+            channel_fragment, stream_id, apply_stream_id,
+            recording_subscription_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
     end
     return count[]
 end
@@ -594,8 +602,8 @@ function delete_detached_segments(a::Archive, recording_id)
 end
 
 function purge_segments(a::Archive, recording_id, new_start_position)
-    count = Ref{Int64}(0) \
-            if aeron_archive_purge_segments(count, a.archive, recording_id, new_start_position) < 0
+    count = Ref{Int64}(0)
+    if aeron_archive_purge_segments(count, a.archive, recording_id, new_start_position) < 0
         Aeron.throwerror()
     end
     return count[]
