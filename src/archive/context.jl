@@ -95,7 +95,7 @@ function client!(c::Context, client::Aeron.Client)
 end
 
 function client(c::Context)
-    aeron_archive_context_get_aeron(c.context)
+    Aeron.Client(aeron_archive_context_get_aeron(c.context))
 end
 
 """

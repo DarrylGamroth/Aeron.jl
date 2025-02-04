@@ -15,11 +15,11 @@ Represents a reserved value supplier with a handler function and client data.
 - `ReservedValueSupplier(handler::T, clientd::C=nothing)`: Creates a new `ReservedValueSupplier`
    with the given handler function and client data.
 """
-mutable struct ReservedValueSupplier{T<:Function, C} <: AbstractReservedValueSupplier
+mutable struct ReservedValueSupplier{T<:Function,C} <: AbstractReservedValueSupplier
     handler::T
     clientd::C
-    function ReservedValueSupplier(handler::T, clientd::C=nothing) where {T<:Function, C}
-        new{T, C}(handler, clientd)
+    function ReservedValueSupplier(handler::T, clientd::C=nothing) where {T<:Function,C}
+        new{T,C}(handler, clientd)
     end
 end
 

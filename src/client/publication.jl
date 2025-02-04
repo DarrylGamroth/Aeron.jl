@@ -2,6 +2,7 @@ mutable struct Publication
     publication::Ptr{aeron_publication_t}
     const constants::aeron_publication_constants_t
     const iovecs::Vector{aeron_iovec_t}
+    const client::Client
     const is_owned::Bool
 
     """
@@ -11,14 +12,14 @@ mutable struct Publication
     - `publication::Ptr{aeron_publication_t}`: Pointer to the Aeron publication.
     - `is_owned::Bool=false`: Indicates if the publication is owned by this instance.
     """
-    function Publication(publication::Ptr{aeron_publication_t}, is_owned::Bool=false)
+    function Publication(publication::Ptr{aeron_publication_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_publication_constants_t}()
         if aeron_publication_constants(publication, constants) < 0
             throwerror()
         end
 
         finalizer(new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM), is_owned)) do p
+            sizehint!(aeron_iovec_t[], IOVECS_NUM), client, is_owned)) do p
             if p.is_owned == true
                 aeron_publication_close(p.publication, C_NULL, C_NULL)
             end
@@ -28,6 +29,7 @@ end
 
 struct AsyncAddPublication
     async::Ptr{aeron_async_add_publication_t}
+    client::Client
 end
 
 """
@@ -46,7 +48,7 @@ function async_add_publication(c::Client, uri::AbstractString, stream_id)
     if aeron_async_add_publication(async, c.client, uri, stream_id) < 0
         throwerror()
     end
-    return AsyncAddPublication(async[])
+    return AsyncAddPublication(async[], c)
 end
 
 """
@@ -67,7 +69,7 @@ function poll(a::AsyncAddPublication)
     if publication[] == C_NULL
         return nothing
     end
-    return Publication(publication[], true)
+    return Publication(publication[], a.client, true)
 end
 
 """
@@ -96,13 +98,12 @@ end
 Initiate an asynchronous request to add a destination to a publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function async_add_destination(c::Client, p::Publication, uri::AbstractString)
+function async_add_destination(p::Publication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_publication_async_add_destination(async, c.client, p.publication, uri) < 0
+    if aeron_publication_async_add_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
@@ -112,12 +113,11 @@ end
 Add a destination to a publication and wait for it to be available.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function add_destination(c::Client, p::Publication, uri::AbstractString)
-    async = async_add_destination(c, p, uri)
+function add_destination(p::Publication, uri::AbstractString)
+    async = async_add_destination(p, uri)
     while true
         poll(p, async) && return
         yield()
@@ -128,13 +128,12 @@ end
 Initiate an asynchronous request to remove a destination to a publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function async_remove_destination(c::Client, p::Publication, uri::AbstractString)
+function async_remove_destination(p::Publication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_publication_async_remove_destination(async, c.client, p.publication, uri) < 0
+    if aeron_publication_async_remove_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
@@ -144,12 +143,11 @@ end
 Remove a destination from a publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function remove_destination(c::Client, p::Publication, uri::AbstractString)
-    async = async_remove_destination(c, p, uri)
+function remove_destination(p::Publication, uri::AbstractString)
+    async = async_remove_destination(p, uri)
     while true
         poll(p, async) && return
         yield()
@@ -160,13 +158,12 @@ end
 Initiate an asynchronous request to remove a destination to a publication by ID.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `destination_id`: The ID of the destination.
 """
-function async_remove_destination_by_id(c::Client, p::Publication, destination_id)
+function async_remove_destination_by_id(p::Publication, destination_id)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_publication_async_remove_destination_by_id(async, c.client, p.publication, destination_id) < 0
+    if aeron_publication_async_remove_destination_by_id(async, pointer(p.client), p.publication, destination_id) < 0
         throwerror()
     end
     return AsyncDestination(async[])
@@ -176,12 +173,11 @@ end
 Remove a destination from a publication by ID.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::Publication`: The publication.
 - `destination_id`: The ID of the destination.
 """
-function remove_destination_by_id(c::Client, p::Publication, destination_id)
-    async = async_remove_destination_by_id(c, p, destination_id)
+function remove_destination_by_id(p::Publication, destination_id)
+    async = async_remove_destination_by_id(p, destination_id)
     while true
         poll(p, async) && return
         yield()
@@ -240,7 +236,7 @@ end
 """
     offer(p::Publication, buffer::AbstractVector{UInt8}, reserved_value_supplier::AbstractReservedValueSupplier) -> Int
 
-Offer a buffer to the publication.
+Offer a buffer to the publication with a reserved value supplier.
 
 # Arguments
 - `p::Publication`: The publication.

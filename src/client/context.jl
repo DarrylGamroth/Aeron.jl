@@ -10,13 +10,13 @@ mutable struct Context
     context::Ptr{aeron_context_t}
 
     # Callback references to prevent garbage collection
-    error_handler::Tuple{Function, Any}
-    on_new_publication::Tuple{Function, Any}
-    on_new_exclusive_publication::Tuple{Function, Any}
-    on_new_subscription::Tuple{Function, Any}
-    on_available_counter::Tuple{Function, Any}
-    on_unavailable_counter::Tuple{Function, Any}
-    on_close_client::Tuple{Function, Any}
+    error_handler::Tuple{Function,Any}
+    on_new_publication::Tuple{Function,Any}
+    on_new_exclusive_publication::Tuple{Function,Any}
+    on_new_subscription::Tuple{Function,Any}
+    on_available_counter::Tuple{Function,Any}
+    on_unavailable_counter::Tuple{Function,Any}
+    on_close_client::Tuple{Function,Any}
 
     function Context()
         p = Ref{Ptr{aeron_context_t}}(C_NULL)
@@ -309,24 +309,24 @@ function error_handler_cfunction(::T) where {T}
     @cfunction(error_handler_wrapper, Cvoid, (Ref{T}, Cint, Cstring))
 end
 
-function new_publication_handler_wrapper((callback, clientd), publication, channel, stream_id, session_id, correlation_id)
-    callback(clientd, AsyncAddPublication(publication), unsafe_string(channel), stream_id, session_id, correlation_id)
+function new_publication_handler_wrapper((callback, clientd), async, channel, stream_id, session_id, correlation_id)
+    callback(clientd, unsafe_string(channel), stream_id, session_id, correlation_id)
 end
 
 function new_publication_handler_cfunction(::T) where {T}
     @cfunction(new_publication_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_async_add_publication_t}, Cstring, Int32, Int32, Int64))
 end
 
-function new_exclusive_publication_handler_wrapper((callback, clientd), publication, channel, stream_id, session_id, correlation_id)
-    callback(clientd, AsyncAddExclusivePublication(publication), unsafe_string(channel), stream_id, session_id, correlation_id)
+function new_exclusive_publication_handler_wrapper((callback, clientd), async, channel, stream_id, session_id, correlation_id)
+    callback(clientd, unsafe_string(channel), stream_id, session_id, correlation_id)
 end
 
 function new_exclusive_publication_handler_cfunction(::T) where {T}
     @cfunction(new_exclusive_publication_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_async_add_publication_t}, Cstring, Int32, Int32, Int64))
 end
 
-function new_subscription_handler_wrapper((callback, clientd), subscription, channel, stream_id, session_id, correlation_id)
-    callback(clientd, AsyncAddSubscription(subscription), unsafe_string(channel), stream_id, session_id, correlation_id)
+function new_subscription_handler_wrapper((callback, clientd), async, channel, stream_id, session_id, correlation_id)
+    callback(clientd, unsafe_string(channel), stream_id, session_id, correlation_id)
 end
 
 function new_subscription_handler_cfunction(::T) where {T}
@@ -334,7 +334,7 @@ function new_subscription_handler_cfunction(::T) where {T}
 end
 
 function available_counter_handler_wrapper((callback, clientd), counters_reader, registration_id, counter_id)
-    callback(clientd, CountersReader(counters_reader), registration_id, counter_id)
+    callback(clientd, registration_id, counter_id)
 end
 
 function available_counter_handler_cfunction(::T) where {T}
@@ -342,7 +342,7 @@ function available_counter_handler_cfunction(::T) where {T}
 end
 
 function unavailable_counter_handler_wrapper((callback, clientd), counters_reader, registration_id, counter_id)
-    callback(clientd, CountersReader(counters_reader), registration_id, counter_id)
+    callback(clientd, registration_id, counter_id)
 end
 
 function unavailable_counter_handler_cfunction(::T) where {T}

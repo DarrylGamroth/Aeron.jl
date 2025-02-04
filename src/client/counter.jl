@@ -18,14 +18,15 @@ Creates a new `Counter` instance with the given Aeron counter pointer and alloca
 mutable struct Counter
     counter::Ptr{aeron_counter_t}
     constants::aeron_counter_constants_t
+    const client::Client
     const is_owned::Bool
-    function Counter(counter::Ptr{aeron_counter_t}, is_owned::Bool=false)
+    function Counter(counter::Ptr{aeron_counter_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_counter_constants_t}()
         if aeron_counter_constants(counter, constants) < 0
             throwerror()
         end
-        
-        finalizer(new(counter, constants[], is_owned)) do c
+
+        finalizer(new(counter, constants[], client, is_owned)) do c
             if c.is_owned == true
                 aeron_counter_close(c.counter, C_NULL, C_NULL)
             end
@@ -44,6 +45,7 @@ Represents an asynchronous add counter operation.
 """
 struct AsyncAddCounter
     async::Ptr{aeron_async_add_counter_t}
+    client::Client
 end
 
 """
@@ -76,7 +78,7 @@ function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,
             throwerror()
         end
     end
-    return AsyncAddCounter(async[])
+    return AsyncAddCounter(async[], client)
 end
 
 """
@@ -100,7 +102,7 @@ function poll(a::AsyncAddCounter)
     if counter[] == C_NULL
         return nothing
     end
-    return Counter(counter[], true)
+    return Counter(counter[], a.client, true)
 end
 
 """

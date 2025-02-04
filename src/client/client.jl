@@ -4,35 +4,37 @@
 Represents a client for the Aeron messaging system.
 
 # Fields
-- `context::Context`: The context associated with the client.
 - `client::Ptr{aeron_t}`: Pointer to the underlying Aeron client.
+- `context::Context`: The context associated with the client.
 """
 mutable struct Client
-    context::Context
     client::Ptr{aeron_t}
-    function Client(context::Context)
-        c = Ref{Ptr{aeron_t}}(C_NULL)
-        if aeron_init(c, pointer(context)) < 0
-            throwerror()
-        end
+    context::Context
 
-        if aeron_start(c[]) < 0
-            throw(ErrorException("aeron_start failed"))
-        end
-
-        finalizer(new(context, c[])) do c
-            aeron_close(c.client)
-        end
-    end
+    Client(client::Ptr{aeron_t}) = new(client)
 end
 
 """
-    Client()
+    Client(context::Context=Context()) -> Client
 
-Create a new `Client` with a default `Context`.
+Create a new `Client`.
 """
-function Client()
-    return Client(Context())
+function Client(context::Context=Context())
+    c = Ref{Ptr{aeron_t}}(C_NULL)
+    if aeron_init(c, pointer(context)) < 0
+        throwerror()
+    end
+
+    if aeron_start(c[]) < 0
+        throw(ErrorException("aeron_start failed"))
+    end
+
+    client = Client(c[])
+    client.context = context
+
+    finalizer(client) do c
+        aeron_close(c.client)
+    end
 end
 
 """
@@ -95,19 +97,6 @@ Get the underlying Aeron client pointer.
 pointer(c::Client) = c.client
 
 """
-    context(c::Client) -> Context
-
-Get the context associated with the given `Client`.
-
-# Arguments
-- `c::Client`: The client instance.
-
-# Returns
-- `Context`: The client's context.
-"""
-context(c::Client) = c.context
-
-"""
     next_correlation_id(c::Client) -> Int64
 
 Get the next correlation ID for the given `Client`.
@@ -134,5 +123,4 @@ function Base.show(io::IO, mime::MIME"text/plain", c::Client)
     println(io, "Client")
     println(io, "  client id: ", client_id(c))
     println(io, "  next correlation id: ", next_correlation_id(c))
-    show(io, mime, context(c))
 end

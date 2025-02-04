@@ -69,7 +69,7 @@ function main(ARGS)
 
         aeron = Aeron.Client(context)
         subscription = Aeron.add_subscription(aeron, "aeron:udp?control-mode=manual", stream_id)
-        Aeron.add_destination(aeron, subscription, channel)
+        Aeron.add_destination(subscription, channel)
         fragment_handler = Aeron.FragmentHandler(poll_handler, subscription)
         fragment_assembler = Aeron.FragmentAssembler(fragment_handler)
 

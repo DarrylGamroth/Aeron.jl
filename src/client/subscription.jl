@@ -1,6 +1,7 @@
 mutable struct Subscription
     subscription::Ptr{aeron_subscription_t}
     const constants::aeron_subscription_constants_t
+    const client::Client
     const is_owned::Bool
 
     """
@@ -10,13 +11,13 @@ mutable struct Subscription
     - `subscription::Ptr{aeron_subscription_t}`: Pointer to the Aeron subscription.
     - `is_owned::Bool=false`: Indicates if the subscription is owned by this instance.
     """
-    function Subscription(subscription::Ptr{aeron_subscription_t}, is_owned::Bool=false)
+    function Subscription(subscription::Ptr{aeron_subscription_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_subscription_constants_t}()
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
 
-        finalizer(new(subscription, constants[], is_owned)) do s
+        finalizer(new(subscription, constants[], client, is_owned)) do s
             if s.is_owned == true
                 aeron_subscription_close(s.subscription, C_NULL, C_NULL)
             end
@@ -25,7 +26,7 @@ mutable struct Subscription
 end
 
 function available_image_handler_wrapper(callback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    callback(Subscription(subscription), Image(image))
+    callback(Image(image))
 end
 
 function available_image_handler_cfunction(::T) where {T}
@@ -33,7 +34,7 @@ function available_image_handler_cfunction(::T) where {T}
 end
 
 function unavailable_image_handler_wrapper(callback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    callback(Subscription(subscription), Image(image))
+    callback(Image(image))
 end
 
 function unavailable_image_handler_cfunction(::T) where {T}
@@ -42,6 +43,7 @@ end
 
 struct AsyncAddSubscription
     async::Ptr{aeron_async_add_subscription_t}
+    client::Client
 end
 
 """
@@ -74,7 +76,7 @@ function async_add_subscription(c::Client, uri::AbstractString, stream_id;
         on_unavailable_image === nothing ? C_NULL : Ref(on_unavailable_image)) < 0
         throwerror()
     end
-    return AsyncAddSubscription(async[])
+    return AsyncAddSubscription(async[], c)
 end
 
 """
@@ -96,7 +98,7 @@ function poll(a::AsyncAddSubscription)
     if subscription[] == C_NULL
         return nothing
     end
-    return Subscription(subscription[], true)
+    return Subscription(subscription[], a.client, true)
 end
 
 """
@@ -132,38 +134,36 @@ function add_subscription(c::Client, uri::AbstractString, stream_id;
 end
 
 """
-    async_add_subscription(c::Client, s::Subscription) -> AsyncDestination
+    async_add_destination(s::Subscription, uri::AbstractString) -> AsyncDestination
 
 Add a destination to a subscription asynchronously.
 
 # Arguments
-- `c::Client`: The client object.
 - `s::Subscription`: The subscription object.
 - `uri::AbstractString`: The URI of the destination.
 
 # Returns
 - `AsyncDestination`: The asynchronous destination object.
 """
-function async_add_destination(c::Client, s::Subscription, uri::AbstractString)
+function async_add_destination(s::Subscription, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_subscription_async_add_destination(async, c.client, s.subscription, uri) < 0
+    if aeron_subscription_async_add_destination(async, pointer(s.client), s.subscription, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
 end
 
 """
-    add_destination(c::Client, s::Subscription, uri::AbstractString)
+    add_destination(s::Subscription, uri::AbstractString)
 
 Add a destination to a subscription and wait for it to be available.
 
 # Arguments
-- `c::Client`: The client object.
 - `s::Subscription`: The subscription object.
 - `uri::AbstractString`: The URI of the destination.
 """
-function add_destination(c::Client, s::Subscription, uri::AbstractString)
-    async = async_add_destination(c, s, uri)
+function add_destination(s::Subscription, uri::AbstractString)
+    async = async_add_destination(s, uri)
     while true
         poll(s, async) && return
         yield()
@@ -171,38 +171,36 @@ function add_destination(c::Client, s::Subscription, uri::AbstractString)
 end
 
 """
-    async_remove_destination(c::Client, s::Subscription, uri::AbstractString) -> AsyncDestination
+    async_remove_destination(s::Subscription, uri::AbstractString) -> AsyncDestination
 
 Remove a destination from a subscription asynchronously.
 
 # Arguments
-- `c::Client`: The client object.
 - `s::Subscription`: The subscription object.
 - `uri::AbstractString`: The URI of the destination.
 
 # Returns
 - `AsyncDestination`: The asynchronous destination object.
 """
-function async_remove_destination(c::Client, s::Subscription, uri::AbstractString)
+function async_remove_destination(s::Subscription, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_subscription_async_remove_destination(async, c.client, s.subscription, uri) < 0
+    if aeron_subscription_async_remove_destination(async, pointer(s.client), s.subscription, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
 end
 
 """
-    remove_destination(c::Client, s::Subscription, uri::AbstractString)
+    remove_destination(s::Subscription, uri::AbstractString)
 
 Remove a destination from a subscription and wait for it to be removed.
 
 # Arguments
-- `c::Client`: The client object.
 - `s::Subscription`: The subscription object.
 - `uri::AbstractString`: The URI of the destination.
 """
-function remove_destination(c::Client, s::Subscription, uri::AbstractString)
-    async = async_remove_destination(c, s, uri)
+function remove_destination(s::Subscription, uri::AbstractString)
+    async = async_remove_destination(s, uri)
     while true
         poll(s, async) && return
         yield()

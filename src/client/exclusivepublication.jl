@@ -2,6 +2,7 @@ mutable struct ExclusivePublication
     publication::Ptr{aeron_exclusive_publication_t}
     const constants::aeron_publication_constants_t
     const iovecs::Vector{aeron_iovec_t}
+    const client::Client
     const is_owned::Bool
 
     """
@@ -11,14 +12,14 @@ mutable struct ExclusivePublication
     - `publication::Ptr{aeron_exclusive_publication_t}`: Pointer to the Aeron exclusive publication.
     - `is_owned::Bool=false`: Indicates if the publication is owned by this instance.
     """
-    function ExclusivePublication(publication::Ptr{aeron_exclusive_publication_t}, is_owned::Bool=false)
+    function ExclusivePublication(publication::Ptr{aeron_exclusive_publication_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_publication_constants_t}()
         if aeron_exclusive_publication_constants(publication, constants) < 0
             throwerror()
         end
 
         finalizer(new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM; shrink=false), is_owned)) do p
+            sizehint!(aeron_iovec_t[], IOVECS_NUM), client, is_owned)) do p
             if p.is_owned == true
                 aeron_exclusive_publication_close(p.publication, C_NULL, C_NULL)
             end
@@ -28,6 +29,7 @@ end
 
 struct AsyncAddExclusivePublication
     async::Ptr{aeron_async_add_exclusive_publication_t}
+    client::Client
 end
 
 """
@@ -46,7 +48,7 @@ function async_add_exclusive_publication(c::Client, uri::AbstractString, stream_
     if aeron_async_add_exclusive_publication(async, c.client, uri, stream_id) < 0
         throwerror()
     end
-    return AsyncAddExclusivePublication(async[])
+    return AsyncAddExclusivePublication(async[], c)
 end
 
 """
@@ -67,11 +69,11 @@ function poll(a::AsyncAddExclusivePublication)
     if publication[] == C_NULL
         return nothing
     end
-    return ExclusivePublication(publication[], true)
+    return ExclusivePublication(publication[], a.client, true)
 end
 
 """
-Add an exclusive publication.
+Add an exclusive publication and wait for it to be available.
 
 # Arguments
 - `c::Client`: The client instance.
@@ -96,28 +98,26 @@ end
 Initiate an asynchronous request to add a destination to an exclusive publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function async_add_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
+function async_add_destination(p::ExclusivePublication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_exclusive_publication_async_add_destination(async, c.client, p.publication, uri) < 0
+    if aeron_exclusive_publication_async_add_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
 end
 
 """
-Add a destination to an exclusive publication.
+Add a destination to an exclusive publication and wait for it to be available.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function add_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
-    async = async_add_destination(c, p, uri)
+function add_destination(p::ExclusivePublication, uri::AbstractString)
+    async = async_add_destination(p, uri)
     while true
         poll(p, async) && return
         yield()
@@ -128,13 +128,12 @@ end
 Initiate an asynchronous request to remove a destination to an exclusive publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function async_remove_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
+function async_remove_destination(p::ExclusivePublication, uri::AbstractString)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_exclusive_publication_async_remove_destination(async, c.client, p.publication, uri) < 0
+    if aeron_exclusive_publication_async_remove_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
     return AsyncDestination(async[])
@@ -144,12 +143,11 @@ end
 Remove a destination from an exclusive publication.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `uri::AbstractString`: The URI of the destination.
 """
-function remove_destination(c::Client, p::ExclusivePublication, uri::AbstractString)
-    async = async_remove_destination(c, p, uri)
+function remove_destination(p::ExclusivePublication, uri::AbstractString)
+    async = async_remove_destination(p, uri)
     while true
         poll(p, async) && return
         yield()
@@ -160,13 +158,12 @@ end
 Initiate an asynchronous request to remove a destination to an exclusive publication by ID.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `destination_id`: The ID of the destination.
 """
-function async_remove_destination_by_id(c::Client, p::ExclusivePublication, destination_id)
+function async_remove_destination_by_id(p::ExclusivePublication, destination_id)
     async = Ref{Ptr{aeron_async_destination_t}}(C_NULL)
-    if aeron_exclusive_publication_async_remove_destination_by_id(async, c.client, p.publication, destination_id) < 0
+    if aeron_exclusive_publication_async_remove_destination_by_id(async, pointer(p.client), p.publication, destination_id) < 0
         throwerror()
     end
     return AsyncDestination(async[])
@@ -176,12 +173,11 @@ end
 Remove a destination from an exclusive publication by ID.
 
 # Arguments
-- `c::Client`: The client instance.
 - `p::ExclusivePublication`: The exclusive publication.
 - `destination_id`: The ID of the destination.
 """
-function remove_destination_by_id(c::Client, p::ExclusivePublication, destination_id)
-    async = async_remove_destination_by_id(c, p, destination_id)
+function remove_destination_by_id(p::ExclusivePublication, destination_id)
+    async = async_remove_destination_by_id(p, destination_id)
     while true
         poll(p, async) && return
         yield()
@@ -303,7 +299,9 @@ function _offer(p::ExclusivePublication,
         for (i, buffer) in enumerate(buffers)
             @inbounds p.iovecs[i] = aeron_iovec_t(Base.pointer(buffer), Base.length(buffer))
         end
-        aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, reserved_value_supplier, clientd)
+        position = aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, reserved_value_supplier, clientd)
+        empty!(p.iovecs)
+        return position
     end
 end
 

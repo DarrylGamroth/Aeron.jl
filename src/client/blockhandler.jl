@@ -26,11 +26,11 @@ Represents a block handler with a callback function and client data.
 - `on_block_handler::T`: The function called when a block is received. The signature of the function is `function(clientd::Any, buffer::AbstractVector{UInt8}, session_id::Int32, term_id::Int32) -> Nothing`.
 - `clientd::Any=nothing`: Client data passed to the handler function.
 """
-mutable struct BlockHandler{T<:Function, C} <: AbstractBlockHandler
+mutable struct BlockHandler{T<:Function,C} <: AbstractBlockHandler
     on_block_handler::T
     clientd::C
-    function BlockHandler(on_block_handler::T, clientd::C=nothing) where {T<:Function, C}
-        new{T, C}(on_block_handler, clientd)
+    function BlockHandler(on_block_handler::T, clientd::C=nothing) where {T<:Function,C}
+        new{T,C}(on_block_handler, clientd)
     end
 end
 

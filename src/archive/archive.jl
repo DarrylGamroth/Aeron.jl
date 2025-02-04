@@ -1,6 +1,8 @@
+const ERROR_BUFFER_LENGTH = 256
+
 mutable struct Archive
     archive::Ptr{aeron_archive_t}
-    client::Ptr{LibAeron.aeron_t}
+    client::Aeron.Client
     control_response_subscription::Aeron.Subscription
     error_message_buffer::Vector{UInt8}
     @atomic is_closed::Bool
@@ -10,9 +12,9 @@ mutable struct Archive
 
         finalizer(
             new(archive,
-                aeron_archive_context_get_aeron(context.context),
+                client(context),
                 Aeron.Subscription(aeron_archive_get_and_own_control_response_subscription(archive), true),
-                zeros(UInt8, 256),
+                zeros(UInt8, ERROR_BUFFER_LENGTH),
                 false)
         ) do a
             close(a)
@@ -23,7 +25,6 @@ end
 function Base.close(a::Archive)
     _, success = @atomicreplace a.is_closed false => true
     if success
-        close(a.control_response_subscription)
         aeron_archive_close(a.archive)
     end
 end
@@ -336,7 +337,7 @@ function add_recorded_publication(a::Archive, channel, stream_id)
     if aeron_archive_add_recorded_publication(publication, a.archive, channel, stream_id) < 0
         Aeron.throwerror()
     end
-    return Aeron.Publication(publication[])
+    return Aeron.Publication(publication[], a.client)
 end
 
 function add_recorded_exclusive_publication(a::Archive, channel, stream_id)
@@ -344,7 +345,7 @@ function add_recorded_exclusive_publication(a::Archive, channel, stream_id)
     if aeron_archive_add_recorded_exclusive_publication(publication, a.archive, channel, stream_id) < 0
         Aeron.throwerror()
     end
-    return Aeron.ExclusivePublication(publication[])
+    return Aeron.ExclusivePublication(publication[], a.client)
 end
 
 function start_recording(a::Archive, channel, stream_id, source_location::SourceLocation.T, auto_stop::Bool=false)
@@ -497,7 +498,7 @@ function replay(a::Archive, recording_id, replay_channel, replay_stream_id; kwar
     if aeron_archive_replay(subscription, a.archive, recording_id, replay_channel, replay_stream_id, params) < 0
         Aeron.throwerror()
     end
-    return Aeron.Subscription(subscription[])
+    return Aeron.Subscription(subscription[], a.client)
 end
 
 function truncate_recording(a::Archive, recording_id, position)
@@ -659,4 +660,4 @@ function is_active(c::Aeron.CountersReader, counter_id, recording_id)
     return active[]
 end
 
-Aeron.CountersReader(a::Archive) = Aeron.CountersReader(aeron_counters_reader(a.client))
+Aeron.CountersReader(a::Archive) = Aeron.CountersReader(a.client)
