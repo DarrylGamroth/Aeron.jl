@@ -26,7 +26,7 @@ Represents a controlled fragment handler with a callback function and client dat
 - `on_fragment::T`: The function called when a fragment is received. The signature of the function is `function(clientd::Any, buffer::AbstractVector{UInt8}, header::Header) -> ControlledAction`.
 - `clientd::Any=nothing`: Client data passed to the handler function.
 """
-struct ControlledFragmentHandler{T,C} <: AbstractControlledFragmentHandler
+mutable struct ControlledFragmentHandler{T,C} <: AbstractControlledFragmentHandler
     on_fragment::T
     clientd::C
     function ControlledFragmentHandler(on_fragment::T, clientd::C=nothing) where {T,C}
