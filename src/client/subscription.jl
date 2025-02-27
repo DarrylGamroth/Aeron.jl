@@ -419,6 +419,44 @@ function poll(s::Subscription, block_handler::AbstractBlockHandler, block_length
     return bytes
 end
 
+"""
+    image_by_session_id(s::Subscription, session_id::Int32) -> Union{Nothing, Image}
+
+Return the image associated with the given session\\_id under the given subscription.
+"""
+function image_by_session_id(s::Subscription, session_id)
+    image = aeron_subscription_image_by_session_id(s.subscription, session_id)
+    if image == C_NULL
+        return nothing
+    end
+
+    retval = aeron_subscription_image_release(s.subscription, image)
+    if retval < 0
+        throwerror()
+    end
+
+    return Image(image)
+end
+
+"""
+    image_at_index(s::Subscription, index::Int32) -> Union{Nothing, Image}
+
+Return the image at the given index.
+"""
+function image_at_index(s::Subscription, index)
+    image = aeron_subscription_image_at_index(s.subscription, index)
+    if image == C_NULL
+        return nothing
+    end
+
+    retval = aeron_subscription_image_release(s.subscription, image)
+    if retval < 0
+        throwerror()
+    end
+
+    return Image(image)
+end
+
 function Base.show(io::IO, ::MIME"text/plain", s::Subscription)
     println(io, "Subscription")
     println(io, "  channel: ", channel(s))

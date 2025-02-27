@@ -113,3 +113,54 @@ Returns `true` if the `Image` `i` is open, `false` otherwise.
 An image is considered open if it has not been closed.
 """
 Base.isopen(i::Image) = !aeron_image_is_closed(i.image)
+
+"""
+    position(i::Image) -> Int64
+
+Returns the position of the `Image` `i`.
+
+The position this image has been consumed to by the subscriber.
+"""
+position(i::Image) = aeron_image_position(i.image)
+
+"""
+    position!(i::Image, value::Int64)
+
+Set the subscriber position for this image to indicate where it has been consumed to.
+"""
+function position!(i::Image, value::Int64)
+    retval = aeron_image_set_position(i.image, value)
+    if retval < 0
+        throwerror()
+    end
+end
+
+"""
+    is_end_of_stream(i::Image) -> Bool
+
+Is the current consumed position at the end of the stream?
+"""
+is_end_of_stream(i::Image) = aeron_image_is_end_of_stream(i.image)
+
+"""
+    end_of_stream_position(i::Image) -> Int64
+
+The position the stream reached when EOS was received from the publisher. The position will be INT64\\_MAX until the stream ends and EOS is set.
+"""
+end_of_stream_position(i::Image) = aeron_image_end_of_stream_position(i.image)
+
+"""
+    active_transport_count(i::Image) -> Int32
+
+Count of observed active transports within the image liveness timeout.
+
+# Returns
+Count of active transports - 0 if Image is closed, no datagrams yet, or IPC.
+"""
+function active_transport_count(i::Image)
+    retval = aeron_image_active_transport_count(i.image)
+    if retval < 0
+        throwerror()
+    end
+    return retval
+end
