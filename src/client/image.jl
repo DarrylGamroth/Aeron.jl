@@ -164,3 +164,20 @@ function active_transport_count(i::Image)
     end
     return retval
 end
+
+function Base.show(io::IO, ::MIME"text/plain", i::Image)
+    println(io, "Image")
+    println(io, "  source identity: $(source_identity(i))")
+    println(io, "  correlation ID: $(correlation_id(i))")
+    println(io, "  join position: $(join_position(i))")
+    println(io, "  position bits to shift: $(position_bits_to_shift(i))")
+    println(io, "  term buffer length: $(term_buffer_length(i))")
+    println(io, "  MTU length: $(mtu_length(i))")
+    println(io, "  session ID: $(session_id(i))")
+    println(io, "  initial term ID: $(initial_term_id(i))")
+    println(io, "  subscriber position ID: $(subscriber_position_id(i))")
+    println(io, "  open: $(isopen(i))")
+    println(io, "  position: $(position(i))")
+    println(io, "  is end of stream: $(is_end_of_stream(i))")
+    println(io, "  end of stream position: $(end_of_stream_position(i))")
+end
