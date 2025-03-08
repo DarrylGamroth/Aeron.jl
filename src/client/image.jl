@@ -25,6 +25,13 @@ struct Image
 end
 
 """
+    subscription(i::Image) -> Subscription
+
+Returns the `Subscription` associated with the `Image` `i`.
+"""
+subscription(i::Image) = Subscription(i.constants.subscription, false)
+
+"""
     source_identity(i::Image) -> String
 
 Returns the source identity of the `Image` `i`.
