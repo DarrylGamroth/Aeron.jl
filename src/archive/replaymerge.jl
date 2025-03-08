@@ -1,4 +1,4 @@
-struct ReplayMerge
+mutable struct ReplayMerge
     replay_merge::Ptr{aeron_archive_replay_merge_t}
     subscription::Aeron.Subscription
     archive::Archive
