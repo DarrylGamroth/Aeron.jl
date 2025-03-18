@@ -13,7 +13,7 @@ mutable struct Archive
         finalizer(
             new(archive,
                 client(context),
-                Aeron.Subscription(aeron_archive_get_and_own_control_response_subscription(archive), true),
+                Aeron.Subscription(aeron_archive_get_and_own_control_response_subscription(archive), client(context), true),
                 zeros(UInt8, ERROR_BUFFER_LENGTH),
                 false)
         ) do a
