@@ -1,6 +1,6 @@
 # Aeron.jl
 
-Julia wrappers around the [Aeron Client](https://github.com/real-logic/aeron) C library for reliable UDP unicast, multicast, and shared-memory messaging.
+Julia wrappers around the [Aeron Client](https://github.com/aeron-io/aeron) C library for reliable UDP unicast, multicast, and shared-memory messaging.
 
 ## Features
 
@@ -25,12 +25,15 @@ To start an embedded media driver:
 ```julia
 using Aeron
 media_driver = MediaDriver.launch_embedded()
+...
+close(media_driver)
 ```
 
 The embedded media driver creates a unique Aeron directory. To use it pass the directory to the client context.
 ```julia
 dirname = MediaDriver.aeron_dir(media_driver)
-context = Aeron.Context(dirname)
+context = Aeron.Context()
+Aeron.aeron_dir!(context, dirname)
 ```
 
 To start an external media driver process in the Julia environment:
@@ -39,8 +42,8 @@ To start an external media driver process in the Julia environment:
 using Aeron
 launch_media_driver()
 ```
-The media driver can be configured passing environment variable strings to [launch_media_driver](src/Aeron.jl#L255). 
-For more information on configuring the media driver, see the [Aeron wiki](https://github.com/real-logic/aeron/wiki/Configuration-Options).
+The media driver can be configured passing environment variable strings to [launch_media_driver](src/Aeron.jl#L20). 
+For more information on configuring the media driver, see the [Aeron wiki](https://github.com/aeron-io/aeron/wiki/Configuration-Options).
 
 For usage examples, please refer to the [samples directory](samples) in the repository.
 

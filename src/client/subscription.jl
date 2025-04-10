@@ -1,8 +1,8 @@
-mutable struct Subscription
+struct Subscription
     subscription::Ptr{aeron_subscription_t}
-    const constants::aeron_subscription_constants_t
-    const client::Client
-    const is_owned::Bool
+    constants::aeron_subscription_constants_t
+    client::Client
+    is_owned::Bool
 
     """
     Create a new Subscription object.
@@ -16,12 +16,7 @@ mutable struct Subscription
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
-
-        finalizer(new(subscription, constants[], client, is_owned)) do s
-            if s.is_owned == true
-                aeron_subscription_close(s.subscription, C_NULL, C_NULL)
-            end
-        end
+        return new(subscription, constants[], client, is_owned)
     end
 end
 
@@ -240,7 +235,6 @@ function Base.close(s::Subscription)
             throwerror()
         end
     end
-    s.subscription = C_NULL
 end
 
 """

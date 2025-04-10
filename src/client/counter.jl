@@ -15,22 +15,17 @@ Represents an Aeron counter, which is used for tracking various metrics.
 
 Creates a new `Counter` instance with the given Aeron counter pointer and allocation status.
 """
-mutable struct Counter
+struct Counter
     counter::Ptr{aeron_counter_t}
     constants::aeron_counter_constants_t
-    const client::Client
-    const is_owned::Bool
+    client::Client
+    is_owned::Bool
     function Counter(counter::Ptr{aeron_counter_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_counter_constants_t}()
         if aeron_counter_constants(counter, constants) < 0
             throwerror()
         end
-
-        finalizer(new(counter, constants[], client, is_owned)) do c
-            if c.is_owned == true
-                aeron_counter_close(c.counter, C_NULL, C_NULL)
-            end
-        end
+        return new(counter, constants[], client, is_owned)
     end
 end
 
@@ -142,12 +137,11 @@ Closes the `Counter` `c`, releasing any allocated resources.
 - `c::Counter`: The counter to close.
 """
 function Base.close(c::Counter)
-    if c.is_owned == true
+    if c.is_owned
         if aeron_counter_close(c.counter, C_NULL, C_NULL) < 0
             throwerror()
         end
     end
-    c.counter = C_NULL
 end
 
 """

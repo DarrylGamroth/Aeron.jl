@@ -27,27 +27,17 @@ mutable struct Context
         context = new(p[])
         attach_callbacks_to_context(context)
 
-        finalizer(context) do c
-            aeron_context_close(c.context)
-        end
+        return context
     end
 end
 
-"""
-    Context(dirname)
-
-Create a new `Context` object and set the media driver directory.
-
-# Arguments
-- `dirname`: The media driver directory name to set.
-
-# Returns
-- A new `Context` object with the specified media driver directory.
-"""
-function Context(dirname::AbstractString)
+function Context(f::Function)
     c = Context()
-    aeron_dir!(c, dirname)
-    return c
+    try
+        f(c)
+    finally
+        close(c)
+    end
 end
 
 """

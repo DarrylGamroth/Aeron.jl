@@ -1,9 +1,9 @@
-mutable struct Publication
+struct Publication
     publication::Ptr{aeron_publication_t}
-    const constants::aeron_publication_constants_t
-    const iovecs::Vector{aeron_iovec_t}
-    const client::Client
-    const is_owned::Bool
+    constants::aeron_publication_constants_t
+    iovecs::Vector{aeron_iovec_t}
+    client::Client
+    is_owned::Bool
 
     """
     Create a new `Publication` instance.
@@ -17,13 +17,8 @@ mutable struct Publication
         if aeron_publication_constants(publication, constants) < 0
             throwerror()
         end
-
-        finalizer(new(publication, constants[],
-            sizehint!(aeron_iovec_t[], IOVECS_NUM), client, is_owned)) do p
-            if p.is_owned == true
-                aeron_publication_close(p.publication, C_NULL, C_NULL)
-            end
-        end
+        return new(publication, constants[],
+            sizehint!(aeron_iovec_t[], IOVECS_NUM), client, is_owned)
     end
 end
 
@@ -214,7 +209,6 @@ function Base.close(p::Publication)
             throwerror()
         end
     end
-    p.publication = C_NULL
 end
 
 """
@@ -317,7 +311,7 @@ Try to claim a range of the publication.
 - `BufferClaim`: The buffer claim.
 - `Int`: The new stream position otherwise a negative error value.
 """
-function try_claim(p::Publication, length)
+@inline function try_claim(p::Publication, length)
     buffer_claim = Ref{aeron_buffer_claim_t}()
     position = aeron_publication_try_claim(p.publication, length, buffer_claim)
     if position == AERON_PUBLICATION_ERROR

@@ -183,7 +183,7 @@ export Context,
     untethered_window_limit_timeout_ns,
     untethered_window_limit_timeout_ns
 
-mutable struct Context
+struct Context
     context::Ptr{aeron_driver_context_t}
 
     function Context()
@@ -191,10 +191,16 @@ mutable struct Context
         if aeron_driver_context_init(p) < 0
             Aeron.throwerror()
         end
+        new(p[])
+    end
+end
 
-        finalizer(new(p[])) do c
-            aeron_driver_context_close(c.context)
-        end
+function Context(f::Function)
+    c = Context()
+    try
+        f(c)
+    finally
+        close(c)
     end
 end
 
@@ -1035,18 +1041,35 @@ function Base.show(io::IO, c::Context)
     println(io, "  stream session limit: ", stream_session_limit(c))
 end
 
-mutable struct Driver
+struct Driver
     driver::Ptr{aeron_driver_t}
     context::Context
 
-    function Driver(context::Context=Context())
+    function Driver(context::Context)
         p = Ref{Ptr{aeron_driver_t}}(C_NULL)
         if aeron_driver_init(p, context.context) < 0
             Aeron.throwerror()
         end
+        return new(p[], context)
+    end
+end
 
-        finalizer(new(p[], context)) do d
-            aeron_driver_close(d.driver)
+function Driver(f::Function, context::Context)
+    d = Driver(context)
+    try
+        f(d)
+    finally
+        close(d)
+    end
+end
+
+function Driver(f::Function)
+    Context() do context
+        d = Driver(context)
+        try
+            f(d)
+        finally
+            close(d)
         end
     end
 end
@@ -1090,20 +1113,60 @@ end
 
 context(d::Driver) = d.context
 
-function launch(c::Context=Context())
+function launch(c::Context)
     driver = Driver(c)
     start(driver)
 
     return driver
 end
 
-function launch_embedded(c::Context=Context())
+function launch(f::Function, c::Context)
+    driver = launch(c)
+    try
+        f(driver)
+    finally
+        close(driver)
+    end
+end
+
+function launch(f::Function)
+    Context() do context
+        driver = launch(context)
+        try
+            f(driver)
+        finally
+            close(driver)
+        end
+    end
+end
+
+function launch_embedded(c::Context)
     dir = "$(aeron_dir(c))-$(UUIDs.uuid4())"
     aeron_dir!(c, dir)
     dir_delete_on_start!(c, true)
     dir_delete_on_shutdown!(c, true)
 
     launch(c)
+end
+
+function launch_embedded(f::Function, c::Context)
+    driver = launch_embedded(c)
+    try
+        f(driver)
+    finally
+        close(driver)
+    end
+end
+
+function launch_embedded(f::Function)
+    Context() do context
+        driver = launch_embedded(context)
+        try
+            f(driver)
+        finally
+            close(driver)
+        end
+    end
 end
 
 end # module MediaDriver

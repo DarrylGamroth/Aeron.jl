@@ -1,4 +1,4 @@
-mutable struct ReplayMerge
+struct ReplayMerge
     replay_merge::Ptr{aeron_archive_replay_merge_t}
     subscription::Aeron.Subscription
     archive::Archive
@@ -14,9 +14,16 @@ mutable struct ReplayMerge
             recording_id, start_position, epoch_clock, merge_progress_timeout_ms) < 0
             Aeron.throwerror()
         end
-        finalizer(new(replay_merge[], subscription, archive)) do r
-            close(r)
-        end
+        new(replay_merge[], subscription, archive)
+    end
+end
+
+function ReplayMerge(f::Function, args...)
+    r = ReplayMerge(args...)
+    try
+        f(r)
+    finally
+        close(r)
     end
 end
 

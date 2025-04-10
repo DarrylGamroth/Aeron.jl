@@ -1,6 +1,4 @@
-include("../src/Aeron.jl")
-
-using .Aeron
+using Aeron
 using Printf
 
 include("samples_util.jl")
@@ -59,22 +57,27 @@ function main(ARGS)
     println("Subscribing to channel $channel on Stream ID $stream_id")
 
     try
-        context = Aeron.Context()
-        if aeron_dir !== nothing
-            Aeron.aeron_dir!(context, aeron_dir)
+        Aeron.Context() do context
+            if aeron_dir !== nothing
+                Aeron.aeron_dir!(context, aeron_dir)
+            end
+
+            Aeron.Client(context) do aeron
+                subscription = Aeron.add_subscription(aeron, channel, stream_id;
+                    on_available_image=print_available_image, on_unavailable_image=print_unavailable_image)
+                fragment_handler = Aeron.FragmentHandler(poll_handler, subscription)
+                fragment_assembler = Aeron.FragmentAssembler(fragment_handler)
+
+                try
+                    while true
+                        Aeron.poll(subscription, fragment_assembler, DEFAULT_FRAGMENT_COUNT_LIMIT)
+                        sleep(0.001)  # 1ms
+                    end
+                finally
+                    close(subscription)
+                end
+            end
         end
-
-        aeron = Aeron.Client(context)
-        subscription = Aeron.add_subscription(aeron, channel, stream_id;
-            on_available_image=print_available_image, on_unavailable_image=print_unavailable_image)
-        fragment_handler = Aeron.FragmentHandler(poll_handler, subscription)
-        fragment_assembler = Aeron.FragmentAssembler(fragment_handler)
-
-        while true
-            Aeron.poll(subscription, fragment_assembler, DEFAULT_FRAGMENT_COUNT_LIMIT)
-            sleep(0.001)  # 1ms
-        end
-
     catch e
         if e isa InterruptException
             println("Shutting down...")

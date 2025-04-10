@@ -26,27 +26,8 @@ mutable struct Context
 
         attach_callbacks_to_context(context)
 
-        finalizer(context) do c
-            aeron_archive_context_close(c.context)
-        end
+        return context
     end
-end
-
-"""
-    Context(dirname)
-
-Create a new `Context` object and set the media driver directory.
-
-# Arguments
-- `dirname`: The media driver directory name to set.
-
-# Returns
-- A new `Context` object with the specified media driver directory.
-"""
-function Context(aerondir::AbstractString)
-    c = Context()
-    aeron_dir!(c, aerondir)
-    return c
 end
 
 """
@@ -66,6 +47,15 @@ function Context(control_request_channel::AbstractString, control_response_chann
     control_request_channel!(c, control_request_channel)
     control_response_channel!(c, control_response_channel)
     return c
+end
+
+function Context(f::Function, args...)
+    c = Context(args...)
+    try
+        f(c)
+    finally
+        close(c)
+    end
 end
 
 """
@@ -232,6 +222,7 @@ end
 ###############
 
 function credentials_supplier!(c::Context, supplier::CredentialsSupplier)
+    c.credentials_supplier = supplier
     GC.@preserve supplier begin
         if aeron_archive_context_set_credentials_supplier(c.context,
             credentials_encoded_credentials_supplier_cfunction(supplier),

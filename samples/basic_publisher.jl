@@ -1,6 +1,4 @@
-include("../src/Aeron.jl")
-
-using .Aeron
+using Aeron
 using Printf
 
 include("samples_configuration.jl")
@@ -97,56 +95,62 @@ function main(ARGS)
     println("Publishing to channel $channel on Stream ID $stream_id")
 
     try
-        context = Aeron.Context()
-        if aeron_dir !== nothing
-            Aeron.aeron_dir!(context, aeron_dir)
-        end
-
-        aeron = Aeron.Client(context)
-        publication = Aeron.add_publication(aeron, channel, stream_id)
-
-        println("Publication channel status ", Aeron.channel_status(publication))
-
-        if fill_mtu
-            message = build_large_message(Aeron.max_payload_length(publication))
-            println("Using message of $(length(message)) bytes")
-        end
-
-        for i in 1:messages
-            if !fill_mtu
-                message = @sprintf("Hello World! %d", i)
+        Aeron.Context() do context
+            if aeron_dir !== nothing
+                Aeron.aeron_dir!(context, aeron_dir)
             end
 
-            print("offering $i/$messages - ")
+            Aeron.Client(context) do aeron
+                publication = Aeron.add_publication(aeron, channel, stream_id)
 
-            result = Aeron.offer(publication, Vector{UInt8}(message))
+                println("Publication channel status ", Aeron.channel_status(publication))
 
-            if result > 0
-                println("yay!")
-            elseif result == Aeron.PUBLICATION_BACK_PRESSURED
-                println("Offer failed due to back pressure")
-            elseif result == Aeron.PUBLICATION_NOT_CONNECTED
-                println("Offer failed because publisher is not connected to a subscriber")
-            elseif result == Aeron.PUBLICATION_ADMIN_ACTION
-                println("Offer failed because of an administration action in the system")
-            elseif result == Aeron.PUBLICATION_CLOSED
-                println("Offer failed because publication is closed")
-            else
-                println("Offer failed due to unknown reason $result")
+                if fill_mtu
+                    message = build_large_message(Aeron.max_payload_length(publication))
+                    println("Using message of $(length(message)) bytes")
+                end
+
+                try
+                    for i in 1:messages
+                        if !fill_mtu
+                            message = @sprintf("Hello World! %d", i)
+                        end
+
+                        print("offering $i/$messages - ")
+
+                        result = Aeron.offer(publication, Vector{UInt8}(message))
+
+                        if result > 0
+                            println("yay!")
+                        elseif result == Aeron.PUBLICATION_BACK_PRESSURED
+                            println("Offer failed due to back pressure")
+                        elseif result == Aeron.PUBLICATION_NOT_CONNECTED
+                            println("Offer failed because publisher is not connected to a subscriber")
+                        elseif result == Aeron.PUBLICATION_ADMIN_ACTION
+                            println("Offer failed because of an administration action in the system")
+                        elseif result == Aeron.PUBLICATION_CLOSED
+                            println("Offer failed because publication is closed")
+                        else
+                            println("Offer failed due to unknown reason $result")
+                        end
+
+                        if !Aeron.is_connected(publication)
+                            println("No active subscribers detected")
+                        end
+
+                        sleep(1)
+                    end
+                finally
+                    close(publication)
+                end
+
+                println("Done sending.")
+
+                if linger_ns > 0
+                    println("Lingering for $linger_ns nanoseconds")
+                    sleep(linger_ns / 1e9)
+                end
             end
-
-            if !Aeron.is_connected(publication)
-                println("No active subscribers detected")
-            end
-
-            sleep(1)
-        end
-
-        println("Done sending.")
-
-        if linger_ns > 0
-            println("Lingering for $linger_ns nanoseconds")
-            sleep(linger_ns / 1e9)
         end
 
     catch e

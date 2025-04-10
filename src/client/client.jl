@@ -1,5 +1,5 @@
 """
-    mutable struct Client
+    struct Client
 
 Represents a client for the Aeron messaging system.
 
@@ -7,33 +7,46 @@ Represents a client for the Aeron messaging system.
 - `client::Ptr{aeron_t}`: Pointer to the underlying Aeron client.
 - `context::Context`: The context associated with the client.
 """
-mutable struct Client
+struct Client
     client::Ptr{aeron_t}
     context::Context
 
-    Client(client::Ptr{aeron_t}) = new(client)
+    """
+    Client(context::Context) -> Client
+
+    Create a new `Client`.
+    """
+    function Client(context::Context)
+        c = Ref{Ptr{aeron_t}}(C_NULL)
+        if aeron_init(c, pointer(context)) < 0
+            throwerror()
+        end
+
+        if aeron_start(c[]) < 0
+            throw(ErrorException("aeron_start failed"))
+        end
+
+        new(c[], context)
+    end
 end
 
-"""
-    Client(context::Context=Context()) -> Client
-
-Create a new `Client`.
-"""
-function Client(context::Context=Context())
-    c = Ref{Ptr{aeron_t}}(C_NULL)
-    if aeron_init(c, pointer(context)) < 0
-        throwerror()
+function Client(f::Function, context)
+    c = Client(context)
+    try
+        f(c)
+    finally
+        close(c)
     end
+end
 
-    if aeron_start(c[]) < 0
-        throw(ErrorException("aeron_start failed"))
-    end
-
-    client = Client(c[])
-    client.context = context
-
-    finalizer(client) do c
-        aeron_close(c.client)
+function Client(f::Function)
+    Context() do context
+        c = Client(context)
+        try
+            f(c)
+        finally
+            close(c)
+        end
     end
 end
 
@@ -49,7 +62,6 @@ function Base.close(c::Client)
     if aeron_close(c.client) < 0
         error("aeron_close failed")
     end
-    c.client = C_NULL
 end
 
 """
@@ -63,12 +75,7 @@ Check if the given `Client` is open.
 # Returns
 - `Bool`: `true` if the client is open, `false` otherwise.
 """
-function Base.isopen(c::Client)
-    if c.client == C_NULL
-        throw(ErrorException("aeron client is NULL"))
-    end
-    !aeron_is_closed(c.client)
-end
+Base.isopen(c::Client) = !aeron_is_closed(c.client)
 
 """
     client_id(c::Client) -> Int64

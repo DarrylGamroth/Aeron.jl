@@ -1,32 +1,23 @@
 const ERROR_BUFFER_LENGTH = 256
 
-mutable struct Archive
+struct Archive
     archive::Ptr{aeron_archive_t}
     client::Aeron.Client
     control_response_subscription::Aeron.Subscription
     error_message_buffer::Vector{UInt8}
-    @atomic is_closed::Bool
 
     function Archive(archive::Ptr{aeron_archive_t}, context::Context)
         context.context = aeron_archive_get_and_own_archive_context(archive)
 
-        finalizer(
-            new(archive,
-                client(context),
-                Aeron.Subscription(aeron_archive_get_and_own_control_response_subscription(archive), client(context), true),
-                zeros(UInt8, ERROR_BUFFER_LENGTH),
-                false)
-        ) do a
-            close(a)
-        end
+        new(archive,
+            client(context),
+            Aeron.Subscription(aeron_archive_get_control_response_subscription(archive), client(context), false),
+            zeros(UInt8, ERROR_BUFFER_LENGTH))
     end
 end
 
 function Base.close(a::Archive)
-    _, success = @atomicreplace a.is_closed false => true
-    if success
-        aeron_archive_close(a.archive)
-    end
+    aeron_archive_close(a.archive)
 end
 
 """
@@ -43,7 +34,6 @@ function Base.show(io::IO, ::MIME"text/plain", a::Archive)
     println(io, "Archive")
     println(io, "  archive id: ", archive_id(a))
     println(io, "  control session id: ", control_session_id(a))
-    println(io, "  is closed: ", a.is_closed)
 end
 
 struct RecordingDescriptor
@@ -305,6 +295,15 @@ function connect(c::Context)
     end
 
     return Archive(archive[], c)
+end
+
+function connect(f::Function, c::Context)
+    a = connect(c)
+    try
+        f(a)
+    finally
+        close(a)
+    end
 end
 
 archive_id(a::Archive) = aeron_archive_get_archive_id(a.archive)

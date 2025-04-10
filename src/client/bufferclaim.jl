@@ -12,7 +12,7 @@ After writing to the claimed buffer, call [`commit`](@ref) to publish the messag
 - `claim::Ref{aeron_buffer_claim_t}`: Reference to the underlying Aeron buffer claim structure.
 """
 struct BufferClaim
-    claim::Ref{aeron_buffer_claim_t}
+    claim::Base.RefValue{aeron_buffer_claim_t}
 end
 
 """
