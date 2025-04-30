@@ -55,24 +55,26 @@ struct RecordingDescriptor
     source_identity::String
 
     function RecordingDescriptor(desc_p::Ptr{aeron_archive_recording_descriptor_t})
-        desc = unsafe_load(desc_p)
-        new(desc.control_session_id,
-            desc.correlation_id,
-            desc.recording_id,
-            desc.start_timestamp,
-            desc.stop_timestamp,
-            desc.start_position,
-            desc.stop_position,
-            desc.initial_term_id,
-            desc.segment_file_length,
-            desc.term_buffer_length,
-            desc.mtu_length,
-            desc.session_id,
-            desc.stream_id,
-            unsafe_string(desc.stripped_channel),
-            unsafe_string(desc.original_channel),
-            unsafe_string(desc.source_identity)
-        )
+        GC.@preserve desc_p begin
+            desc = unsafe_load(desc_p)
+            new(desc.control_session_id,
+                desc.correlation_id,
+                desc.recording_id,
+                desc.start_timestamp,
+                desc.stop_timestamp,
+                desc.start_position,
+                desc.stop_position,
+                desc.initial_term_id,
+                desc.segment_file_length,
+                desc.term_buffer_length,
+                desc.mtu_length,
+                desc.session_id,
+                desc.stream_id,
+                unsafe_string(desc.stripped_channel),
+                unsafe_string(desc.original_channel),
+                unsafe_string(desc.source_identity)
+            )
+        end
     end
 end
 
@@ -104,13 +106,15 @@ struct RecordingSubscriptionDescriptor
     stripped_channel::String
 
     function RecordingSubscriptionDescriptor(desc_p::Ptr{aeron_archive_recording_subscription_descriptor_t})
-        desc = unsafe_load(desc_p)
-        new(desc.control_session_id,
-            desc.correlation_id,
-            desc.subscription_id,
-            desc.stream_id,
-            unsafe_string(desc.stripped_channel)
-        )
+        GC.@preserve desc_p begin
+            desc = unsafe_load(desc_p)
+            new(desc.control_session_id,
+                desc.correlation_id,
+                desc.subscription_id,
+                desc.stream_id,
+                unsafe_string(desc.stripped_channel)
+            )
+        end
     end
 end
 
@@ -131,13 +135,15 @@ struct RecordingSignalDescriptor
     recording_signal_code::Int32
 
     function RecordingSignalDescriptor(desc_p::Ptr{aeron_archive_recording_signal_t})
-        desc = unsafe_load(desc_p)
-        new(desc.control_session_id,
-            desc.recording_id,
-            desc.subscription_id,
-            desc.position,
-            desc.recording_signal_code
-        )
+        GC.@preserve desc_p begin
+            desc = unsafe_load(desc_p)
+            new(desc.control_session_id,
+                desc.recording_id,
+                desc.subscription_id,
+                desc.position,
+                desc.recording_signal_code
+            )
+        end
     end
 end
 
@@ -150,7 +156,7 @@ function Base.show(io::IO, ::MIME"text/plain", desc::RecordingSignalDescriptor)
     println(io, "  recording signal code: ", desc.recording_signal_code)
 end
 
-@enumx RecordingSignal::Int32 begin
+@enumx ClientRecordingSignal::Int32 begin
     START = Integer(AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_START)
     STOP = Integer(AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_STOP)
     EXTEND = Integer(AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_EXTEND)
@@ -162,12 +168,12 @@ end
     NULL_VALUE = Integer(AERON_ARCHIVE_CLIENT_RECORDING_SIGNAL_NULL_VALUE)
 end
 
-function Base.convert(::Type{aeron_archive_recording_signal_t}, signal::RecordingSignal.T)
-    aeron_archive_recording_signal_t(Integer(signal))
+function Base.convert(::Type{aeron_archive_client_recording_signal_t}, signal::ClientRecordingSignal.T)
+    aeron_archive_client_recording_signal_t(Integer(signal))
 end
 
-function Base.convert(::Type{RecordingSignal.T}, signal::aeron_archive_recording_signal_t)
-    RecordingSignal.T(signal)
+function Base.convert(::Type{ClientRecordingSignal.T}, signal::aeron_archive_client_recording_signal_t)
+    ClientRecordingSignal.T(signal)
 end
 
 @enumx SourceLocation::UInt32 begin
