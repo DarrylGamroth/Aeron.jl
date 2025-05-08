@@ -337,7 +337,7 @@ Try to claim a range of the publication.
         throwerror()
     end
 
-    return BufferClaim(buffer_claim), position
+    return BufferClaim(buffer_claim[]), position
 end
 
 """
