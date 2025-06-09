@@ -240,6 +240,7 @@ struct AsyncDestination
 end
 
 include("exceptions.jl")
+include("utils.jl")
 include("context.jl")
 include("image.jl")
 include("client.jl")
