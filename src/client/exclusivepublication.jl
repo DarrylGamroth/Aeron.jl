@@ -1,7 +1,6 @@
 struct ExclusivePublication
     publication::Ptr{aeron_exclusive_publication_t}
     constants::aeron_publication_constants_t
-    iovecs::Vector{aeron_iovec_t}
     client::Client
     is_owned::Bool
 
@@ -17,8 +16,7 @@ struct ExclusivePublication
         if aeron_exclusive_publication_constants(publication, constants) < 0
             throwerror()
         end
-        return new(publication, constants[],
-            sizehint_optimized!(aeron_iovec_t[], IOVECS_NUM), client, is_owned)
+        return new(publication, constants[], client, is_owned)
     end
 end
 
@@ -290,17 +288,14 @@ function _offer(p::ExclusivePublication,
     clientd) where {T<:AbstractVector{UInt8},N}
 
     n = length(buffers)
-    # Ensure we have enough pre-allocated capacity
-    if n > length(p.iovecs)
-        resize!(p.iovecs, n)
-    end
-    
+
     GC.@preserve buffers begin
-        for (i, buffer) in enumerate(buffers)
-            @inbounds p.iovecs[i] = aeron_iovec_t(Base.pointer(buffer), Base.length(buffer))
+        iovecs = ntuple(n) do i
+            buffer = buffers[i]
+            aeron_iovec_t(Base.pointer(buffer), Base.length(buffer))
         end
-        # Use only the first n elements without resizing
-        position = aeron_exclusive_publication_offerv(p.publication, p.iovecs, n, reserved_value_supplier, clientd)
+
+        position = aeron_exclusive_publication_offerv(p.publication, iovecs, n, reserved_value_supplier, clientd)
         return position
     end
 end

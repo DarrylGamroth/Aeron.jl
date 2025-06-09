@@ -214,8 +214,6 @@ const PUBLICATION_CLOSED = AERON_PUBLICATION_CLOSED
 const PUBLICATION_MAX_POSITION_EXCEEDED = AERON_PUBLICATION_MAX_POSITION_EXCEEDED
 const PUBLICATION_ERROR = AERON_PUBLICATION_ERROR
 
-const IOVECS_NUM = 4
-
 """
     @enumx ControlledAction
 
@@ -240,7 +238,6 @@ struct AsyncDestination
 end
 
 include("exceptions.jl")
-include("utils.jl")
 include("context.jl")
 include("image.jl")
 include("client.jl")
