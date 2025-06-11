@@ -295,7 +295,7 @@ function _offer(p::ExclusivePublication,
             aeron_iovec_t(Base.pointer(buffer), Base.length(buffer))
         end
 
-        position = aeron_exclusive_publication_offerv(p.publication, iovecs, n, reserved_value_supplier, clientd)
+        position = aeron_exclusive_publication_offerv(p.publication, Ref(iovecs), n, reserved_value_supplier, clientd)
         return position
     end
 end
