@@ -12,11 +12,11 @@ const INT64_MAX = typemax(INT64_C)
 
 # End of prologue file
 
-mutable struct aeron_context_stct end
+const aeron_context_stct = Cvoid
 
 const aeron_context_t = aeron_context_stct
 
-mutable struct aeron_stct end
+const aeron_stct = Cvoid
 
 const aeron_t = aeron_stct
 
@@ -36,15 +36,15 @@ Structure used to hold information for a try\\_claim function call.
 """
 const aeron_buffer_claim_t = aeron_buffer_claim_stct
 
-mutable struct aeron_publication_stct end
+const aeron_publication_stct = Cvoid
 
 const aeron_publication_t = aeron_publication_stct
 
-mutable struct aeron_exclusive_publication_stct end
+const aeron_exclusive_publication_stct = Cvoid
 
 const aeron_exclusive_publication_t = aeron_exclusive_publication_stct
 
-mutable struct aeron_header_stct end
+const aeron_header_stct = Cvoid
 
 const aeron_header_t = aeron_header_stct
 
@@ -135,27 +135,27 @@ end
 
 const aeron_publication_error_values_t = aeron_publication_error_values_stct
 
-mutable struct aeron_subscription_stct end
+const aeron_subscription_stct = Cvoid
 
 const aeron_subscription_t = aeron_subscription_stct
 
-mutable struct aeron_image_stct end
+const aeron_image_stct = Cvoid
 
 const aeron_image_t = aeron_image_stct
 
-mutable struct aeron_counter_stct end
+const aeron_counter_stct = Cvoid
 
 const aeron_counter_t = aeron_counter_stct
 
-mutable struct aeron_log_buffer_stct end
+const aeron_log_buffer_stct = Cvoid
 
 const aeron_log_buffer_t = aeron_log_buffer_stct
 
-mutable struct aeron_counters_reader_stct end
+const aeron_counters_reader_stct = Cvoid
 
 const aeron_counters_reader_t = aeron_counters_reader_stct
 
-mutable struct aeron_client_registering_resource_stct end
+const aeron_client_registering_resource_stct = Cvoid
 
 const aeron_async_add_publication_t = aeron_client_registering_resource_stct
 
@@ -169,19 +169,19 @@ const aeron_async_destination_t = aeron_client_registering_resource_stct
 
 const aeron_async_destination_by_id_t = aeron_client_registering_resource_stct
 
-mutable struct aeron_image_fragment_assembler_stct end
+const aeron_image_fragment_assembler_stct = Cvoid
 
 const aeron_image_fragment_assembler_t = aeron_image_fragment_assembler_stct
 
-mutable struct aeron_image_controlled_fragment_assembler_stct end
+const aeron_image_controlled_fragment_assembler_stct = Cvoid
 
 const aeron_image_controlled_fragment_assembler_t = aeron_image_controlled_fragment_assembler_stct
 
-mutable struct aeron_fragment_assembler_stct end
+const aeron_fragment_assembler_stct = Cvoid
 
 const aeron_fragment_assembler_t = aeron_fragment_assembler_stct
 
-mutable struct aeron_controlled_fragment_assembler_stct end
+const aeron_controlled_fragment_assembler_stct = Cvoid
 
 const aeron_controlled_fragment_assembler_t = aeron_controlled_fragment_assembler_stct
 
@@ -4015,7 +4015,7 @@ function aeron_context_request_driver_termination(directory, token_buffer, token
     @ccall libaeron.aeron_context_request_driver_termination(directory::Cstring, token_buffer::Ptr{UInt8}, token_length::Csize_t)::Cint
 end
 
-mutable struct aeron_cnc_stct end
+const aeron_cnc_stct = Cvoid
 
 const aeron_cnc_t = aeron_cnc_stct
 
@@ -4262,15 +4262,15 @@ end
 # typedef void ( * aeron_fptr_t ) ( void )
 const aeron_fptr_t = Ptr{Cvoid}
 
-mutable struct aeron_archive_stct end
+const aeron_archive_stct = Cvoid
 
 const aeron_archive_t = aeron_archive_stct
 
-mutable struct aeron_archive_context_stct end
+const aeron_archive_context_stct = Cvoid
 
 const aeron_archive_context_t = aeron_archive_context_stct
 
-mutable struct aeron_archive_async_connect_stct end
+const aeron_archive_async_connect_stct = Cvoid
 
 const aeron_archive_async_connect_t = aeron_archive_async_connect_stct
 
@@ -5966,7 +5966,7 @@ function aeron_archive_recording_pos_is_active(is_active, counters_reader, count
     @ccall libaeron_archive_c_client.aeron_archive_recording_pos_is_active(is_active::Ptr{Bool}, counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, recording_id::Int64)::Cint
 end
 
-mutable struct aeron_archive_replay_merge_stct end
+const aeron_archive_replay_merge_stct = Cvoid
 
 const aeron_archive_replay_merge_t = aeron_archive_replay_merge_stct
 
@@ -6127,11 +6127,11 @@ function aeron_archive_replay_merge_is_live_added(replay_merge)
     @ccall libaeron_archive_c_client.aeron_archive_replay_merge_is_live_added(replay_merge::Ptr{aeron_archive_replay_merge_t})::Bool
 end
 
-mutable struct aeron_driver_context_stct end
+const aeron_driver_context_stct = Cvoid
 
 const aeron_driver_context_t = aeron_driver_context_stct
 
-mutable struct aeron_driver_stct end
+const aeron_driver_stct = Cvoid
 
 const aeron_driver_t = aeron_driver_stct
 
@@ -6792,15 +6792,15 @@ function aeron_driver_context_get_rcv_status_message_timeout_ns(context)
     @ccall libaeron_driver.aeron_driver_context_get_rcv_status_message_timeout_ns(context::Ptr{aeron_driver_context_t})::UInt64
 end
 
-mutable struct aeron_flow_control_strategy_stct end
+const aeron_flow_control_strategy_stct = Cvoid
 
 const aeron_flow_control_strategy_t = aeron_flow_control_strategy_stct
 
-mutable struct aeron_counters_manager_stct end
+const aeron_counters_manager_stct = Cvoid
 
 const aeron_counters_manager_t = aeron_counters_manager_stct
 
-mutable struct aeron_udp_channel_stct end
+const aeron_udp_channel_stct = Cvoid
 
 const aeron_udp_channel_t = aeron_udp_channel_stct
 
@@ -6921,11 +6921,11 @@ function aeron_driver_context_get_rcv_initial_window_length(context)
     @ccall libaeron_driver.aeron_driver_context_get_rcv_initial_window_length(context::Ptr{aeron_driver_context_t})::Csize_t
 end
 
-mutable struct aeron_congestion_control_strategy_stct end
+const aeron_congestion_control_strategy_stct = Cvoid
 
 const aeron_congestion_control_strategy_t = aeron_congestion_control_strategy_stct
 
-mutable struct sockaddr_storage end
+const sockaddr_storage = Cvoid
 
 # typedef int ( * aeron_congestion_control_strategy_supplier_func_t ) ( aeron_congestion_control_strategy_t * * strategy , aeron_udp_channel_t * channel , int32_t stream_id , int32_t session_id , int64_t registration_id , int32_t term_length , int32_t sender_mtu_length , struct sockaddr_storage * control_address , struct sockaddr_storage * src_address , aeron_driver_context_t * context , aeron_counters_manager_t * counters_manager )
 const aeron_congestion_control_strategy_supplier_func_t = Ptr{Cvoid}
@@ -7928,7 +7928,7 @@ function aeron_driver_context_get_connect_enabled(context)
     @ccall libaeron_driver.aeron_driver_context_get_connect_enabled(context::Ptr{aeron_driver_context_t})::Cint
 end
 
-mutable struct aeron_udp_channel_transport_bindings_stct end
+const aeron_udp_channel_transport_bindings_stct = Cvoid
 
 const aeron_udp_channel_transport_bindings_t = aeron_udp_channel_transport_bindings_stct
 
@@ -7956,7 +7956,7 @@ function aeron_driver_context_get_udp_channel_transport_bindings(context)
     @ccall libaeron_driver.aeron_driver_context_get_udp_channel_transport_bindings(context::Ptr{aeron_driver_context_t})::Ptr{aeron_udp_channel_transport_bindings_t}
 end
 
-mutable struct aeron_udp_channel_interceptor_bindings_stct end
+const aeron_udp_channel_interceptor_bindings_stct = Cvoid
 
 const aeron_udp_channel_interceptor_bindings_t = aeron_udp_channel_interceptor_bindings_stct
 
@@ -8056,7 +8056,7 @@ function aeron_driver_context_get_publication_reserved_session_id_high(context)
     @ccall libaeron_driver.aeron_driver_context_get_publication_reserved_session_id_high(context::Ptr{aeron_driver_context_t})::Int32
 end
 
-mutable struct aeron_name_resolver_stct end
+const aeron_name_resolver_stct = Cvoid
 
 const aeron_name_resolver_t = aeron_name_resolver_stct
 
@@ -8207,7 +8207,7 @@ function aeron_driver_context_get_re_resolution_check_interval_ns(context)
     @ccall libaeron_driver.aeron_driver_context_get_re_resolution_check_interval_ns(context::Ptr{aeron_driver_context_t})::UInt64
 end
 
-mutable struct aeron_duty_cycle_tracker_stct end
+const aeron_duty_cycle_tracker_stct = Cvoid
 
 const aeron_duty_cycle_tracker_t = aeron_duty_cycle_tracker_stct
 
@@ -8355,7 +8355,7 @@ function aeron_driver_context_get_receiver_wildcard_port_range(context, low_port
     @ccall libaeron_driver.aeron_driver_context_get_receiver_wildcard_port_range(context::Ptr{aeron_driver_context_t}, low_port::Ptr{UInt16}, high_port::Ptr{UInt16})::Cint
 end
 
-mutable struct aeron_port_manager_stct end
+const aeron_port_manager_stct = Cvoid
 
 const aeron_port_manager_t = aeron_port_manager_stct
 
