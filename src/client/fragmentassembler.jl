@@ -32,7 +32,7 @@ mutable struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragment
 end
 
 function (f::FragmentAssembler)(clientd, buffer, header)
-    aeron_fragment_assembler_handler(clientd, buffer, length(buffer), pointer(header))
+    aeron_fragment_assembler_handler(clientd, buffer, length(buffer), header)
 end
 
 on_fragment(f::FragmentAssembler) = f

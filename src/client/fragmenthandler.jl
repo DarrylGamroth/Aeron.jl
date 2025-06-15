@@ -52,7 +52,7 @@ on_fragment(f::FragmentHandler) = f.on_fragment
 clientd(f::FragmentHandler) = f.clientd
 
 function on_fragment_wrapper(f::AbstractFragmentHandler, buffer, length, header)
-    on_fragment(f)(clientd(f), UnsafeArray(buffer, (Int64(length),)), Header(header))
+    on_fragment(f)(clientd(f), UnsafeArray(buffer, (Int64(length),)), header)
     nothing
 end
 

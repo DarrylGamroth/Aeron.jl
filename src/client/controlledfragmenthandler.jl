@@ -38,7 +38,7 @@ on_fragment(f::ControlledFragmentHandler) = f.on_fragment
 clientd(f::ControlledFragmentHandler) = f.clientd
 
 function on_fragment_wrapper(f::AbstractControlledFragmentHandler, buffer, length, header)
-    action = on_fragment(f)(clientd(f), UnsafeArray(buffer, (Int64(length),)), Header(header))
+    action = on_fragment(f)(clientd(f), UnsafeArray(buffer, (Int64(length),)), header)
     return aeron_controlled_fragment_handler_action_t(Integer(action))
 end
 

@@ -32,7 +32,7 @@ mutable struct ControlledFragmentAssembler{T<:AbstractControlledFragmentHandler}
 end
 
 function (f::ControlledFragmentAssembler)(clientd, buffer, header)
-    action = aeron_controlled_fragment_assembler_handler(clientd, buffer, length(buffer), pointer(header))
+    action = aeron_controlled_fragment_assembler_handler(clientd, buffer, length(buffer), header)
     return ControlledAction.T(Integer(action))
 end
 
