@@ -340,7 +340,7 @@ To assemble messages that span multiple fragments then use `FragmentAssembler`.
 - `fragment_limit::Int32`: The maximum number of fragments to process during this poll.
 
 # Returns
-- `Int32`: The number of fragments processed.
+- `Int`: The number of fragments processed.
 """
 function poll(s::Subscription, fragment_handler::AbstractFragmentHandler, fragment_limit)
     GC.@preserve fragment_handler begin
@@ -352,7 +352,7 @@ function poll(s::Subscription, fragment_handler::AbstractFragmentHandler, fragme
         throwerror()
     end
 
-    return num_fragments
+    return Int(num_fragments)
 end
 
 """
@@ -371,7 +371,7 @@ To assemble messages that span multiple fragments then use aeron_controlled_frag
 - `fragment_limit::Int32`: The maximum number of fragments to process during this poll.
 
 # Returns
-- `Int32`: The number of fragments processed.
+- `Int`: The number of fragments processed.
 """
 function poll(s::Subscription, fragment_handler::AbstractControlledFragmentHandler, fragment_limit)
     GC.@preserve fragment_handler begin
@@ -383,7 +383,7 @@ function poll(s::Subscription, fragment_handler::AbstractControlledFragmentHandl
         throwerror()
     end
 
-    return num_fragments
+    return Int(num_fragments)
 end
 
 """
@@ -398,7 +398,7 @@ This method is useful for operations like bulk archiving and messaging indexing.
 - `block_length_limit::Int32`: The maximum number of bytes to process during this poll.
 
 # Returns
-- `Int32`: The number of bytes consumed.
+- `Int`: The number of bytes consumed.
 """
 function poll(s::Subscription, block_handler::AbstractBlockHandler, block_length_limit)
     GC.@preserve block_handler begin
@@ -410,7 +410,7 @@ function poll(s::Subscription, block_handler::AbstractBlockHandler, block_length
         throwerror()
     end
 
-    return bytes
+    return Int(bytes)
 end
 
 """

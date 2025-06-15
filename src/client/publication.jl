@@ -295,7 +295,7 @@ function _offer(p::Publication,
         end
 
         position = aeron_publication_offerv(p.publication, Ref(iovecs), n, reserved_value_supplier, clientd)
-        return position
+        return Int(position)
     end
 end
 
@@ -317,7 +317,7 @@ Try to claim a range of the publication.
         throwerror()
     end
 
-    return BufferClaim(buffer_claim[]), position
+    return BufferClaim(buffer_claim[]), Int(position)
 end
 
 """

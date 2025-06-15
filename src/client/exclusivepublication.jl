@@ -296,7 +296,7 @@ function _offer(p::ExclusivePublication,
         end
 
         position = aeron_exclusive_publication_offerv(p.publication, Ref(iovecs), n, reserved_value_supplier, clientd)
-        return position
+        return Int(position)
     end
 end
 
@@ -315,7 +315,7 @@ function offer_block(p::ExclusivePublication, buffer::AbstractVector{UInt8})
     if position == AERON_PUBLICATION_ERROR
         throwerror()
     end
-    return position
+    return Int(position)
 end
 
 """
@@ -336,7 +336,7 @@ Try to claim a range of the publication.
         throwerror()
     end
 
-    return BufferClaim(buffer_claim[]), position
+    return BufferClaim(buffer_claim[]), Int(position)
 end
 
 """
