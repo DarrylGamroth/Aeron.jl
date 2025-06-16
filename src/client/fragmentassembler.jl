@@ -1,5 +1,5 @@
 """
-    struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragmentHandler
+    struct FragmentAssembler <: AbstractFragmentHandler
 
 Represents a fragment assembler that reassembles fragmented messages and passes them to a fragment handler.
 
@@ -7,12 +7,12 @@ Represents a fragment assembler that reassembles fragmented messages and passes 
 
 - `FragmentAssembler(fragment_handler::T)`: Creates a new `FragmentAssembler` with the given fragment handler.
 """
-mutable struct FragmentAssembler{T<:AbstractFragmentHandler} <: AbstractFragmentHandler
-    fragment_handler::Base.RefValue{T}
+mutable struct FragmentAssembler <: AbstractFragmentHandler
+    fragment_handler::Ref{AbstractFragmentHandler}
     assembler::Ptr{aeron_fragment_assembler_t}
 
-    function FragmentAssembler(fragment_handler::T) where {T}
-        f = new{T}(Ref(fragment_handler))
+    function FragmentAssembler(fragment_handler::AbstractFragmentHandler)
+        f = new(Ref{AbstractFragmentHandler}(fragment_handler))
         assembler = Ref{Ptr{aeron_fragment_assembler_t}}(C_NULL)
 
         GC.@preserve f begin
