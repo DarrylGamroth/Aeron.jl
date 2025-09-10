@@ -350,7 +350,7 @@ end
 ###################
 
 """
-    error_handler!(callback, c, clientd)
+    on_error!(callback, c, clientd)
 
 Set the error handler callback function.
 
@@ -362,7 +362,7 @@ Set the error handler callback function.
 # Throws
 - `ErrorException` if `aeron_context_set_error_handler` fails.
 """
-function error_handler!(callback::Function, c::Context, clientd=nothing)
+function on_error!(callback::Function, c::Context, clientd=nothing)
     cb = (callback, clientd)
     c.error_handler = cb
     GC.@preserve cb begin
@@ -521,7 +521,7 @@ Attach default callback functions to the `Context` object.
 - `c`: The `Context` object.
 """
 function attach_callbacks_to_context(c::Context)
-    error_handler!(c) do _, errcode, message
+    on_error!(c) do _, errcode, message
         @error "Error: code=$errcode message=$message"
     end
 end
