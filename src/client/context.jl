@@ -271,6 +271,33 @@ Get the client name.
 client_name(c::Context) = unsafe_string(aeron_context_get_client_name(c.context))
 
 """
+    use_conductor_agent_invoker(c)
+
+Whether to use an invoker to control the conductor agent or spawn a thread.
+# Arguments
+- `c`: The `Context` object.
+# Returns
+- `Bool`: true if an invoker is used, false if a thread is spawned.
+"""
+use_conductor_agent_invoker(c::Context) = aeron_context_get_use_conductor_agent_invoker(c.context)
+
+"""
+    use_conductor_agent_invoker!(c, use)
+
+Set whether to use an invoker to control the conductor agent or spawn a thread.
+# Arguments
+- `c`: The `Context` object.
+- `use`: `true` to use an invoker, `false` to spawn a thread.
+# Throws
+- `ErrorException` if `aeron_context_set_use_conductor_agent_invoker` fails
+"""
+function use_conductor_agent_invoker!(c::Context, use::Bool)
+    if aeron_context_set_use_conductor_agent_invoker(c.context, use) < 0
+        throwerror()
+    end
+end
+
+"""
     show(io, ::MIME"text/plain", c)
 
 Display the `Context` object in a human-readable format.

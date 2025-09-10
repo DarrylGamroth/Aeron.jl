@@ -117,6 +117,18 @@ Get the next correlation ID for the given `Client`.
 next_correlation_id(c::Client) = aeron_next_correlation_id(c.client)
 
 """
+    do_work(c::Client) -> Int32
+
+Perform work for the given `Client`.
+# Arguments
+- `c::Client`: The client instance.
+
+# Returns
+- `Int32`: The result of the work.
+"""
+do_work(c::Client) = Int(aeron_main_do_work(c.client))
+
+"""
     show(io::IO, mime::MIME"text/plain", c::Client)
 
 Display the `Client` in a human-readable form.
