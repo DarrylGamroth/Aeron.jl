@@ -210,6 +210,27 @@ function Base.close(p::ExclusivePublication)
 end
 
 """
+    revoke_on_close(p::ExclusivePublication)
+
+Revoke this publication when it is closed.
+"""
+revoke_on_close(p::ExclusivePublication) = aeron_exclusive_publication_revoke_on_close(p.publication)
+
+"""
+    revoke(p::ExclusivePublication)
+
+Asynchronously revoke and close the publication.
+
+# Arguments
+- `p::ExclusivePublication`: The exclusive publication to revoke and close.
+"""
+function revoke(p::ExclusivePublication)
+    if aeron_exclusive_publication_revoke(p.publication, C_NULL, C_NULL) < 0
+        throwerror()
+    end
+end
+
+"""
     offer(p::ExclusivePublication, buffer::AbstractVector{UInt8}) -> Int
 
 Offer a buffer to the exclusive publication.

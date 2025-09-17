@@ -222,7 +222,7 @@ Set the media driver directory for `Context`.
 """
 function aeron_dir!(c::Context, dir::AbstractString)
     if aeron_driver_context_set_dir(c.context, dir) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -241,7 +241,7 @@ aeron_dir(c::Context) = unsafe_string(aeron_driver_context_get_dir(c.context))
 
 function dir_warn_if_exists!(c::Context)
     if aeron_driver_context_get_dir_warn_if_exists(c.context) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -264,7 +264,7 @@ end
 
 function threading_mode!(c::Context, mode::ThreadingMode.T)
     if aeron_driver_context_set_threading_mode(c.context, mode) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -272,7 +272,7 @@ threading_mode(c::Context) = convert(ThreadingMode.T, aeron_driver_context_get_t
 
 function dir_delete_on_start!(c::Context, value::Bool)
     if aeron_driver_context_set_dir_delete_on_start(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -280,7 +280,7 @@ dir_delete_on_start(c::Context) = aeron_driver_context_get_dir_delete_on_start(c
 
 function dir_delete_on_shutdown!(c::Context, value::Bool)
     if aeron_driver_context_set_dir_delete_on_shutdown(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -288,7 +288,7 @@ dir_delete_on_shutdown(c::Context) = aeron_driver_context_get_dir_delete_on_shut
 
 function conductor_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_to_conductor_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -296,7 +296,7 @@ conductor_buffer_length(c::Context) = aeron_driver_context_get_to_conductor_buff
 
 function clients_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_to_clients_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -304,7 +304,7 @@ clients_buffer_length(c::Context) = aeron_driver_context_get_to_clients_buffer_l
 
 function counters_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_counters_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -312,7 +312,7 @@ counters_buffer_length(c::Context) = aeron_driver_context_get_counters_buffer_le
 
 function error_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_error_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -320,7 +320,7 @@ error_buffer_length(c::Context) = aeron_driver_context_get_error_buffer_length(c
 
 function client_liveness_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_client_liveness_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -328,7 +328,7 @@ client_liveness_timeout_ns(c::Context) = aeron_driver_context_get_client_livenes
 
 function term_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_term_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -336,7 +336,7 @@ term_buffer_length(c::Context) = aeron_driver_context_get_term_buffer_length(c.c
 
 function ipc_term_buffer_length!(c::Context, len::Int)
     if aeron_driver_context_set_ipc_term_buffer_length(c.context, len) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -344,7 +344,7 @@ ipc_term_buffer_length(c::Context) = aeron_driver_context_get_ipc_term_buffer_le
 
 function term_buffer_sparse_file!(c::Context, value::Bool)
     if aeron_driver_context_set_term_buffer_sparse_file(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -352,7 +352,7 @@ term_buffer_sparse_file(c::Context) = aeron_driver_context_get_term_buffer_spars
 
 function perform_storage_checks!(c::Context, value::Bool)
     if aeron_driver_context_set_perform_storage_checks(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -360,7 +360,7 @@ perform_storage_checks(c::Context) = aeron_driver_context_get_perform_storage_ch
 
 function low_file_store_warning_threshold!(c::Context, threshold::Int)
     if aeron_driver_context_set_low_file_store_warning_threshold(c.context, threshold) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -368,7 +368,7 @@ low_file_store_warning_threshold(c::Context) = aeron_driver_context_get_low_file
 
 function spies_simulate_connection!(c::Context, value::Bool)
     if aeron_driver_context_set_spies_simulate_connection(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -376,7 +376,7 @@ spies_simulate_connection(c::Context) = aeron_driver_context_get_spies_simulate_
 
 function file_page_size!(c::Context, size::Int)
     if aeron_driver_context_set_file_page_size(c.context, size) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -384,7 +384,7 @@ file_page_size(c::Context) = aeron_driver_context_get_file_page_size(c.context)
 
 function mtu_length!(c::Context, length::Int)
     if aeron_driver_context_set_mtu_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -392,7 +392,7 @@ mtu_length(c::Context) = aeron_driver_context_get_mtu_length(c.context)
 
 function ipc_mtu_length!(c::Context, length::Int)
     if aeron_driver_context_set_ipc_mtu_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -400,7 +400,7 @@ ipc_mtu_length(c::Context) = aeron_driver_context_get_ipc_mtu_length(c.context)
 
 function ipc_publication_term_window_length!(c::Context, length::Int)
     if aeron_driver_context_set_ipc_publication_term_window_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -408,7 +408,7 @@ ipc_publication_term_window_length(c::Context) = aeron_driver_context_get_ipc_pu
 
 function publication_term_window_length!(c::Context, length::Int)
     if aeron_driver_context_set_publication_term_window_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -416,7 +416,7 @@ publication_term_window_length(c::Context) = aeron_driver_context_get_publicatio
 
 function publication_linger_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_publication_linger_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -424,7 +424,7 @@ publication_linger_timeout_ns(c::Context) = aeron_driver_context_get_publication
 
 function socket_so_rcvbuf!(c::Context, size::Int)
     if aeron_driver_context_set_socket_so_rcvbuf(c.context, size) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -432,7 +432,7 @@ socket_so_rcvbuf(c::Context) = aeron_driver_context_get_socket_so_rcvbuf(c.conte
 
 function socket_so_sndbuf!(c::Context, size::Int)
     if aeron_driver_context_set_socket_so_sndbuf(c.context, size) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -440,7 +440,7 @@ socket_so_sndbuf(c::Context) = aeron_driver_context_get_socket_so_sndbuf(c.conte
 
 function socket_multicast_ttl!(c::Context, ttl::Int)
     if aeron_driver_context_set_socket_multicast_ttl(c.context, ttl) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -448,7 +448,7 @@ socket_multicast_ttl(c::Context) = aeron_driver_context_get_socket_multicast_ttl
 
 function send_to_status_poll_ratio!(c::Context, ratio::Int)
     if aeron_driver_context_set_send_to_status_poll_ratio(c.context, ratio) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -456,7 +456,7 @@ send_to_status_poll_ratio(c::Context) = aeron_driver_context_get_send_to_status_
 
 function rcv_status_message_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_rcv_status_message_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -465,7 +465,7 @@ rcv_status_message_timeout_ns(c::Context) = aeron_driver_context_get_rcv_status_
 
 function image_liveness_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_image_liveness_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -473,7 +473,7 @@ image_liveness_timeout_ns(c::Context) = aeron_driver_context_get_image_liveness_
 
 function rcv_initial_window_length!(c::Context, length::Int)
     if aeron_driver_context_set_rcv_initial_window_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -481,7 +481,7 @@ rcv_initial_window_length(c::Context) = aeron_driver_context_get_rcv_initial_win
 
 function loss_report_buffer_length!(c::Context, length::Int)
     if aeron_driver_context_set_loss_report_buffer_length(c.context, length) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -489,7 +489,7 @@ loss_report_buffer_length(c::Context) = aeron_driver_context_get_loss_report_buf
 
 function publication_unblock_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_publication_unblock_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -497,7 +497,7 @@ publication_unblock_timeout_ns(c::Context) = aeron_driver_context_get_publicatio
 
 function publication_connection_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_publication_connection_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -505,7 +505,7 @@ publication_connection_timeout_ns(c::Context) = aeron_driver_context_get_publica
 
 function timer_interval_ns!(c::Context, interval::Int)
     if aeron_driver_context_set_timer_interval_ns(c.context, interval) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -513,7 +513,7 @@ timer_interval_ns(c::Context) = aeron_driver_context_get_timer_interval_ns(c.con
 
 function sender_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sender_idle_strategy(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -521,7 +521,7 @@ sender_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_sender
 
 function conductor_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_conductor_idle_strategy(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -529,7 +529,7 @@ conductor_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_con
 
 function receiver_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_receiver_idle_strategy(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -537,7 +537,7 @@ receiver_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_rece
 
 function shared_network_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sharednetwork_idle_strategy(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -545,7 +545,7 @@ shared_network_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_ge
 
 function shared_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_shared_idle_strategy(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -553,7 +553,7 @@ shared_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_shared
 
 function sender_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sender_idle_strategy_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -561,7 +561,7 @@ sender_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_
 
 function conductor_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_conductor_idle_strategy_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -569,7 +569,7 @@ conductor_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_conte
 
 function receiver_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_receiver_idle_strategy_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -577,7 +577,7 @@ receiver_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_contex
 
 function shared_network_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sharednetwork_idle_strategy_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -585,7 +585,7 @@ shared_network_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_
 
 function shared_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_shared_idle_strategy_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -593,7 +593,7 @@ shared_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_
 
 function counters_free_to_reuse_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_counters_free_to_reuse_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -601,7 +601,7 @@ counters_free_to_reuse_timeout_ns(c::Context) = aeron_driver_context_get_counter
 
 function flow_control_receiver_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_flow_control_receiver_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -609,7 +609,7 @@ flow_control_receiver_timeout_ns(c::Context) = aeron_driver_context_get_flow_con
 
 function flow_control_group_tag!(c::Context, tag::Int)
     if aeron_driver_context_set_flow_control_group_tag(c.context, tag) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -617,7 +617,7 @@ flow_control_group_tag(c::Context) = aeron_driver_context_get_flow_control_group
 
 function flow_control_group_min_size!(c::Context, size::Int)
     if aeron_driver_context_set_flow_control_group_min_size(c.context, size) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -625,7 +625,7 @@ flow_control_group_min_size(c::Context) = aeron_driver_context_get_flow_control_
 
 function receiver_group_tag!(c::Context, is_present::Bool, tag::Int)
     if aeron_driver_context_set_receiver_group_tag(c.context, is_present, tag) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -634,7 +634,7 @@ receiver_group_tag(c::Context) = aeron_driver_context_get_receiver_group_tag_val
 
 function print_configuration!(c::Context, value::Bool)
     if aeron_driver_context_print_configuration(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -642,7 +642,7 @@ print_configuration(c::Context) = aeron_driver_context_get_print_configuration(c
 
 function reliable_stream!(c::Context, value::Bool)
     if aeron_driver_context_set_reliable_stream(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -650,63 +650,71 @@ reliable_stream(c::Context) = aeron_driver_context_get_reliable_stream(c.context
 
 function tether_subscriptions!(c::Context, value::Bool)
     if aeron_driver_context_set_tether_subscriptions(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 tether_subscriptions(c::Context) = aeron_driver_context_get_tether_subscriptions(c.context)
 
-function untethered_window_limit_timeout_ns!(c::Context, timeout::Int)
+function untethered_window_limit_timeout_ns!(c::Context, timeout::UInt64)
     if aeron_driver_context_set_untethered_window_limit_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 untethered_window_limit_timeout_ns(c::Context) = aeron_driver_context_get_untethered_window_limit_timeout_ns(c.context)
 
-function untethered_resting_timeout_ns!(c::Context, timeout::Int)
+function untethered_resting_timeout_ns!(c::Context, timeout::UInt64)
     if aeron_driver_context_set_untethered_resting_timeout_ns(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
+    end
+end
+
+untethered_linger_timeout_ns(c::Context) = aeron_driver_context_get_untethered_linger_timeout_ns(c.context)
+
+function untethered_linger_timeout_ns!(c::Context, timeout::UInt64)
+    if aeron_driver_context_set_untethered_linger_timeout_ns(c.context, timeout) < 0
+        Aeron.throwerror()
     end
 end
 
 untethered_resting_timeout_ns(c::Context) = aeron_driver_context_get_untethered_resting_timeout_ns(c.context)
 
-function driver_timeout_ms!(c::Context, timeout::Int)
+function driver_timeout_ms!(c::Context, timeout::UInt64)
     if aeron_driver_context_set_driver_timeout_ms(c.context, timeout) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 driver_timeout_ms(c::Context) = aeron_driver_context_get_driver_timeout_ms(c.context)
 
-function nak_multicast_group_size!(c::Context, value::Int)
+function nak_multicast_group_size!(c::Context, value::Csize_t)
     if aeron_driver_context_set_nak_multicast_group_size(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 nak_multicast_group_size(c::Context) = aeron_driver_context_get_nak_multicast_group_size(c.context)
 
-function nak_multicast_max_backoff_ns!(c::Context, value::Int)
+function nak_multicast_max_backoff_ns!(c::Context, value::UInt64)
     if aeron_driver_context_set_nak_multicast_max_backoff_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 nak_multicast_max_backoff_ns(c::Context) = aeron_driver_context_get_nak_multicast_max_backoff_ns(c.context)
 
-function nak_unicast_delay_ns!(c::Context, value::Int)
+function nak_unicast_delay_ns!(c::Context, value::UInt64)
     if aeron_driver_context_set_nak_unicast_delay_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 nak_unicast_delay_ns(c::Context) = aeron_driver_context_get_nak_unicast_delay_ns(c.context)
 
-function nak_unicast_retry_delay_ratio!(c::Context, value::Int)
+function nak_unicast_retry_delay_ratio!(c::Context, value::UInt64)
     if aeron_driver_context_set_nak_unicast_retry_delay_ratio(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -714,23 +722,23 @@ nak_unicast_retry_delay_ratio(c::Context) = aeron_driver_context_get_nak_unicast
 
 function max_resend!(c::Context, value::Int)
     if aeron_driver_context_set_max_resend(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 max_resend(c::Context) = aeron_driver_context_get_max_resend(c.context)
 
-function retransmit_unicast_delay_ns!(c::Context, value::Int)
+function retransmit_unicast_delay_ns!(c::Context, value::UInt64)
     if aeron_driver_context_set_retransmit_unicast_delay_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 retransmit_unicast_delay_ns(c::Context) = aeron_driver_context_get_retransmit_unicast_delay_ns(c.context)
 
-function retransmit_unicast_linger_ns!(c::Context, value::Int)
+function retransmit_unicast_linger_ns!(c::Context, value::UInt64)
     if aeron_driver_context_set_retransmit_unicast_linger_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -752,7 +760,7 @@ end
 
 function receiver_group_consideration!(c::Context, value::InferableBoolean.T)
     if aeron_driver_context_set_receiver_group_consideration(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -760,7 +768,7 @@ receiver_group_consideration(c::Context) = InferableBoolean.T(Integer(aeron_driv
 
 function rejoin_stream!(c::Context, value::Bool)
     if aeron_driver_context_set_rejoin_stream(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -768,7 +776,7 @@ rejoin_stream(c::Context) = aeron_driver_context_get_rejoin_stream(c.context)
 
 function connect_enabled!(c::Context, value::Bool)
     if aeron_driver_context_set_connect_enabled(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -776,7 +784,7 @@ connect_enabled(c::Context) = aeron_driver_context_get_connect_enabled(c.context
 
 function publication_reserved_session_id_low!(c::Context, value::Int)
     if aeron_driver_context_set_publication_reserved_session_id_low(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -784,7 +792,7 @@ publication_reserved_session_id_low(c::Context) = aeron_driver_context_get_publi
 
 function publication_reserved_session_id_high!(c::Context, value::Int)
     if aeron_driver_context_set_publication_reserved_session_id_high(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -792,7 +800,7 @@ publication_reserved_session_id_high(c::Context) = aeron_driver_context_get_publ
 
 function resolver_name!(c::Context, value::AbstractString)
     if aeron_driver_context_set_resolver_name(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -804,7 +812,7 @@ end
 
 function resolver_interface!(c::Context, value::AbstractString)
     if aeron_driver_context_set_resolver_interface(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -816,7 +824,7 @@ end
 
 function resolver_bootstrap_neighbor!(c::Context, value::AbstractString)
     if aeron_driver_context_set_resolver_bootstrap_neighbor(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -828,7 +836,7 @@ end
 
 function name_resolver_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_name_resolver_init_args(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -836,7 +844,7 @@ name_resolver_init_args(c::Context) = unsafe_string(aeron_driver_context_get_nam
 
 function re_resolution_check_interval_ns!(c::Context, value::Int)
     if aeron_driver_context_set_re_resolution_check_interval_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -844,7 +852,7 @@ re_resolution_check_interval_ns(c::Context) = aeron_driver_context_get_re_resolu
 
 function sender_wildcard_port_range!(c::Context, low_port::Int, high_port::Int)
     if aeron_driver_context_set_sender_wildcard_port_range(c.context, low_port, high_port) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -852,14 +860,14 @@ function sender_wildcard_port_range(c::Context)
     low_port = Ref{UInt16}()
     high_port = Ref{UInt16}()
     if aeron_driver_context_get_sender_wildcard_port_range(c.context, low_port, high_port) < 0
-        throwerror()
+        Aeron.throwerror()
     end
     (low_port[], high_port[])
 end
 
 function receiver_wildcard_port_range!(c::Context, low_port::Int, high_port::Int)
     if aeron_driver_context_set_receiver_wildcard_port_range(c.context, low_port, high_port) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -867,14 +875,14 @@ function receiver_wildcard_port_range(c::Context)
     low_port = Ref{UInt16}()
     high_port = Ref{UInt16}()
     if aeron_driver_context_get_receiver_wildcard_port_range(c.context, low_port, high_port) < 0
-        throwerror()
+        Aeron.throwerror()
     end
     (low_port[], high_port[])
 end
 
 function conductor_cycle_threshold_ns!(c::Context, value::Int)
     if aeron_driver_context_set_conductor_cycle_threshold_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -882,7 +890,7 @@ conductor_cycle_threshold_ns(c::Context) = aeron_driver_context_get_conductor_cy
 
 function sender_cycle_threshold_ns!(c::Context, value::Int)
     if aeron_driver_context_set_sender_cycle_threshold_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -890,7 +898,7 @@ sender_cycle_threshold_ns(c::Context) = aeron_driver_context_get_sender_cycle_th
 
 function receiver_cycle_threshold_ns!(c::Context, value::Int)
     if aeron_driver_context_set_receiver_cycle_threshold_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -898,7 +906,7 @@ receiver_cycle_threshold_ns(c::Context) = aeron_driver_context_get_receiver_cycl
 
 function name_resolver_threshold_ns!(c::Context, value::Int)
     if aeron_driver_context_set_name_resolver_threshold_ns(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -906,7 +914,7 @@ name_resolver_threshold_ns(c::Context) = aeron_driver_context_get_name_resolver_
 
 function receiver_io_vector_capacity!(c::Context, value::Int)
     if aeron_driver_context_set_receiver_io_vector_capacity(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -914,7 +922,7 @@ receiver_io_vector_capacity(c::Context) = aeron_driver_context_get_receiver_io_v
 
 function sender_io_vector_capacity!(c::Context, value::Int)
     if aeron_driver_context_set_sender_io_vector_capacity(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -922,7 +930,7 @@ sender_io_vector_capacity(c::Context) = aeron_driver_context_get_sender_io_vecto
 
 function network_publication_max_messages_per_send!(c::Context, value::Int)
     if aeron_driver_context_set_network_publication_max_messages_per_send(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -930,7 +938,7 @@ network_publication_max_messages_per_send(c::Context) = aeron_driver_context_get
 
 function resource_free_limit!(c::Context, value::Int)
     if aeron_driver_context_set_resource_free_limit(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -938,15 +946,39 @@ resource_free_limit(c::Context) = aeron_driver_context_get_resource_free_limit(c
 
 function async_executor_threads!(c::Context, value::Int)
     if aeron_driver_context_set_async_executor_threads(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
 async_executor_threads(c::Context) = aeron_driver_context_get_async_executor_threads(c.context)
 
+function conductor_cpu_affinity!(c::Context, value::Int)
+    if aeron_driver_context_set_conductor_cpu_affinity(c.context, value) < 0
+        Aeron.throwerror()
+    end
+end
+
+conductor_cpu_affinity(c::Context) = aeron_driver_context_get_conductor_cpu_affinity(c.context)
+
+function receiver_cpu_affinity!(c::Context, value::Int)
+    if aeron_driver_context_set_receiver_cpu_affinity(c.context, value) < 0
+        Aeron.throwerror()
+    end
+end
+
+receiver_cpu_affinity(c::Context) = aeron_driver_context_get_receiver_cpu_affinity(c.context)
+
+function sender_cpu_affinity!(c::Context, value::Int)
+    if aeron_driver_context_set_sender_cpu_affinity(c.context, value) < 0
+        Aeron.throwerror()
+    end
+end
+
+sender_cpu_affinity(c::Context) = aeron_driver_context_get_sender_cpu_affinity(c.context)
+
 function enable_experimental_features!(c::Context, value::Bool)
     if aeron_driver_context_set_enable_experimental_features(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 
@@ -954,7 +986,7 @@ enable_experimental_features(c::Context) = aeron_driver_context_get_enable_exper
 
 function stream_session_limit!(c::Context, value::Int)
     if aeron_driver_context_set_stream_session_limit(c.context, value) < 0
-        throwerror()
+        Aeron.throwerror()
     end
 end
 

@@ -2125,11 +2125,11 @@ end
 """
     aeron_publication_close(publication, on_close_complete, on_close_complete_clientd)
 
-Asynchronously close the publication. Will callback on the on\\_complete notification when the subscription is closed. The callback is optional, use NULL for the on\\_complete callback if not required.
+Asynchronously close the publication. Will callback on the on\\_complete notification when the publication is closed. The callback is optional, use NULL for the on\\_complete callback if not required.
 
 # Arguments
 * `publication`: to close
-* `on_close_complete`: optional callback to execute once the subscription has been closed and freed. This may happen on a separate thread, so the caller should ensure that clientd has the appropriate lifetime.
+* `on_close_complete`: optional callback to execute once the publication has been closed and freed. This may happen on a separate thread, so the caller should ensure that clientd has the appropriate lifetime.
 * `on_close_complete_clientd`: parameter to pass to the on\\_complete callback.
 # Returns
 0 for success or -1 for error.
@@ -2422,6 +2422,42 @@ int aeron_exclusive_publication_close( aeron_exclusive_publication_t *publicatio
 """
 function aeron_exclusive_publication_close(publication, on_close_complete, on_close_complete_clientd)
     @ccall libaeron.aeron_exclusive_publication_close(publication::Ptr{aeron_exclusive_publication_t}, on_close_complete::aeron_notification_t, on_close_complete_clientd::Ptr{Cvoid})::Cint
+end
+
+"""
+    aeron_exclusive_publication_revoke_on_close(publication)
+
+Revoke this publication when it's closed.
+
+# Arguments
+* `publication`: to revoke on close
+### Prototype
+```c
+void aeron_exclusive_publication_revoke_on_close(aeron_exclusive_publication_t *publication);
+```
+"""
+function aeron_exclusive_publication_revoke_on_close(publication)
+    @ccall libaeron.aeron_exclusive_publication_revoke_on_close(publication::Ptr{aeron_exclusive_publication_t})::Cvoid
+end
+
+"""
+    aeron_exclusive_publication_revoke(publication, on_close_complete, on_close_complete_clientd)
+
+Asynchronously revoke and close the publication. Will callback on the on\\_complete notification when the publicaiton is closed. The callback is optional, use NULL for the on\\_complete callback if not required.
+
+# Arguments
+* `publication`: to revoke and close
+* `on_close_complete`: optional callback to execute once the publication has been revoked, closed and freed. This may happen on a separate thread, so the caller should ensure that clientd has the appropriate lifetime.
+* `on_close_complete_clientd`: parameter to pass to the on\\_complete callback.
+# Returns
+0 for success or -1 for error.
+### Prototype
+```c
+int aeron_exclusive_publication_revoke( aeron_exclusive_publication_t *publication, aeron_notification_t on_close_complete, void *on_close_complete_clientd);
+```
+"""
+function aeron_exclusive_publication_revoke(publication, on_close_complete, on_close_complete_clientd)
+    @ccall libaeron.aeron_exclusive_publication_revoke(publication::Ptr{aeron_exclusive_publication_t}, on_close_complete::aeron_notification_t, on_close_complete_clientd::Ptr{Cvoid})::Cint
 end
 
 """
@@ -3162,6 +3198,24 @@ function aeron_image_active_transport_count(image)
 end
 
 """
+    aeron_image_is_publication_revoked(image)
+
+Was the associated publication revoked?
+
+# Arguments
+* `image`: to check
+# Returns
+true if the associated publication was revoked.
+### Prototype
+```c
+bool aeron_image_is_publication_revoked(aeron_image_t *image);
+```
+"""
+function aeron_image_is_publication_revoked(image)
+    @ccall libaeron.aeron_image_is_publication_revoked(image::Ptr{aeron_image_t})::Bool
+end
+
+"""
     aeron_image_poll(image, handler, clientd, fragment_limit)
 
 Poll for new messages in a stream. If new messages are found beyond the last consumed position then they will be delivered to the handler up to a limited number of fragments as specified. <p> Use a fragment assembler to assemble messages which span multiple fragments.
@@ -3300,6 +3354,18 @@ bool aeron_image_is_closed(aeron_image_t *image);
 """
 function aeron_image_is_closed(image)
     @ccall libaeron.aeron_image_is_closed(image::Ptr{aeron_image_t})::Bool
+end
+
+"""
+    aeron_image_reject(image, reason)
+
+### Prototype
+```c
+int aeron_image_reject(aeron_image_t *image, const char *reason);
+```
+"""
+function aeron_image_reject(image, reason)
+    @ccall libaeron.aeron_image_reject(image::Ptr{aeron_image_t}, reason::Cstring)::Cint
 end
 
 """
@@ -3946,6 +4012,10 @@ end
 
 Gets the registration id for addition of the exclusive\\_publication. Note that using this after a call to poll the succeeds or errors is undefined behaviour. As the async\\_add\\_exclusive\\_publication\\_t may have been freed.
 
+!!! compat "Deprecated"
+
+    Use [`aeron_async_add_exclusive_publication_get_registration_id`](@ref) instead.
+
 # Arguments
 * `add_exclusive_publication`: used to check for completion.
 # Returns
@@ -3957,6 +4027,24 @@ int64_t aeron_async_add_exclusive_exclusive_publication_get_registration_id( aer
 """
 function aeron_async_add_exclusive_exclusive_publication_get_registration_id(add_exclusive_publication)
     @ccall libaeron.aeron_async_add_exclusive_exclusive_publication_get_registration_id(add_exclusive_publication::Ptr{aeron_async_add_exclusive_publication_t})::Int64
+end
+
+"""
+    aeron_async_add_exclusive_publication_get_registration_id(add_exclusive_publication)
+
+Gets the registration id for addition of the exclusive\\_publication. Note that using this after a call to poll the succeeds or errors is undefined behaviour. As the async\\_add\\_exclusive\\_publication\\_t may have been freed.
+
+# Arguments
+* `add_exclusive_publication`: used to check for completion.
+# Returns
+registration id for the exclusive\\_publication.
+### Prototype
+```c
+int64_t aeron_async_add_exclusive_publication_get_registration_id( aeron_async_add_exclusive_publication_t *add_exclusive_publication);
+```
+"""
+function aeron_async_add_exclusive_publication_get_registration_id(add_exclusive_publication)
+    @ccall libaeron.aeron_async_add_exclusive_publication_get_registration_id(add_exclusive_publication::Ptr{aeron_async_add_exclusive_publication_t})::Int64
 end
 
 """
@@ -4020,7 +4108,7 @@ const aeron_cnc_stct = Cvoid
 const aeron_cnc_t = aeron_cnc_stct
 
 struct aeron_cnc_constants_stct
-    data::NTuple{48, UInt8}
+    data::NTuple{52, UInt8}
 end
 
 function Base.getproperty(x::Ptr{aeron_cnc_constants_stct}, f::Symbol)
@@ -4033,6 +4121,7 @@ function Base.getproperty(x::Ptr{aeron_cnc_constants_stct}, f::Symbol)
     f === :client_liveness_timeout && return Ptr{Int64}(x + 24)
     f === :start_timestamp && return Ptr{Int64}(x + 32)
     f === :pid && return Ptr{Int64}(x + 40)
+    f === :file_page_size && return Ptr{Int32}(x + 48)
     return getfield(x, f)
 end
 
@@ -7633,6 +7722,30 @@ function aeron_driver_context_get_untethered_window_limit_timeout_ns(context)
 end
 
 """
+    aeron_driver_context_set_untethered_linger_timeout_ns(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_untethered_linger_timeout_ns(aeron_driver_context_t *context, uint64_t value);
+```
+"""
+function aeron_driver_context_set_untethered_linger_timeout_ns(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_untethered_linger_timeout_ns(context::Ptr{aeron_driver_context_t}, value::UInt64)::Cint
+end
+
+"""
+    aeron_driver_context_get_untethered_linger_timeout_ns(context)
+
+### Prototype
+```c
+int64_t aeron_driver_context_get_untethered_linger_timeout_ns(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_untethered_linger_timeout_ns(context)
+    @ccall libaeron_driver.aeron_driver_context_get_untethered_linger_timeout_ns(context::Ptr{aeron_driver_context_t})::Int64
+end
+
+"""
     aeron_driver_context_set_untethered_resting_timeout_ns(context, value)
 
 ### Prototype
@@ -8624,6 +8737,78 @@ function aeron_driver_context_get_async_executor_threads(context)
 end
 
 """
+    aeron_driver_context_set_conductor_cpu_affinity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_conductor_cpu_affinity(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_conductor_cpu_affinity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_conductor_cpu_affinity(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_conductor_cpu_affinity(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_conductor_cpu_affinity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_conductor_cpu_affinity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_conductor_cpu_affinity(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_receiver_cpu_affinity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_receiver_cpu_affinity(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_receiver_cpu_affinity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_receiver_cpu_affinity(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_receiver_cpu_affinity(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_receiver_cpu_affinity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_receiver_cpu_affinity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_receiver_cpu_affinity(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
+    aeron_driver_context_set_sender_cpu_affinity(context, value)
+
+### Prototype
+```c
+int aeron_driver_context_set_sender_cpu_affinity(aeron_driver_context_t *context, int32_t value);
+```
+"""
+function aeron_driver_context_set_sender_cpu_affinity(context, value)
+    @ccall libaeron_driver.aeron_driver_context_set_sender_cpu_affinity(context::Ptr{aeron_driver_context_t}, value::Int32)::Cint
+end
+
+"""
+    aeron_driver_context_get_sender_cpu_affinity(context)
+
+### Prototype
+```c
+int32_t aeron_driver_context_get_sender_cpu_affinity(aeron_driver_context_t *context);
+```
+"""
+function aeron_driver_context_get_sender_cpu_affinity(context)
+    @ccall libaeron_driver.aeron_driver_context_get_sender_cpu_affinity(context::Ptr{aeron_driver_context_t})::Int32
+end
+
+"""
     aeron_driver_context_set_enable_experimental_features(context, value)
 
 ### Prototype
@@ -9039,7 +9224,7 @@ const AERON_SHARED_IDLE_STRATEGY_ENV_INIT_ARGS_VAR = "AERON_SHARED_IDLE_STRATEGY
 
 const AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT_ENV_VAR = "AERON_COUNTERS_FREE_TO_REUSE_TIMEOUT"
 
-const AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT_ENV_VAR = "AERON_MIN_MULTICAST_FLOW_CONTROL_RECEIVER_TIMEOUT"
+const AERON_FLOW_CONTROL_RECEIVER_TIMEOUT_ENV_VAR = "AERON_FLOW_CONTROL_RECEIVER_TIMEOUT"
 
 const AERON_FLOW_CONTROL_GROUP_TAG_ENV_VAR = "AERON_FLOW_CONTROL_GROUP_TAG"
 
@@ -9056,6 +9241,8 @@ const AERON_RELIABLE_STREAM_ENV_VAR = "AERON_RELIABLE_STREAM"
 const AERON_TETHER_SUBSCRIPTIONS_ENV_VAR = "AERON_TETHER_SUBSCRIPTIONS"
 
 const AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_WINDOW_LIMIT_TIMEOUT"
+
+const AERON_UNTETHERED_LINGER_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_LINGER_TIMEOUT"
 
 const AERON_UNTETHERED_RESTING_TIMEOUT_ENV_VAR = "AERON_UNTETHERED_RESTING_TIMEOUT"
 

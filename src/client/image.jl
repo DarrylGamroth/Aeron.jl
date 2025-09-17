@@ -172,6 +172,13 @@ function active_transport_count(i::Image)
     return retval
 end
 
+"""
+    is_publication_revoked(i::Image) -> Bool
+
+Has the publication for this image been revoked?
+"""
+is_publication_revoked(i::Image) = aeron_image_is_publication_revoked(i.image)
+
 function Base.show(io::IO, ::MIME"text/plain", i::Image)
     println(io, "Image")
     println(io, "  source identity: $(source_identity(i))")
