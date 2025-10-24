@@ -26,7 +26,7 @@ Creates a new `CountersReader` instance with the given Aeron client.
 
 - `CountersReader`: The new `CountersReader` instance.
 """
-CountersReader(c::Client) = CountersReader(aeron_counters_reader(c.client), client)
+CountersReader(c::Client) = CountersReader(aeron_counters_reader(c.client), c)
 
 """
     @enumx CounterState
