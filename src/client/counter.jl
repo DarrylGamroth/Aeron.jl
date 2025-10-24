@@ -20,6 +20,7 @@ struct Counter
     constants::aeron_counter_constants_t
     client::Client
     is_owned::Bool
+
     function Counter(counter::Ptr{aeron_counter_t}, client::Client, is_owned::Bool=false)
         constants = Ref{aeron_counter_constants_t}()
         if aeron_counter_constants(counter, constants) < 0
@@ -62,7 +63,7 @@ Initiates an asynchronous add counter operation.
 function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,AbstractVector{UInt8}}, label::AbstractString)
     async = Ref{Ptr{aeron_async_add_counter_t}}(C_NULL)
 
-    if key_buffer === nothing
+    if isnothing(key_buffer)
         if aeron_async_add_counter(async, c.client, type_id,
             C_NULL, 0, label, length(label)) < 0
             throwerror()
@@ -73,7 +74,7 @@ function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,
             throwerror()
         end
     end
-    return AsyncAddCounter(async[], client)
+    return AsyncAddCounter(async[], c)
 end
 
 """
@@ -186,4 +187,171 @@ function Base.show(io::IO, mime::MIME"text/plain", c::Counter)
     println(io, "Counter")
     println(io, "  registration id: ", registration_id(c))
     println(io, "  counter id: ", counter_id(c))
+    println(io, "  is open: ", isopen(c))
+    println(io, "  value: ", c[])
+end
+
+"""
+    getindex(c::Counter) -> Int64
+
+Atomically reads the current value of the counter using `c[]` syntax.
+
+# Arguments
+
+- `c::Counter`: The counter to read.
+
+# Returns
+
+- `Int64`: The current value of the counter.
+
+# Examples
+
+```julia
+counter = add_counter(client, 0, nothing, "my_counter")
+value = counter[]  # Read atomically
+```
+"""
+function Base.getindex(c::Counter)
+    ptr = aeron_counter_addr(c.counter)
+    return unsafe_load(ptr, :monotonic)
+end
+
+"""
+    setindex!(c::Counter, value::Int64)
+
+Atomically sets the counter to the specified value using `c[] = value` syntax.
+
+# Arguments
+
+- `c::Counter`: The counter to set.
+- `value::Int64`: The value to set.
+
+# Examples
+
+```julia
+counter = add_counter(client, 0, nothing, "my_counter")
+counter[] = 42  # Set atomically
+```
+"""
+function Base.setindex!(c::Counter, value::Int64)
+    ptr = aeron_counter_addr(c.counter)
+    unsafe_store!(ptr, value, :monotonic)
+    return value
+end
+
+"""
+    increment!(c::Counter, delta::Int64=1) -> Int64
+
+Atomically increments the counter by the specified delta and returns the old value.
+
+# Arguments
+
+- `c::Counter`: The counter to increment.
+- `delta::Int64`: The amount to increment by (default: 1).
+
+# Returns
+
+- `Int64`: The old value before incrementing.
+"""
+function increment!(c::Counter, delta::Int64=1)
+    ptr = aeron_counter_addr(c.counter)
+    old, _ = Base.unsafe_modify!(ptr, +, delta, :monotonic)
+    return old
+end
+
+"""
+    add!(c::Counter, delta::Int64) -> Int64
+
+Atomically adds the specified delta to the counter and returns the old value.
+Alias for `increment!(c, delta)`.
+
+# Arguments
+
+- `c::Counter`: The counter to modify.
+- `delta::Int64`: The amount to add.
+
+# Returns
+
+- `Int64`: The old value before adding.
+"""
+add!(c::Counter, delta::Int64) = increment!(c, delta)
+
+"""
+    decrement!(c::Counter, delta::Int64=1) -> Int64
+
+Atomically decrements the counter by the specified delta and returns the old value.
+
+# Arguments
+
+- `c::Counter`: The counter to decrement.
+- `delta::Int64`: The amount to decrement by (default: 1).
+
+# Returns
+
+- `Int64`: The old value before decrementing.
+"""
+function decrement!(c::Counter, delta::Int64=1)
+    ptr = aeron_counter_addr(c.counter)
+    old, _ = Base.unsafe_modify!(ptr, -, delta, :monotonic)
+    return old
+end
+
+"""
+    compare_and_set!(c::Counter, expected::Int64, desired::Int64) -> Bool
+
+Atomically compares the counter value with expected and, if equal, sets it to desired.
+
+# Arguments
+
+- `c::Counter`: The counter to modify.
+- `expected::Int64`: The expected current value.
+- `desired::Int64`: The desired new value if comparison succeeds.
+
+# Returns
+
+- `Bool`: `true` if the comparison succeeded and the value was set, `false` otherwise.
+"""
+function compare_and_set!(c::Counter, expected::Int64, desired::Int64)
+    ptr = aeron_counter_addr(c.counter)
+    _, success = Base.unsafe_replace!(ptr, expected, desired, :monotonic, :monotonic)
+    return success
+end
+
+"""
+    get_and_set!(c::Counter, value::Int64) -> Int64
+
+Atomically sets the counter to the specified value and returns the previous value.
+
+# Arguments
+
+- `c::Counter`: The counter to modify.
+- `value::Int64`: The new value to set.
+
+# Returns
+
+- `Int64`: The previous value before setting.
+"""
+function get_and_set!(c::Counter, value::Int64)
+    ptr = aeron_counter_addr(c.counter)
+    return Base.unsafe_swap!(ptr, value, :monotonic)
+end
+
+"""
+    get_and_add!(c::Counter, delta::Int64) -> Int64
+
+Atomically adds delta to the counter and returns the previous value.
+
+# Arguments
+
+- `c::Counter`: The counter to modify.
+- `delta::Int64`: The amount to add.
+
+# Returns
+
+- `Int64`: The previous value before adding.
+"""
+function get_and_add!(c::Counter, delta::Int64)
+    ptr = aeron_counter_addr(c.counter)
+    old, _ = Base.unsafe_modify!(ptr, +, delta, :monotonic)
+    return old
 end
