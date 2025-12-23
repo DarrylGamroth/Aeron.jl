@@ -10,6 +10,7 @@ The default values are read from environment variables.
 mutable struct Context
     context::Ptr{aeron_archive_context_t}
     credentials_supplier::CredentialsSupplier
+    client::Union{Nothing,Aeron.Client}
 
     # Callback references to prevent garbage collection
     error_handler::Tuple{Function,Any}
@@ -21,7 +22,7 @@ mutable struct Context
             Aeron.throwerror()
         end
 
-        context = new(p[], CredentialsSupplier())
+        context = new(p[], CredentialsSupplier(), nothing)
         credentials_supplier!(context, context.credentials_supplier)
 
         attach_callbacks_to_context(context)
@@ -81,11 +82,13 @@ function Base.close(c::Context)
 end
 
 function client!(c::Context, client::Aeron.Client)
-    aeron_archive_context_set_aeron(c.context, pointer(client))
+    aeron_archive_context_set_aeron(c.context, Aeron.pointer(client))
+    c.client = client
 end
 
 function client(c::Context)
-    Aeron.Client(aeron_archive_context_get_aeron(c.context))
+    c.client === nothing && error("archive context is missing an Aeron client")
+    return c.client
 end
 
 """

@@ -1,7 +1,9 @@
 using Aeron
+const AeronArchive = Aeron.AeronArchive
 using Test
 
 include("support.jl")
+include("support_archive.jl")
 
 const AERON_TEST_FILTER = get(ENV, "AERON_TEST_FILTER", "")
 
@@ -941,5 +943,358 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
         @test_throws Aeron.ClientTimeoutException Aeron.map_to_exception_and_throw(Aeron.AERON_CLIENT_ERROR_CLIENT_TIMEOUT, "client")
         @test_throws Aeron.ConductorServiceTimeoutException Aeron.map_to_exception_and_throw(
             Aeron.AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT, "conductor")
+    end
+
+    maybe_testset("Archive context configuration") do
+        AeronArchive.Context() do ctx
+            dir = mktempdir()
+            AeronArchive.aeron_dir!(ctx, dir)
+            @test AeronArchive.aeron_dir(ctx) == dir
+
+            AeronArchive.control_request_channel!(ctx, "aeron:udp?endpoint=localhost:8010")
+            AeronArchive.control_response_channel!(ctx, "aeron:udp?endpoint=localhost:8011")
+            AeronArchive.recording_events_channel!(ctx, "aeron:udp?endpoint=localhost:8012")
+            AeronArchive.control_request_stream_id!(ctx, 1001)
+            AeronArchive.control_response_stream_id!(ctx, 1002)
+            AeronArchive.recording_events_stream_id!(ctx, 1003)
+            AeronArchive.message_timeout_ns!(ctx, 5_000_000)
+            AeronArchive.control_term_buffer_length!(ctx, 64 * 1024)
+            AeronArchive.control_mtu_length!(ctx, Int32(1408))
+            AeronArchive.control_term_buffer_sparse!(ctx, true)
+
+            @test AeronArchive.control_request_channel(ctx) == "aeron:udp?endpoint=localhost:8010"
+            @test AeronArchive.control_response_channel(ctx) == "aeron:udp?endpoint=localhost:8011"
+            @test AeronArchive.recording_events_channel(ctx) == "aeron:udp?endpoint=localhost:8012"
+            @test AeronArchive.control_request_stream_id(ctx) == 1001
+            @test AeronArchive.control_response_stream_id(ctx) == 1002
+            @test AeronArchive.recording_events_stream_id(ctx) == 1003
+            @test AeronArchive.message_timeout_ns(ctx) == 5_000_000
+            @test AeronArchive.control_term_buffer_length(ctx) == 64 * 1024
+            @test AeronArchive.control_mtu_length(ctx) == 1408
+            @test AeronArchive.control_term_buffer_sparse(ctx) == true
+        end
+    end
+
+    maybe_testset("Archive callbacks and params") do
+        AeronArchive.Context() do ctx
+            supplier = AeronArchive.CredentialsSupplier(
+                encoded_credentials = _ -> "user",
+                on_chalenge = (_, _) -> "reply",
+                clientd = nothing
+            )
+            AeronArchive.credentials_supplier!(ctx, supplier)
+            @test ctx.credentials_supplier === supplier
+
+            error_seen = Ref(false)
+            AeronArchive.error_handler!((_, _, _) -> begin
+                error_seen[] = true
+                nothing
+            end, ctx)
+            msg = "oops"
+            GC.@preserve msg begin
+                AeronArchive.error_handler_wrapper(((_, _, _) -> begin
+                    error_seen[] = true
+                    nothing
+                end, nothing), 1, Base.unsafe_convert(Cstring, msg))
+            end
+            @test error_seen[]
+
+            signal_seen = Ref(false)
+            AeronArchive.recording_signal_consumer!((descriptor, _) -> begin
+                signal_seen[] = descriptor.recording_id == 7
+                nothing
+            end, ctx)
+            signal = AeronArchive.aeron_archive_recording_signal_t(1, 7, 2, 3, 4)
+            signal_ref = Ref(signal)
+            GC.@preserve signal_ref begin
+                AeronArchive.recording_signal_consumer_wrapper(Base.unsafe_convert(Ptr{AeronArchive.aeron_archive_recording_signal_t}, signal_ref),
+                    ((descriptor, _) -> begin
+                        signal_seen[] = descriptor.recording_id == 7
+                        nothing
+                    end, nothing))
+            end
+            @test signal_seen[]
+
+            replay_params = AeronArchive.ReplayParams(
+                bounding_limit_counter_id = 3,
+                file_io_max_length = 4,
+                position = 5,
+                length = 6,
+                replay_token = 7,
+                subscription_registration_id = 8
+            )
+            cparams = convert(AeronArchive.aeron_archive_replay_params_t, replay_params)
+            @test cparams.bounding_limit_counter_id == 3
+            @test cparams.file_io_max_length == 4
+            @test cparams.position == 5
+            @test cparams.length == 6
+            @test cparams.replay_token == 7
+            @test cparams.subscription_registration_id == 8
+            @test convert(AeronArchive.ReplayParams, cparams) == replay_params
+
+            repl_params = AeronArchive.ReplicationParams(
+                stop_position = 10,
+                dst_recording_id = 11,
+                live_destination = "live",
+                replication_channel = "repl",
+                src_response_channel = "resp",
+                channel_tag_id = 12,
+                subscription_tag_id = 13,
+                file_io_max_length = 14,
+                replication_session_id = 15,
+                encoded_credentials = nothing
+            )
+            GC.@preserve repl_params begin
+                repl_c = convert(AeronArchive.aeron_archive_replication_params_t, repl_params)
+                @test repl_c.stop_position == 10
+                @test repl_c.dst_recording_id == 11
+                @test unsafe_string(repl_c.live_destination) == "live"
+                @test unsafe_string(repl_c.replication_channel) == "repl"
+                @test unsafe_string(repl_c.src_response_channel) == "resp"
+                @test repl_c.channel_tag_id == 12
+                @test repl_c.subscription_tag_id == 13
+                @test repl_c.file_io_max_length == 14
+                @test repl_c.replication_session_id == 15
+            end
+        end
+    end
+
+    maybe_testset("Archive integration") do
+        if !archive_integration_enabled()
+            @test true
+            return
+        end
+
+        jar = archive_jar_path()
+        @test jar !== nothing
+
+        with_archiving_media_driver() do cfg
+            Aeron.Context() do client_ctx
+                Aeron.aeron_dir!(client_ctx, cfg.aeron_dir)
+                Aeron.Client(client_ctx) do client
+                    AeronArchive.Context() do archive_ctx
+                        signals = Ref(Int32[])
+                        AeronArchive.aeron_dir!(archive_ctx, cfg.aeron_dir)
+                        AeronArchive.control_request_channel!(archive_ctx, cfg.control_channel)
+                        AeronArchive.control_request_stream_id!(archive_ctx, cfg.control_stream_id)
+                        AeronArchive.control_response_channel!(archive_ctx, cfg.response_channel)
+                        AeronArchive.control_response_stream_id!(archive_ctx, cfg.response_stream_id)
+                        AeronArchive.recording_events_channel!(archive_ctx, cfg.events_channel)
+                        AeronArchive.recording_events_stream_id!(archive_ctx, cfg.events_stream_id)
+                        AeronArchive.recording_signal_consumer!(archive_ctx) do desc, _
+                            push!(signals[], desc.recording_signal_code)
+                        end
+                        AeronArchive.client!(archive_ctx, client)
+
+                        AeronArchive.connect(archive_ctx) do archive
+                            @test AeronArchive.archive_id(archive) != 0
+                            @test AeronArchive.control_session_id(archive) != 0
+
+                            channel = "aeron:ipc"
+                            stream_id = next_stream_id()
+                            pub = AeronArchive.add_recorded_publication(archive, channel, stream_id)
+                            conn_sub = Aeron.add_subscription(client, channel, stream_id)
+                            wait_for(() -> Aeron.is_connected(pub) && Aeron.is_connected(conn_sub); timeout=10.0, sleep_s=0.05)
+                            session_id = Aeron.session_id(pub)
+                            offer_until_success(pub, Vector{UInt8}(codeunits("archive-1")))
+                            offer_until_success(pub, Vector{UInt8}(codeunits("archive-2")))
+                            bulk_payload = Vector{UInt8}(undef, 4096)
+                            for _ in 1:20
+                                wait_for(() -> Aeron.offer(pub, bulk_payload) > 0; timeout=10.0, sleep_s=0.0)
+                            end
+                            AeronArchive.stop_recording(archive, pub)
+                            close(pub)
+                            close(conn_sub)
+                            recording_id = Ref(Int64(-1))
+                            wait_for(() -> begin
+                                count = AeronArchive.list_recordings((desc, _) -> begin
+                                    if desc.stream_id == stream_id && occursin(channel, desc.original_channel)
+                                        recording_id[] = desc.recording_id
+                                    end
+                                    nothing
+                                end, archive, 0, 100)
+                                count > 0 && recording_id[] >= 0
+                            end; timeout=30.0, sleep_s=0.05)
+                            counters = AeronArchive.CountersReader(archive)
+                            counter_id = AeronArchive.find_counter_by_recording_id(counters, recording_id[])
+                            if counter_id !== nothing
+                                @test AeronArchive.source_identity(counters, counter_id) isa String
+                                active = AeronArchive.is_active(counters, counter_id, recording_id[])
+                                @test active == true || active == false
+                            end
+
+                            seen = Ref(false)
+                            desc_ref = Ref{Union{Nothing,AeronArchive.RecordingDescriptor}}(nothing)
+                            count = AeronArchive.list_recording((desc, _) -> begin
+                                seen[] = desc.recording_id == recording_id[]
+                                if desc.recording_id == recording_id[]
+                                    desc_ref[] = desc
+                                end
+                                nothing
+                            end, archive, recording_id[])
+                            @test count > 0
+                            @test seen[]
+
+                            paged = Ref(false)
+                            page_count = AeronArchive.list_recordings((desc, _) -> begin
+                                paged[] = desc.recording_id == recording_id[]
+                                nothing
+                            end, archive, 0, 1)
+                            @test page_count > 0
+                            @test paged[]
+
+                            list_seen = Ref(false)
+                            list_count = AeronArchive.list_recordings_for_uri((desc, _) -> begin
+                                list_seen[] = desc.recording_id == recording_id[]
+                                nothing
+                            end, archive, 0, 10, channel, stream_id)
+                            @test list_count >= 0
+                            if list_count > 0
+                                @test list_seen[]
+                            end
+
+                            sub_channel = "aeron:ipc"
+                            sub_stream_id = next_stream_id()
+                            subscription_id = AeronArchive.start_recording(archive, sub_channel, sub_stream_id, AeronArchive.SourceLocation.LOCAL)
+                            @test subscription_id > 0
+                            sub_pub = Aeron.add_publication(client, sub_channel, sub_stream_id)
+                            offer_until_success(sub_pub, Vector{UInt8}(codeunits("sub-recording")))
+
+                            sub_seen = Ref(false)
+                            sub_count = AeronArchive.list_recording_subscriptions((desc, _) -> begin
+                                sub_seen[] = desc.subscription_id == subscription_id
+                                nothing
+                            end, archive, 0, 10, sub_channel, sub_stream_id, true)
+                            @test sub_count > 0
+                            @test sub_seen[]
+
+                            AeronArchive.stop_recording(archive, subscription_id)
+                            close(sub_pub)
+
+                            @test AeronArchive.start_position(archive, recording_id[]) >= 0
+                            @test AeronArchive.stop_position(archive, recording_id[]) >= AeronArchive.start_position(archive, recording_id[])
+
+                            old_stop = AeronArchive.stop_position(archive, recording_id[])
+                            extend_id = AeronArchive.extend_recording(archive, recording_id[], channel, stream_id, AeronArchive.SourceLocation.LOCAL)
+                            @test extend_id > 0
+                            extend_pub = Aeron.add_publication(client, channel, stream_id)
+                            offer_until_success(extend_pub, Vector{UInt8}(codeunits("archive-3")))
+                            AeronArchive.stop_recording(archive, extend_id)
+                            close(extend_pub)
+                            wait_for(() -> AeronArchive.stop_position(archive, recording_id[]) > old_stop; timeout=10.0, sleep_s=0.05)
+
+                            replay_channel = "aeron:ipc"
+                            replay_stream_id = next_stream_id()
+                            replay_sub = Aeron.add_subscription(client, replay_channel, replay_stream_id)
+                            replay_session_id = AeronArchive.start_replay(archive, recording_id[], replay_channel, replay_stream_id)
+
+                            received = Ref{Vector{String}}(String[])
+                            handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                                push!(received[], String(buffer))
+                            end)
+
+                            wait_for(() -> begin
+                                Aeron.poll(replay_sub, handler, 10)
+                                length(received[]) >= 2
+                            end; timeout=10.0, sleep_s=0.05)
+
+                            @test "archive-1" in received[]
+                            @test "archive-2" in received[]
+                            AeronArchive.stop_all_replays(archive, recording_id[])
+                            close(replay_sub)
+
+                            replay_channel2 = "aeron:ipc"
+                            replay_stream_id2 = next_stream_id()
+                            start_pos = AeronArchive.start_position(archive, recording_id[])
+                            stop_pos = AeronArchive.stop_position(archive, recording_id[])
+                            replay_sub2 = AeronArchive.replay(archive, recording_id[], replay_channel2, replay_stream_id2;
+                                position=start_pos, length=stop_pos - start_pos)
+                            received2 = Ref{Vector{String}}(String[])
+                            handler2 = Aeron.FragmentHandler((_, buffer, _) -> begin
+                                push!(received2[], String(buffer))
+                            end)
+                            wait_for(() -> begin
+                                Aeron.poll(replay_sub2, handler2, 10)
+                                length(received2[]) >= 2
+                            end; timeout=10.0, sleep_s=0.05)
+                            @test "archive-1" in received2[]
+                            @test "archive-2" in received2[]
+                            AeronArchive.stop_all_replays(archive, recording_id[])
+                            close(replay_sub2)
+
+                            replay_channel3 = "aeron:ipc"
+                            replay_stream_id3 = next_stream_id()
+                            replay_sub3 = Aeron.add_subscription(client, replay_channel3, replay_stream_id3)
+                            replay_id = AeronArchive.start_replay(archive, recording_id[], replay_channel3, replay_stream_id3;
+                                position=start_pos, length=stop_pos - start_pos)
+                            received3 = Ref{Vector{String}}(String[])
+                            handler3 = Aeron.FragmentHandler((_, buffer, _) -> begin
+                                push!(received3[], String(buffer))
+                            end)
+                            wait_for(() -> begin
+                                Aeron.poll(replay_sub3, handler3, 10)
+                                length(received3[]) >= 2
+                            end; timeout=10.0, sleep_s=0.05)
+                            AeronArchive.stop_replay(archive, replay_id)
+                            close(replay_sub3)
+
+                            start_code = Integer(AeronArchive.ClientRecordingSignal.START)
+                            stop_code = Integer(AeronArchive.ClientRecordingSignal.STOP)
+                            wait_for(() -> (start_code in signals[]) && (stop_code in signals[]); timeout=10.0, sleep_s=0.05)
+
+                            desc = desc_ref[]
+                            @test desc !== nothing
+                            base_pos = AeronArchive.segment_file_base_position(
+                                desc.start_position,
+                                desc.stop_position,
+                                desc.term_buffer_length,
+                                desc.segment_file_length,
+                            )
+                            @test AeronArchive.segment_file_base_position(
+                                desc.start_position,
+                                desc.start_position,
+                                desc.term_buffer_length,
+                                desc.segment_file_length,
+                            ) == desc.start_position
+                            if base_pos > desc.start_position
+                                AeronArchive.detach_segments(archive, recording_id[], base_pos)
+                                attach_count = AeronArchive.attach_segments(archive, recording_id[])
+                                @test attach_count >= 0
+                                purged = AeronArchive.purge_segments(archive, recording_id[], base_pos)
+                                @test purged >= 0
+                                wait_for(() -> AeronArchive.start_position(archive, recording_id[]) >= base_pos; timeout=10.0, sleep_s=0.05)
+                                deleted = AeronArchive.delete_detached_segments(archive, recording_id[])
+                                @test deleted >= 0
+                            else
+                                @test base_pos == desc.start_position
+                            end
+
+                            old_stop = AeronArchive.stop_position(archive, recording_id[])
+                            truncate_pos = AeronArchive.start_position(archive, recording_id[])
+                            truncated = AeronArchive.truncate_recording(archive, recording_id[], truncate_pos)
+                            @test truncated >= 0
+                            @test AeronArchive.stop_position(archive, recording_id[]) <= old_stop
+
+                            AeronArchive.purge_recording(archive, recording_id[])
+                            purged_seen = Ref(false)
+                            purged_count = AeronArchive.list_recording((desc, _) -> begin
+                                purged_seen[] = desc.recording_id == recording_id[]
+                                nothing
+                            end, archive, recording_id[])
+                            @test purged_count == 0
+                            @test !purged_seen[]
+
+                            missing_id = Int64(999999999)
+                            @test AeronArchive.list_recording((_, _) -> nothing, archive, missing_id) == 0
+                            @test AeronArchive.list_recordings_for_uri((_, _) -> nothing, archive, missing_id, 10, "aeron:ipc", 1) == 0
+                            @test_throws ErrorException AeronArchive.start_replay(archive, missing_id, "aeron:ipc", next_stream_id())
+                            AeronArchive.stop_replay(archive, missing_id)
+                            @test_throws ErrorException AeronArchive.truncate_recording(archive, missing_id, 0)
+                            @test_throws ErrorException AeronArchive.purge_recording(archive, missing_id)
+                        end
+                    end
+                end
+            end
+        end
     end
 end

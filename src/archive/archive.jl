@@ -513,9 +513,11 @@ function replay(a::Archive, recording_id, replay_channel, replay_stream_id; kwar
 end
 
 function truncate_recording(a::Archive, recording_id, position)
-    if aeron_archive_truncate_recording(a.archive, recording_id, position) < 0
+    count = Ref{Int64}(0)
+    if aeron_archive_truncate_recording(count, a.archive, recording_id, position) < 0
         Aeron.throwerror()
     end
+    return count[]
 end
 
 function stop_replay(a::Archive, replay_session_id)
@@ -536,7 +538,7 @@ function recording_subscription_descriptor_consumer_wrapper(descriptor, (callbac
 end
 
 function recording_subscription_descriptor_consumer_cfunction(::T) where {T}
-    @cfunction(recording_subscription_descriptor_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_descriptor_t}, Ref{T}))
+    @cfunction(recording_subscription_descriptor_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_subscription_descriptor_t}, Ref{T}))
 end
 
 function list_recording_subscriptions(callback::Function,

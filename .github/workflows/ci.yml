@@ -1,0 +1,102 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags: ['*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+env:
+  JAVA_VERSION: '17'
+  AERON_VERSION: 1.49.0
+
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      actions: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: 'lts'
+            os: ubuntu-latest
+            arch: x64
+          - version: '1'
+            os: ubuntu-latest
+            arch: x64
+          - version: 'nightly'
+            os: ubuntu-latest
+            arch: x64
+            allow_failure: true
+          - version: 'lts'
+            os: windows-latest
+            arch: x64
+          - version: '1'
+            os: windows-latest
+            arch: x64
+          - version: 'nightly'
+            os: windows-latest
+            arch: x64
+            allow_failure: true
+          - version: 'lts'
+            os: macos-latest
+            arch: aarch64
+          - version: '1'
+            os: macos-latest
+            arch: aarch64
+          - version: 'nightly'
+            os: macos-latest
+            arch: aarch64
+            allow_failure: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - name: Setup Java
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Cache Aeron archive jar
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/aeron
+          key: aeron-archive-${{ runner.os }}-${{ env.AERON_VERSION }}
+      - name: Download Aeron archive jar
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        run: |
+          mkdir -p ~/.cache/aeron
+          if [ ! -f ~/.cache/aeron/aeron-all-${AERON_VERSION}.jar ]; then
+            curl -L -o ~/.cache/aeron/aeron-all-${AERON_VERSION}.jar https://repo1.maven.org/maven2/io/aeron/aeron-all/${AERON_VERSION}/aeron-all-${AERON_VERSION}.jar
+          fi
+      - uses: julia-actions/cache@v2
+      - name: Add PackageRegistry
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/DarrylGamroth/PackageRegistry.git"))'
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          AERON_ARCHIVE_INTEGRATION: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1' }}
+          AERON_ARCHIVE_JAR: ~/.cache/aeron/aeron-all-${{ env.AERON_VERSION }}.jar
+          AERON_ARCHIVE_VERSION: ${{ env.AERON_VERSION }}
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
