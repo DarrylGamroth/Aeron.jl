@@ -10,7 +10,7 @@ Represents a reader for Aeron counters.
 """
 struct CountersReader
     counters_reader::Ptr{aeron_counters_reader_t}
-    client::Client
+    client::Union{Nothing,Client}
 end
 
 """
@@ -27,6 +27,7 @@ Creates a new `CountersReader` instance with the given Aeron client.
 - `CountersReader`: The new `CountersReader` instance.
 """
 CountersReader(c::Client) = CountersReader(aeron_counters_reader(c.client), c)
+CountersReader(counters_reader::Ptr{aeron_counters_reader_t}) = CountersReader(counters_reader, nothing)
 
 """
     @enumx CounterState

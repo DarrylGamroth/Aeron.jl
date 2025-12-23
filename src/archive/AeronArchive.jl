@@ -5,6 +5,7 @@ using ..LibAeron
 
 using EnumX
 using StringViews
+using UnsafeArrays
 
 export Archive,
     AsyncConnect,
@@ -12,8 +13,10 @@ export Archive,
     ClientRecordingSignal,
     CredentialsSupplier,
     RecordingDescriptor,
+    RecordingDescriptorView,
     RecordingSignalDescriptor,
     RecordingSubscriptionDescriptor,
+    RecordingSubscriptionDescriptorView,
     ReplayMerge,
     ReplayParams,
     ReplicationParams,
@@ -65,9 +68,13 @@ export Archive,
     is_live_added,
     is_merged,
     list_recording,
+    list_recording_view,
     list_recording_subscriptions,
+    list_recording_subscriptions_view,
     list_recordings,
+    list_recordings_view,
     list_recordings_for_uri,
+    list_recordings_for_uri_view,
     max_recorded_position,
     message_timeout_ns,
     message_timeout_ns!,

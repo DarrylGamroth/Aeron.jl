@@ -1,4 +1,5 @@
 using Aeron
+using StringViews
 const AeronArchive = Aeron.AeronArchive
 using Test
 
@@ -81,9 +82,11 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 async_pub = Aeron.async_add_publication(client, channel, stream_id)
                 async_counter = Aeron.async_add_counter(client, Int32(2001), nothing, "async-counter")
 
+                async_sub_view = Aeron.async_add_subscription_view(client, channel, stream_id)
                 sub = nothing
                 pub = nothing
                 counter = nothing
+                sub_view = nothing
                 wait_for() do
                     if sub === nothing
                         sub = Aeron.poll(async_sub)
@@ -94,16 +97,21 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     if counter === nothing
                         counter = Aeron.poll(async_counter)
                     end
-                    sub !== nothing && pub !== nothing && counter !== nothing
+                    if sub_view === nothing
+                        sub_view = Aeron.poll(async_sub_view)
+                    end
+                    sub !== nothing && pub !== nothing && counter !== nothing && sub_view !== nothing
                 end
 
                 @test sub !== nothing
                 @test pub !== nothing
                 @test counter !== nothing
+                @test sub_view !== nothing
 
                 close(pub)
                 close(sub)
                 close(counter)
+                close(sub_view)
             end
         end
     end
@@ -134,6 +142,42 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     @test received[] == payload
                     vals = header_values[]
                     @test vals.frame.stream_id == stream_id
+                finally
+                    close(pub)
+                    close(sub)
+                end
+            end
+        end
+    end
+
+    maybe_testset("Subscription view callbacks") do
+        with_embedded_driver() do driver
+            with_client(; driver=driver) do client
+                channel = ipc_channel()
+                stream_id = next_stream_id()
+
+                available_view = Ref{Any}(nothing)
+                alloc_bytes = Ref{Int}(0)
+                unavailable_called = Ref(false)
+
+                sub = Aeron.add_subscription_view(client, channel, stream_id;
+                    on_available_image = imgv -> begin
+                        available_view[] = imgv
+                        alloc_bytes[] = @allocated Aeron.source_identity(imgv)
+                    end,
+                    on_unavailable_image = _ -> (unavailable_called[] = true))
+
+                GC.gc()
+
+                pub = Aeron.add_publication(client, channel, stream_id)
+                try
+                    await_connected(pub, sub)
+                    wait_for(() -> available_view[] !== nothing)
+                    imgv = available_view[]
+                    @test imgv isa Aeron.ImageView
+                    @test Aeron.source_identity(imgv) isa StringView
+                    @test !isempty(String(Aeron.source_identity(imgv)))
+                    @test alloc_bytes[] <= 256
                 finally
                     close(pub)
                     close(sub)
@@ -730,6 +774,36 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
         end
     end
 
+    maybe_testset("CnC monitoring") do
+        with_embedded_driver() do driver
+            cnc = Aeron.CnC(; base_path=Aeron.MediaDriver.aeron_dir(driver))
+            try
+                @test Aeron.cnc_version(cnc) >= 0
+                @test Aeron.file_page_size(cnc) > 0
+                @test Aeron.client_liveness_timeout(cnc) >= 0
+                @test Aeron.start_timestamp(cnc) >= 0
+                @test Aeron.pid(cnc) >= 0
+
+                counters = Aeron.counters_reader(cnc)
+                @test Aeron.max_counter_id(counters) >= 0
+
+                error_entries = Ref(0)
+                Aeron.error_log_read(cnc) do _, _, _, _, _
+                    error_entries[] += 1
+                end
+                @test error_entries[] >= 0
+
+                loss_entries = Ref(0)
+                Aeron.loss_report_read(cnc) do _, _, _, _, _, _, _, _, _
+                    loss_entries[] += 1
+                end
+                @test loss_entries[] >= 0
+            finally
+                close(cnc)
+            end
+        end
+    end
+
     maybe_testset("Context error callback") do
         with_embedded_driver() do driver
             Aeron.Context() do context
@@ -1159,6 +1233,22 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                                 @test list_seen[]
                             end
 
+                            view_seen = Ref(false)
+                            view_alloc = Ref(0)
+                            view_count = AeronArchive.list_recordings_view((desc, _) -> begin
+                                view_seen[] = desc.recording_id == recording_id[]
+                                view_alloc[] = @allocated desc.original_channel
+                                @test desc.original_channel isa StringView
+                                @test desc.stripped_channel isa StringView
+                                @test desc.source_identity isa StringView
+                                nothing
+                            end, archive, 0, 10)
+                            @test view_count >= 0
+                            if view_count > 0
+                                @test view_seen[]
+                                @test view_alloc[] <= 256
+                            end
+
                             sub_channel = "aeron:ipc"
                             sub_stream_id = next_stream_id()
                             subscription_id = AeronArchive.start_recording(archive, sub_channel, sub_stream_id, AeronArchive.SourceLocation.LOCAL)
@@ -1173,6 +1263,18 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             end, archive, 0, 10, sub_channel, sub_stream_id, true)
                             @test sub_count > 0
                             @test sub_seen[]
+
+                            sub_view_seen = Ref(false)
+                            sub_view_alloc = Ref(0)
+                            sub_view_count = AeronArchive.list_recording_subscriptions_view((desc, _) -> begin
+                                sub_view_seen[] = desc.subscription_id == subscription_id
+                                sub_view_alloc[] = @allocated desc.stripped_channel
+                                @test desc.stripped_channel isa StringView
+                                nothing
+                            end, archive, 0, 10, sub_channel, sub_stream_id, true)
+                            @test sub_view_count > 0
+                            @test sub_view_seen[]
+                            @test sub_view_alloc[] <= 256
 
                             AeronArchive.stop_recording(archive, subscription_id)
                             close(sub_pub)

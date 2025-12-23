@@ -83,6 +83,61 @@ struct RecordingDescriptor
     end
 end
 
+@inline function _string_view(ptr::Cstring, len::Csize_t)
+    if ptr == C_NULL || len == 0
+        return StringView(UnsafeArray(Ptr{UInt8}(C_NULL), (0,)))
+    end
+    return StringView(UnsafeArray(Ptr{UInt8}(ptr), (Int(len),)))
+end
+
+"""
+    struct RecordingDescriptorView
+
+Non-allocating view into a recording descriptor. The view is only valid for the
+duration of the callback that created it and must not be retained.
+"""
+struct RecordingDescriptorView
+    control_session_id::Int64
+    correlation_id::Int64
+    recording_id::Int64
+    start_timestamp::Int64
+    stop_timestamp::Int64
+    start_position::Int64
+    stop_position::Int64
+    initial_term_id::Int32
+    segment_file_length::Int32
+    term_buffer_length::Int32
+    mtu_length::Int32
+    session_id::Int32
+    stream_id::Int32
+    stripped_channel::StringView
+    original_channel::StringView
+    source_identity::StringView
+
+    function RecordingDescriptorView(desc_p::Ptr{aeron_archive_recording_descriptor_t})
+        GC.@preserve desc_p begin
+            desc = unsafe_load(desc_p)
+            new(desc.control_session_id,
+                desc.correlation_id,
+                desc.recording_id,
+                desc.start_timestamp,
+                desc.stop_timestamp,
+                desc.start_position,
+                desc.stop_position,
+                desc.initial_term_id,
+                desc.segment_file_length,
+                desc.term_buffer_length,
+                desc.mtu_length,
+                desc.session_id,
+                desc.stream_id,
+                _string_view(desc.stripped_channel, desc.stripped_channel_length),
+                _string_view(desc.original_channel, desc.original_channel_length),
+                _string_view(desc.source_identity, desc.source_identity_length)
+            )
+        end
+    end
+end
+
 function Base.show(io::IO, ::MIME"text/plain", desc::RecordingDescriptor)
     println(io, "RecordingDescriptor")
     println(io, "  control session id: ", desc.control_session_id)
@@ -118,6 +173,32 @@ struct RecordingSubscriptionDescriptor
                 desc.subscription_id,
                 desc.stream_id,
                 unsafe_string(desc.stripped_channel)
+            )
+        end
+    end
+end
+
+"""
+    struct RecordingSubscriptionDescriptorView
+
+Non-allocating view into a recording subscription descriptor. The view is only
+valid for the duration of the callback that created it and must not be retained.
+"""
+struct RecordingSubscriptionDescriptorView
+    control_session_id::Int64
+    correlation_id::Int64
+    subscription_id::Int64
+    stream_id::Int32
+    stripped_channel::StringView
+
+    function RecordingSubscriptionDescriptorView(desc_p::Ptr{aeron_archive_recording_subscription_descriptor_t})
+        GC.@preserve desc_p begin
+            desc = unsafe_load(desc_p)
+            new(desc.control_session_id,
+                desc.correlation_id,
+                desc.subscription_id,
+                desc.stream_id,
+                _string_view(desc.stripped_channel, desc.stripped_channel_length)
             )
         end
     end
@@ -463,12 +544,39 @@ function recording_descriptor_consumer_cfunction(::T) where {T}
     @cfunction(recording_descriptor_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_descriptor_t}, Ref{T}))
 end
 
+function recording_descriptor_view_consumer_wrapper(descriptor, (callback, arg))
+    callback(RecordingDescriptorView(descriptor), arg)
+    nothing
+end
+
+function recording_descriptor_view_consumer_cfunction(::T) where {T}
+    @cfunction(recording_descriptor_view_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_descriptor_t}, Ref{T}))
+end
+
 function list_recording(callback::Function, a::Archive, recording_id, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
     GC.@preserve cb begin
         if aeron_archive_list_recording(count, a.archive, recording_id,
             recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
+    end
+    return count[]
+end
+
+"""
+    list_recording_view(callback, a, recording_id, clientd=nothing) -> Int32
+
+List a single recording using `RecordingDescriptorView` values (non-allocating).
+The view is only valid for the duration of the callback and must not be retained.
+"""
+function list_recording_view(callback::Function, a::Archive, recording_id, clientd=nothing)
+    cb = (callback, clientd)
+    count = Ref{Int32}(0)
+    GC.@preserve cb begin
+        if aeron_archive_list_recording(count, a.archive, recording_id,
+            recording_descriptor_view_consumer_cfunction(cb), Ref(cb)) < 0
             Aeron.throwerror()
         end
     end
@@ -487,12 +595,48 @@ function list_recordings(callback::Function, a::Archive, from_recording_id, reco
     return count[]
 end
 
+"""
+    list_recordings_view(callback, a, from_recording_id, record_count, clientd=nothing) -> Int32
+
+List recordings using `RecordingDescriptorView` values (non-allocating).
+The view is only valid for the duration of the callback and must not be retained.
+"""
+function list_recordings_view(callback::Function, a::Archive, from_recording_id, record_count, clientd=nothing)
+    cb = (callback, clientd)
+    count = Ref{Int32}(0)
+    GC.@preserve cb begin
+        if aeron_archive_list_recordings(count, a.archive, from_recording_id, record_count,
+            recording_descriptor_view_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
+    end
+    return count[]
+end
+
 function list_recordings_for_uri(callback::Function, a::Archive, from_recording_id, record_count, channel_fragment, stream_id, clientd=nothing)
     cb = (callback, clientd)
     count = Ref{Int32}(0)
     GC.@preserve cb begin
         if aeron_archive_list_recordings_for_uri(count, a.archive, from_recording_id, record_count, channel_fragment, stream_id,
             recording_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
+    end
+    return count[]
+end
+
+"""
+    list_recordings_for_uri_view(callback, a, from_recording_id, record_count, channel_fragment, stream_id, clientd=nothing) -> Int32
+
+List recordings for a URI using `RecordingDescriptorView` values (non-allocating).
+The view is only valid for the duration of the callback and must not be retained.
+"""
+function list_recordings_for_uri_view(callback::Function, a::Archive, from_recording_id, record_count, channel_fragment, stream_id, clientd=nothing)
+    cb = (callback, clientd)
+    count = Ref{Int32}(0)
+    GC.@preserve cb begin
+        if aeron_archive_list_recordings_for_uri(count, a.archive, from_recording_id, record_count, channel_fragment, stream_id,
+            recording_descriptor_view_consumer_cfunction(cb), Ref(cb)) < 0
             Aeron.throwerror()
         end
     end
@@ -546,6 +690,15 @@ function recording_subscription_descriptor_consumer_cfunction(::T) where {T}
     @cfunction(recording_subscription_descriptor_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_subscription_descriptor_t}, Ref{T}))
 end
 
+function recording_subscription_descriptor_view_consumer_wrapper(descriptor, (callback, arg))
+    callback(RecordingSubscriptionDescriptorView(descriptor), arg)
+    nothing
+end
+
+function recording_subscription_descriptor_view_consumer_cfunction(::T) where {T}
+    @cfunction(recording_subscription_descriptor_view_consumer_wrapper, Cvoid, (Ptr{aeron_archive_recording_subscription_descriptor_t}, Ref{T}))
+end
+
 function list_recording_subscriptions(callback::Function,
     a::Archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, clientd=nothing)
     cb = (callback, clientd)
@@ -554,6 +707,26 @@ function list_recording_subscriptions(callback::Function,
         if aeron_archive_list_recording_subscriptions(count, a.archive, pseudo_index, subscription_count,
             channel_fragment, stream_id, apply_stream_id,
             recording_subscription_descriptor_consumer_cfunction(cb), Ref(cb)) < 0
+            Aeron.throwerror()
+        end
+    end
+    return count[]
+end
+
+"""
+    list_recording_subscriptions_view(callback, a, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, clientd=nothing) -> Int32
+
+List recording subscriptions using `RecordingSubscriptionDescriptorView` values (non-allocating).
+The view is only valid for the duration of the callback and must not be retained.
+"""
+function list_recording_subscriptions_view(callback::Function,
+    a::Archive, pseudo_index, subscription_count, channel_fragment, stream_id, apply_stream_id, clientd=nothing)
+    cb = (callback, clientd)
+    count = Ref{Int32}(0)
+    GC.@preserve cb begin
+        if aeron_archive_list_recording_subscriptions(count, a.archive, pseudo_index, subscription_count,
+            channel_fragment, stream_id, apply_stream_id,
+            recording_subscription_descriptor_view_consumer_cfunction(cb), Ref(cb)) < 0
             Aeron.throwerror()
         end
     end

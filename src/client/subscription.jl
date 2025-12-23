@@ -1,8 +1,19 @@
+struct ImageCallback
+    func::Function
+    client::Client
+end
+
+struct ImageViewCallback
+    func::Function
+end
+
 struct Subscription
     subscription::Ptr{aeron_subscription_t}
     constants::aeron_subscription_constants_t
     client::Client
     is_owned::Bool
+    on_available_image::Any
+    on_unavailable_image::Any
 
     """
     Create a new Subscription object.
@@ -11,37 +22,61 @@ struct Subscription
     - `subscription::Ptr{aeron_subscription_t}`: Pointer to the Aeron subscription.
     - `is_owned::Bool=false`: Indicates if the subscription is owned by this instance.
     """
-    function Subscription(subscription::Ptr{aeron_subscription_t}, client::Client, is_owned::Bool=false)
+    function Subscription(subscription::Ptr{aeron_subscription_t}, client::Client, is_owned::Bool=false;
+        on_available_image=nothing,
+        on_unavailable_image=nothing)
         constants = Ref{aeron_subscription_constants_t}()
         if aeron_subscription_constants(subscription, constants) < 0
             throwerror()
         end
-        return new(subscription, constants[], client, is_owned)
+        return new(subscription, constants[], client, is_owned, on_available_image, on_unavailable_image)
     end
 end
 
 Base.cconvert(::Type{Ptr{aeron_subscription_t}}, s::Subscription) = s
 Base.unsafe_convert(::Type{Ptr{aeron_subscription_t}}, s::Subscription) = s.subscription
 
-function available_image_handler_wrapper(callback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    callback(Image(image))
+function available_image_handler_wrapper(callback::ImageCallback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback.func(Image(image; subscription=subscription, client=callback.client))
+    nothing
 end
 
 function available_image_handler_cfunction(::T) where {T}
     @cfunction(available_image_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
 end
 
-function unavailable_image_handler_wrapper(callback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
-    callback(Image(image))
+function unavailable_image_handler_wrapper(callback::ImageCallback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback.func(Image(image; subscription=subscription, client=callback.client))
+    nothing
 end
 
 function unavailable_image_handler_cfunction(::T) where {T}
     @cfunction(unavailable_image_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
 end
 
+function available_image_view_handler_wrapper(callback::ImageViewCallback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback.func(ImageView(image, subscription))
+    nothing
+end
+
+function available_image_view_handler_cfunction(::T) where {T}
+    @cfunction(available_image_view_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+end
+
+function unavailable_image_view_handler_wrapper(callback::ImageViewCallback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
+    callback.func(ImageView(image, subscription))
+    nothing
+end
+
+function unavailable_image_view_handler_cfunction(::T) where {T}
+    @cfunction(unavailable_image_view_handler_wrapper, Cvoid, (Ref{T}, Ptr{aeron_subscription_t}, Ptr{aeron_image_t}))
+end
+
 struct AsyncAddSubscription
     async::Ptr{aeron_async_add_subscription_t}
     client::Client
+    on_available_image::Any
+    on_unavailable_image::Any
 end
 
 """
@@ -66,17 +101,47 @@ function async_add_subscription(c::Client, uri::AbstractString, stream_id;
     on_unavailable_image::Union{Nothing,Function}=nothing)
 
     async = Ref{Ptr{aeron_async_add_subscription_t}}(C_NULL)
+    available_cb = on_available_image === nothing ? nothing : Ref(ImageCallback(on_available_image, c))
+    unavailable_cb = on_unavailable_image === nothing ? nothing : Ref(ImageCallback(on_unavailable_image, c))
 
-    GC.@preserve on_available_image on_unavailable_image begin
+    GC.@preserve available_cb unavailable_cb begin
         if aeron_async_add_subscription(async, c.client, uri, stream_id,
-            on_available_image === nothing ? C_NULL : available_image_handler_cfunction(on_available_image),
-            on_available_image === nothing ? C_NULL : Ref(on_available_image),
-            on_unavailable_image === nothing ? C_NULL : unavailable_image_handler_cfunction(on_unavailable_image),
-            on_unavailable_image === nothing ? C_NULL : Ref(on_unavailable_image)) < 0
+            available_cb === nothing ? C_NULL : available_image_handler_cfunction(available_cb[]),
+            available_cb === nothing ? C_NULL : available_cb,
+            unavailable_cb === nothing ? C_NULL : unavailable_image_handler_cfunction(unavailable_cb[]),
+            unavailable_cb === nothing ? C_NULL : unavailable_cb) < 0
             throwerror()
         end
     end
-    return AsyncAddSubscription(async[], c)
+    return AsyncAddSubscription(async[], c, available_cb, unavailable_cb)
+end
+
+"""
+    async_add_subscription_view(c::Client, uri::AbstractString, stream_id;
+                                on_available_image::Union{Nothing,Function}=nothing,
+                                on_unavailable_image::Union{Nothing,Function}=nothing) -> AsyncAddSubscription
+
+Add a subscription asynchronously and receive `ImageView` values in the image callbacks.
+The view is only valid for the duration of the callback and must not be retained.
+"""
+function async_add_subscription_view(c::Client, uri::AbstractString, stream_id;
+    on_available_image::Union{Nothing,Function}=nothing,
+    on_unavailable_image::Union{Nothing,Function}=nothing)
+
+    async = Ref{Ptr{aeron_async_add_subscription_t}}(C_NULL)
+    available_cb = on_available_image === nothing ? nothing : Ref(ImageViewCallback(on_available_image))
+    unavailable_cb = on_unavailable_image === nothing ? nothing : Ref(ImageViewCallback(on_unavailable_image))
+
+    GC.@preserve available_cb unavailable_cb begin
+        if aeron_async_add_subscription(async, c.client, uri, stream_id,
+            available_cb === nothing ? C_NULL : available_image_view_handler_cfunction(available_cb[]),
+            available_cb === nothing ? C_NULL : available_cb,
+            unavailable_cb === nothing ? C_NULL : unavailable_image_view_handler_cfunction(unavailable_cb[]),
+            unavailable_cb === nothing ? C_NULL : unavailable_cb) < 0
+            throwerror()
+        end
+    end
+    return AsyncAddSubscription(async[], c, available_cb, unavailable_cb)
 end
 
 """
@@ -98,7 +163,9 @@ function poll(a::AsyncAddSubscription)
     if subscription[] == C_NULL
         return nothing
     end
-    return Subscription(subscription[], a.client, true)
+    return Subscription(subscription[], a.client, true;
+        on_available_image=a.on_available_image,
+        on_unavailable_image=a.on_unavailable_image)
 end
 
 """
@@ -123,6 +190,29 @@ function add_subscription(c::Client, uri::AbstractString, stream_id;
     on_unavailable_image::Union{Nothing,Function}=nothing)
 
     async = async_add_subscription(c, uri, stream_id;
+        on_available_image=on_available_image, on_unavailable_image=on_unavailable_image)
+    while true
+        subscription = poll(async)
+        if subscription !== nothing
+            return subscription
+        end
+        yield()
+    end
+end
+
+"""
+    add_subscription_view(c::Client, uri::AbstractString, stream_id;
+                          on_available_image::Union{Nothing,Function}=nothing,
+                          on_unavailable_image::Union{Nothing,Function}=nothing) -> Subscription
+
+Add a subscription and wait for it to be available, using `ImageView` values in callbacks.
+The view is only valid for the duration of each callback and must not be retained.
+"""
+function add_subscription_view(c::Client, uri::AbstractString, stream_id;
+    on_available_image::Union{Nothing,Function}=nothing,
+    on_unavailable_image::Union{Nothing,Function}=nothing)
+
+    async = async_add_subscription_view(c, uri, stream_id;
         on_available_image=on_available_image, on_unavailable_image=on_unavailable_image)
     while true
         subscription = poll(async)
@@ -315,7 +405,7 @@ Get the channel status of the subscription.
 # Returns
 - `Symbol`: The channel status of the subscription.
 """
-channel_status(s::Subscription) = aeron_publication_channel_status(s.subscription) == 1 ? :active : :errored
+channel_status(s::Subscription) = aeron_subscription_channel_status(s.subscription) == 1 ? :active : :errored
 
 """
 Check if the subscription is open.
@@ -427,7 +517,7 @@ function image_by_session_id(s::Subscription, session_id)
     if image == C_NULL
         return nothing
     end
-    return Image(image; subscription=s.subscription)
+    return Image(image; subscription=s.subscription, client=s.client)
 end
 
 function image_by_session_id(f::Function, s::Subscription, session_id)
@@ -453,7 +543,7 @@ function image_at_index(s::Subscription, index)
     if image == C_NULL
         return nothing
     end
-    return Image(image; subscription=s.subscription)
+    return Image(image; subscription=s.subscription, client=s.client)
 end
 
 function image_at_index(f::Function, s::Subscription, index)
