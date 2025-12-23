@@ -12,12 +12,12 @@ end
 function archive_jar_path()
     jar_env = get(ENV, "AERON_ARCHIVE_JAR", "")
     if !isempty(jar_env)
-        return jar_env
+        return abspath(expanduser(jar_env))
     end
 
     jar_path = joinpath(ARCHIVE_CACHE_DIR, "aeron-all-$(ARCHIVE_VERSION).jar")
     if isfile(jar_path)
-        return jar_path
+        return abspath(jar_path)
     end
 
     download = lowercase(get(ENV, "AERON_ARCHIVE_DOWNLOAD", ""))
@@ -28,7 +28,7 @@ function archive_jar_path()
     mkpath(ARCHIVE_CACHE_DIR)
     url = "https://repo1.maven.org/maven2/io/aeron/aeron-all/$(ARCHIVE_VERSION)/aeron-all-$(ARCHIVE_VERSION).jar"
     Downloads.download(url, jar_path)
-    return jar_path
+    return abspath(jar_path)
 end
 
 function with_archiving_media_driver(f::Function)
