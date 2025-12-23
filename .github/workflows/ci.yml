@@ -90,3 +90,7 @@ jobs:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+      - name: Dump archiving-media-driver log
+        if: failure()
+        run: |
+          find /tmp -name 'archiving-media-driver.log' -print -exec sed -n '1,200p' {} \;
