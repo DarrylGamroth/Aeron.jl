@@ -1,7 +1,7 @@
 name = "Aeron"
 uuid = "b850ffb1-6704-484e-996b-4710e2f097f0"
 authors = ["Darryl Gamroth <dgamroth@rubus.ca>"]
-version = "0.18.12"
+version = "0.18.13"
 
 [deps]
 Aeron_jll = "d964258c-d1ad-568a-aca9-3ef511f5bffd"
