@@ -128,6 +128,33 @@ AeronArchive.connect(archive_ctx) do archive
 end
 ```
 
+### Non-allocating descriptor views
+
+Use view APIs to avoid `String` allocations when listing recordings. Views return
+`StringView` fields and are only valid during the callback.
+
+```julia
+AeronArchive.connect(archive_ctx) do archive
+    AeronArchive.list_recordings_view((desc, _) -> begin
+        println("recording: ", desc.recording_id, " ", desc.original_channel)
+    end, archive, 0, 10)
+end
+```
+
+For subscriptions:
+
+```julia
+AeronArchive.connect(archive_ctx) do archive
+    AeronArchive.list_recording_subscriptions_view((desc, _) -> begin
+        println("subscription: ", desc.subscription_id, " ", desc.stripped_channel)
+    end, archive, 0, 10, "aeron:ipc", 1001, true)
+end
+```
+
+Do not retain `RecordingDescriptorView` or `RecordingSubscriptionDescriptorView`
+instances beyond the callback. If you need stable values, copy them inside
+the callback with `String(...)`.
+
 ## Segment maintenance
 
 ```julia

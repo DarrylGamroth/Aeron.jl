@@ -124,6 +124,50 @@ Aeron.image_by_session_id(sub, session_id) do img
 end
 ```
 
+## Non-allocating image views
+
+For hot paths, you can register view callbacks that receive `ImageView` values.
+These are non-allocating views into Aeron-owned memory and are only valid during
+the callback that created them.
+
+```julia
+sub = Aeron.add_subscription_view(client, channel, stream_id;
+    on_available_image = imgv -> begin
+        # imgv is an ImageView; StringView values are non-allocating.
+        println("source: ", Aeron.source_identity(imgv))
+    end)
+```
+
+Do not store `ImageView` or any `StringView` derived from it beyond the callback.
+If you need a stable value, call `String(...)` inside the callback.
+
+### Async view subscriptions
+
+```julia
+async_sub = Aeron.async_add_subscription_view(client, channel, stream_id)
+sub = Aeron.poll(async_sub)
+```
+
+The view semantics are the same as `add_subscription_view`: callbacks receive
+`ImageView` values and must not retain them.
+
+## CnC monitoring
+
+You can attach to the CnC file for driver monitoring:
+
+```julia
+cnc = Aeron.CnC(; base_path=Aeron.MediaDriver.aeron_dir(driver))
+println("heartbeat: ", Aeron.to_driver_heartbeat(cnc))
+
+Aeron.error_log_read(cnc) do _, _, _, msg, _
+    println("driver error: ", msg)
+end
+
+Aeron.loss_report_read(cnc) do _, _, _, _, _, _, channel, source, _
+    println("loss: ", channel, " -> ", source)
+end
+```
+
 ## Reserved value supplier
 
 ```julia
