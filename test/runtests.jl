@@ -305,9 +305,8 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     async_add = Aeron.async_add_destination(pub, dest1)
                     wait_for(() -> Aeron.poll(pub, async_add))
                     dest_id = Aeron.aeron_async_destination_get_registration_id(async_add.async)
-                    if Sys.isapple()
-                        @test dest_id >= 0
-                        dest_id == 0 && return
+                    if Sys.isapple() && dest_id == 0
+                        @test_skip "destination registration id not available on macOS runner"
                     else
                         @test dest_id > 0
                     end
@@ -335,9 +334,8 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     async_add = Aeron.async_add_destination(pub, dest1)
                     wait_for(() -> Aeron.poll(pub, async_add))
                     dest_id = Aeron.aeron_async_destination_get_registration_id(async_add.async)
-                    if Sys.isapple()
-                        @test dest_id >= 0
-                        dest_id == 0 && return
+                    if Sys.isapple() && dest_id == 0
+                        @test_skip "destination registration id not available on macOS runner"
                     else
                         @test dest_id > 0
                     end
