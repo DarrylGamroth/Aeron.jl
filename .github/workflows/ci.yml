@@ -93,4 +93,7 @@ jobs:
       - name: Dump archiving-media-driver log
         if: failure()
         run: |
-          find /tmp -name 'archiving-media-driver.log' -print -exec sed -n '1,200p' {} \;
+          find /tmp -name 'archiving-media-driver.log' -print -exec sed -n '1,200p' {} \; 2>/dev/null || true
+          if [ -n "${RUNNER_TEMP:-}" ]; then
+            find "${RUNNER_TEMP}" -name 'archiving-media-driver.log' -print -exec sed -n '1,200p' {} \; 2>/dev/null || true
+          fi
