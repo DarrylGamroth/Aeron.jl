@@ -68,7 +68,6 @@ export AbstractBlockHandler,
     correlation_id,
     counter_foreach,
     counter_id,
-    counter_key,
     counter_label,
     counter_owner_id,
     counter_reference_id,
@@ -200,7 +199,7 @@ Get the Git SHA of the Aeron library.
 # Returns
 - `String`: The Git SHA.
 """
-version_gitsha() = unsafe_string(aeron_version_git_sha())
+version_gitsha() = unsafe_string(aeron_version_gitsha())
 
 """
     default_path() -> String
@@ -213,7 +212,7 @@ version_gitsha() = unsafe_string(aeron_version_git_sha())
 function default_path()
     buffer = Vector{UInt8}(undef, 1024)
     GC.@preserve buffer begin
-        result = aeron_default_path(pointer(buffer), length(buffer))
+        result = aeron_default_path(Base.pointer(buffer), length(buffer))
         if result < 0
             throwerror()
         end

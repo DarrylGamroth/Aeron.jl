@@ -1681,6 +1681,7 @@ function aeron_counters_reader_counter_label(counters_reader, counter_id, buffer
     @ccall libaeron.aeron_counters_reader_counter_label(counters_reader::Ptr{aeron_counters_reader_t}, counter_id::Int32, buffer::Cstring, buffer_length::Csize_t)::Cint
 end
 
+
 """
     aeron_counters_reader_free_for_reuse_deadline_ms(counters_reader, counter_id, deadline_ms)
 

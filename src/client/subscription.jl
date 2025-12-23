@@ -417,38 +417,52 @@ end
     image_by_session_id(s::Subscription, session_id::Int32) -> Union{Nothing, Image}
 
 Return the image associated with the given session\\_id under the given subscription.
+The caller must close the returned `Image` to release it. No finalizer is used for cleanup.
 """
 function image_by_session_id(s::Subscription, session_id)
     image = aeron_subscription_image_by_session_id(s.subscription, session_id)
     if image == C_NULL
         return nothing
     end
+    return Image(image; subscription=s.subscription)
+end
 
-    retval = aeron_subscription_image_release(s.subscription, image)
-    if retval < 0
-        throwerror()
+function image_by_session_id(f::Function, s::Subscription, session_id)
+    img = image_by_session_id(s, session_id)
+    if img === nothing
+        return nothing
     end
-
-    return Image(image)
+    try
+        f(img)
+    finally
+        close(img)
+    end
 end
 
 """
     image_at_index(s::Subscription, index::Int32) -> Union{Nothing, Image}
 
 Return the image at the given index.
+The caller must close the returned `Image` to release it. No finalizer is used for cleanup.
 """
 function image_at_index(s::Subscription, index)
     image = aeron_subscription_image_at_index(s.subscription, index)
     if image == C_NULL
         return nothing
     end
+    return Image(image; subscription=s.subscription)
+end
 
-    retval = aeron_subscription_image_release(s.subscription, image)
-    if retval < 0
-        throwerror()
+function image_at_index(f::Function, s::Subscription, index)
+    img = image_at_index(s, index)
+    if img === nothing
+        return nothing
     end
-
-    return Image(image)
+    try
+        f(img)
+    finally
+        close(img)
+    end
 end
 
 function Base.show(io::IO, ::MIME"text/plain", s::Subscription)

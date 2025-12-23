@@ -12,15 +12,18 @@ Represents an Aeron image, which is a stream of messages from a publication.
 
 - `Image(image::Ptr{aeron_image_t})`: Creates a new `Image` instance with the given Aeron image pointer.
 """
-struct Image
+mutable struct Image
     image::Ptr{aeron_image_t}
     constants::aeron_image_constants_t
-    function Image(image::Ptr{aeron_image_t})
+    subscription::Ptr{aeron_subscription_t}
+    released::Bool
+
+    function Image(image::Ptr{aeron_image_t}; subscription::Ptr{aeron_subscription_t}=C_NULL)
         constants = Ref{aeron_image_constants_t}()
         if aeron_image_constants(image, constants) < 0
             throwerror()
         end
-        new(image, constants[])
+        new(image, constants[], subscription, false)
     end
 end
 
@@ -178,6 +181,25 @@ end
 Has the publication for this image been revoked?
 """
 is_publication_revoked(i::Image) = aeron_image_is_publication_revoked(i.image)
+
+"""
+    close(i::Image)
+
+Release the image back to the subscription.
+"""
+function Base.close(i::Image)
+    if i.released
+        return
+    end
+    if i.subscription != C_NULL
+        retval = aeron_subscription_image_release(i.subscription, i.image)
+        if retval < 0
+            throwerror()
+        end
+    end
+    i.released = true
+    i.image = C_NULL
+end
 
 function Base.show(io::IO, ::MIME"text/plain", i::Image)
     println(io, "Image")

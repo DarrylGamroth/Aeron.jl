@@ -272,7 +272,7 @@ Returns the label of the counter with the given ID.
 function counter_label(c::CountersReader, counter_id)
     label = Vector{UInt8}(undef, 256)
     GC.@preserve label begin
-        length = aeron_counters_reader_counter_label(c.counters_reader, counter_id, pointer(label), Base.length(label))
+        length = aeron_counters_reader_counter_label(c.counters_reader, counter_id, Base.pointer(label), Base.length(label))
         if length < 0
             throwerror()
         end
@@ -281,9 +281,9 @@ function counter_label(c::CountersReader, counter_id)
 end
 
 """
-    counter_key(c::CountersReader, counter_id::Int32) -> Vector{UInt8}
+    free_for_reuse_deadline_ms(c::CountersReader, counter_id::Int32) -> Int64
 
-Returns the key of the counter with the given ID.
+Returns the deadline in milliseconds for when a counter can be reused after being freed.
 
 # Arguments
 
@@ -292,35 +292,11 @@ Returns the key of the counter with the given ID.
 
 # Returns
 
-- `Vector{UInt8}`: The key of the counter.
-"""
-function counter_key(c::CountersReader, counter_id)
-    key = Vector{UInt8}(undef, 256)
-    GC.@preserve key begin
-        length = aeron_counters_reader_counter_key(c.counters_reader, counter_id, pointer(key), Base.length(key))
-        if length < 0
-            throwerror()
-        end
-        return key[1:length]
-    end
-end
-
-"""
-    free_for_reuse_deadline_ms(c::CountersReader) -> Int64
-
-Returns the deadline in milliseconds for when a counter can be reused after being freed.
-
-# Arguments
-
-- `c::CountersReader`: The counters reader.
-
-# Returns
-
 - `Int64`: The deadline in milliseconds for when a counter can be reused.
 """
-function free_for_reuse_deadline_ms(c::CountersReader)
+function free_for_reuse_deadline_ms(c::CountersReader, counter_id::Int32)
     deadline = Ref{Int64}()
-    retval = aeron_counters_reader_free_for_reuse_deadline_ms(c.counters_reader, deadline)
+    retval = aeron_counters_reader_free_for_reuse_deadline_ms(c.counters_reader, counter_id, deadline)
     if retval < 0
         throwerror()
     end
