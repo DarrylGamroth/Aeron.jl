@@ -35,7 +35,8 @@ function with_archiving_media_driver(f::Function)
     jar_path = archive_jar_path()
     jar_path === nothing && error("Archive integration enabled but Aeron jar is unavailable.")
 
-    root = mktempdir()
+    root_base = get(ENV, "AERON_ARCHIVE_TMPDIR", "")
+    root = isempty(root_base) ? mktempdir() : mktempdir(root_base)
     aeron_dir = joinpath(root, "aeron")
     archive_dir = joinpath(root, "archive")
     mkpath(aeron_dir)
@@ -57,7 +58,9 @@ function with_archiving_media_driver(f::Function)
     response_stream_id = 1002
     events_stream_id = 1003
 
-    log_path = joinpath(root, "archiving-media-driver.log")
+    log_base = get(ENV, "AERON_ARCHIVE_LOG_DIR", "")
+    log_path = isempty(log_base) ? joinpath(root, "archiving-media-driver.log") :
+        joinpath(log_base, "archiving-media-driver.log")
     log_io = open(log_path, "w")
     cmd = Cmd([
         "java",

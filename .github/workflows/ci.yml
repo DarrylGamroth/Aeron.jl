@@ -84,6 +84,8 @@ jobs:
           AERON_ARCHIVE_INTEGRATION: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1' }}
           AERON_ARCHIVE_JAR: ~/.cache/aeron/aeron-all-${{ env.AERON_VERSION }}.jar
           AERON_ARCHIVE_VERSION: ${{ env.AERON_VERSION }}
+          AERON_ARCHIVE_LOG_DIR: ${{ runner.temp }}
+          AERON_ARCHIVE_TMPDIR: ${{ runner.temp }}
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
         with:
