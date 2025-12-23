@@ -53,6 +53,9 @@ Get the pointer to the underlying `aeron_context_t` struct.
 """
 pointer(c::Context) = c.context
 
+Base.cconvert(::Type{Ptr{aeron_context_t}}, c::Context) = c
+Base.unsafe_convert(::Type{Ptr{aeron_context_t}}, c::Context) = c.context
+
 """
     close(c)
 
@@ -80,9 +83,12 @@ Get the directory used for the media driver for `Context`.
 - `c`: The `Context` object.
 
 # Returns
-- The directory name of the `Context`.
+- The directory name of the `Context`, or `nothing` if unavailable.
 """
-aeron_dir(c::Context) = unsafe_string(aeron_context_get_dir(c.context))
+function aeron_dir(c::Context)
+    ptr = aeron_context_get_dir(c.context)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
+end
 
 """
     aeron_dir!(c, dir)

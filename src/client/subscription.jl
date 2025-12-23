@@ -20,6 +20,9 @@ struct Subscription
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_subscription_t}}, s::Subscription) = s
+Base.unsafe_convert(::Type{Ptr{aeron_subscription_t}}, s::Subscription) = s.subscription
+
 function available_image_handler_wrapper(callback, subscription::Ptr{aeron_subscription_t}, image::Ptr{aeron_image_t})
     callback(Image(image))
 end

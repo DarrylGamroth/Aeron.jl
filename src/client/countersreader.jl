@@ -136,6 +136,13 @@ Returns the value of the counter with the given ID.
 - `Int64`: The value of the counter.
 """
 function counter_value(c::CountersReader, counter_id)
+    if counter_id < 0
+        throw(ArgumentError("counter_id must be non-negative"))
+    end
+    max_id = max_counter_id(c)
+    if counter_id > max_id
+        throw(ArgumentError("counter_id is out of range"))
+    end
     addr = aeron_counters_reader_addr(c.counters_reader, counter_id)
     unsafe_load(addr, :acquire)
 end

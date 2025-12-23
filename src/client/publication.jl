@@ -20,6 +20,9 @@ struct Publication
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_publication_t}}, p::Publication) = p
+Base.unsafe_convert(::Type{Ptr{aeron_publication_t}}, p::Publication) = p.publication
+
 struct AsyncAddPublication
     async::Ptr{aeron_async_add_publication_t}
     client::Client

@@ -27,6 +27,9 @@ mutable struct Image
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_image_t}}, i::Image) = i
+Base.unsafe_convert(::Type{Ptr{aeron_image_t}}, i::Image) = i.image
+
 """
     subscription(i::Image) -> Subscription
 

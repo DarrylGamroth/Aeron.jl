@@ -205,7 +205,16 @@ function Context(f::Function)
 end
 
 function Base.close(c::Context)
-    aeron_driver_context_close(c.context)
+    if aeron_driver_context_close(c.context) < 0
+        Aeron.throwerror()
+    end
+end
+
+Base.cconvert(::Type{Ptr{aeron_driver_context_t}}, c::Context) = c
+Base.unsafe_convert(::Type{Ptr{aeron_driver_context_t}}, c::Context) = c.context
+
+function _maybe_string(ptr::Cstring)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
 end
 
 """
@@ -235,9 +244,9 @@ Get the directory used for the media driver for `Context`.
 - `c`: The `Context` object.
 
 # Returns
-- The directory name of the `Context`.
+- The directory name of the `Context`, or `nothing` if unavailable.
 """
-aeron_dir(c::Context) = unsafe_string(aeron_driver_context_get_dir(c.context))
+aeron_dir(c::Context) = _maybe_string(aeron_driver_context_get_dir(c.context))
 
 function dir_warn_if_exists!(c::Context)
     if aeron_driver_context_get_dir_warn_if_exists(c.context) < 0
@@ -517,7 +526,7 @@ function sender_idle_strategy!(c::Context, value::AbstractString)
     end
 end
 
-sender_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_sender_idle_strategy(c.context))
+sender_idle_strategy(c::Context) = _maybe_string(aeron_driver_context_get_sender_idle_strategy(c.context))
 
 function conductor_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_conductor_idle_strategy(c.context, value) < 0
@@ -525,7 +534,7 @@ function conductor_idle_strategy!(c::Context, value::AbstractString)
     end
 end
 
-conductor_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_conductor_idle_strategy(c.context))
+conductor_idle_strategy(c::Context) = _maybe_string(aeron_driver_context_get_conductor_idle_strategy(c.context))
 
 function receiver_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_receiver_idle_strategy(c.context, value) < 0
@@ -533,7 +542,7 @@ function receiver_idle_strategy!(c::Context, value::AbstractString)
     end
 end
 
-receiver_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_receiver_idle_strategy(c.context))
+receiver_idle_strategy(c::Context) = _maybe_string(aeron_driver_context_get_receiver_idle_strategy(c.context))
 
 function shared_network_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sharednetwork_idle_strategy(c.context, value) < 0
@@ -541,7 +550,7 @@ function shared_network_idle_strategy!(c::Context, value::AbstractString)
     end
 end
 
-shared_network_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_sharednetwork_idle_strategy(c.context))
+shared_network_idle_strategy(c::Context) = _maybe_string(aeron_driver_context_get_sharednetwork_idle_strategy(c.context))
 
 function shared_idle_strategy!(c::Context, value::AbstractString)
     if aeron_driver_context_set_shared_idle_strategy(c.context, value) < 0
@@ -549,7 +558,7 @@ function shared_idle_strategy!(c::Context, value::AbstractString)
     end
 end
 
-shared_idle_strategy(c::Context) = unsafe_string(aeron_driver_context_get_shared_idle_strategy(c.context))
+shared_idle_strategy(c::Context) = _maybe_string(aeron_driver_context_get_shared_idle_strategy(c.context))
 
 function sender_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sender_idle_strategy_init_args(c.context, value) < 0
@@ -557,7 +566,7 @@ function sender_idle_strategy_init_args!(c::Context, value::AbstractString)
     end
 end
 
-sender_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_get_sender_idle_strategy_init_args(c.context))
+sender_idle_strategy_init_args(c::Context) = _maybe_string(aeron_driver_context_get_sender_idle_strategy_init_args(c.context))
 
 function conductor_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_conductor_idle_strategy_init_args(c.context, value) < 0
@@ -565,7 +574,7 @@ function conductor_idle_strategy_init_args!(c::Context, value::AbstractString)
     end
 end
 
-conductor_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_get_conductor_idle_strategy_init_args(c.context))
+conductor_idle_strategy_init_args(c::Context) = _maybe_string(aeron_driver_context_get_conductor_idle_strategy_init_args(c.context))
 
 function receiver_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_receiver_idle_strategy_init_args(c.context, value) < 0
@@ -573,7 +582,7 @@ function receiver_idle_strategy_init_args!(c::Context, value::AbstractString)
     end
 end
 
-receiver_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_get_receiver_idle_strategy_init_args(c.context))
+receiver_idle_strategy_init_args(c::Context) = _maybe_string(aeron_driver_context_get_receiver_idle_strategy_init_args(c.context))
 
 function shared_network_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_sharednetwork_idle_strategy_init_args(c.context, value) < 0
@@ -581,7 +590,7 @@ function shared_network_idle_strategy_init_args!(c::Context, value::AbstractStri
     end
 end
 
-shared_network_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_get_sharednetwork_idle_strategy_init_args(c.context))
+shared_network_idle_strategy_init_args(c::Context) = _maybe_string(aeron_driver_context_get_sharednetwork_idle_strategy_init_args(c.context))
 
 function shared_idle_strategy_init_args!(c::Context, value::AbstractString)
     if aeron_driver_context_set_shared_idle_strategy_init_args(c.context, value) < 0
@@ -589,7 +598,7 @@ function shared_idle_strategy_init_args!(c::Context, value::AbstractString)
     end
 end
 
-shared_idle_strategy_init_args(c::Context) = unsafe_string(aeron_driver_context_get_shared_idle_strategy_init_args(c.context))
+shared_idle_strategy_init_args(c::Context) = _maybe_string(aeron_driver_context_get_shared_idle_strategy_init_args(c.context))
 
 function counters_free_to_reuse_timeout_ns!(c::Context, timeout::Int)
     if aeron_driver_context_set_counters_free_to_reuse_timeout_ns(c.context, timeout) < 0
@@ -840,7 +849,7 @@ function name_resolver_init_args!(c::Context, value::AbstractString)
     end
 end
 
-name_resolver_init_args(c::Context) = unsafe_string(aeron_driver_context_get_name_resolver_init_args(c.context))
+name_resolver_init_args(c::Context) = _maybe_string(aeron_driver_context_get_name_resolver_init_args(c.context))
 
 function re_resolution_check_interval_ns!(c::Context, value::Int)
     if aeron_driver_context_set_re_resolution_check_interval_ns(c.context, value) < 0
@@ -1107,8 +1116,13 @@ function Driver(f::Function)
 end
 
 function Base.close(d::Driver)
-    aeron_driver_close(d.driver)
+    if aeron_driver_close(d.driver) < 0
+        Aeron.throwerror()
+    end
 end
+
+Base.cconvert(::Type{Ptr{aeron_driver_t}}, d::Driver) = d
+Base.unsafe_convert(::Type{Ptr{aeron_driver_t}}, d::Driver) = d.driver
 
 """
     aeron_dir(d)

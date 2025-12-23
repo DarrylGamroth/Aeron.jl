@@ -103,6 +103,9 @@ Get the underlying Aeron client pointer.
 """
 pointer(c::Client) = c.client
 
+Base.cconvert(::Type{Ptr{aeron_t}}, c::Client) = c
+Base.unsafe_convert(::Type{Ptr{aeron_t}}, c::Client) = c.client
+
 """
     next_correlation_id(c::Client) -> Int64
 

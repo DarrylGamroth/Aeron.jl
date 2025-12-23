@@ -20,6 +20,9 @@ struct ExclusivePublication
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_exclusive_publication_t}}, p::ExclusivePublication) = p
+Base.unsafe_convert(::Type{Ptr{aeron_exclusive_publication_t}}, p::ExclusivePublication) = p.publication
+
 struct AsyncAddExclusivePublication
     async::Ptr{aeron_async_add_exclusive_publication_t}
     client::Client

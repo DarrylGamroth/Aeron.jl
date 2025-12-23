@@ -16,8 +16,13 @@ struct Archive
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_archive_t}}, a::Archive) = a
+Base.unsafe_convert(::Type{Ptr{aeron_archive_t}}, a::Archive) = a.archive
+
 function Base.close(a::Archive)
-    aeron_archive_close(a.archive)
+    if aeron_archive_close(a.archive) < 0
+        Aeron.throwerror()
+    end
 end
 
 """

@@ -30,6 +30,9 @@ struct Counter
     end
 end
 
+Base.cconvert(::Type{Ptr{aeron_counter_t}}, c::Counter) = c
+Base.unsafe_convert(::Type{Ptr{aeron_counter_t}}, c::Counter) = c.counter
+
 """
     struct AsyncAddCounter
 

@@ -72,13 +72,19 @@ Get the pointer to the underlying `aeron_context_t` struct.
 """
 pointer(c::Context) = c.context
 
+Base.cconvert(::Type{Ptr{aeron_archive_context_t}}, c::Context) = c
+Base.unsafe_convert(::Type{Ptr{aeron_archive_context_t}}, c::Context) = c.context
+
 """
     close(c::Context)
 
 Close the context and release any resources associated with it.
 """
 function Base.close(c::Context)
-    aeron_archive_context_close(c.context)
+    if aeron_archive_context_close(c.context) < 0
+        Aeron.throwerror()
+    end
+    c.context = C_NULL
 end
 
 function client!(c::Context, client::Aeron.Client)
@@ -100,9 +106,12 @@ Get the directory used for the media driver for `Context`.
 - `c`: The `Context` object.
 
 # Returns
-- The directory name of the `Context`.
+- The directory name of the `Context`, or `nothing` if unavailable.
 """
-aeron_dir(c::Context) = unsafe_string(aeron_archive_context_get_aeron_directory_name(c.context))
+function aeron_dir(c::Context)
+    ptr = aeron_archive_context_get_aeron_directory_name(c.context)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
+end
 
 """
     aeron_dir!(c, dir)
@@ -130,7 +139,7 @@ end
 
 function control_request_channel(c::Context)
     ptr = aeron_archive_context_get_control_request_channel(c.context)
-    return ptr == C_NULL ? "" : unsafe_string(ptr)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
 end
 
 function control_request_stream_id!(c::Context, stream_id)
@@ -147,7 +156,7 @@ end
 
 function control_response_channel(c::Context)
     ptr = aeron_archive_context_get_control_response_channel(c.context)
-    return ptr == C_NULL ? "" : unsafe_string(ptr)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
 end
 
 function control_response_stream_id!(c::Context, stream_id)
@@ -164,7 +173,7 @@ end
 
 function recording_events_channel(c::Context)
     ptr = aeron_archive_context_get_recording_events_channel(c.context)
-    return ptr == C_NULL ? "" : unsafe_string(ptr)
+    return ptr == C_NULL ? nothing : unsafe_string(ptr)
 end
 
 function recording_events_stream_id!(c::Context, stream_id)
