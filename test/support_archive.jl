@@ -79,12 +79,12 @@ function with_archiving_media_driver(f::Function)
 
     proc = run(pipeline(cmd; stdout=log_io, stderr=log_io); wait=false)
     try
-        wait_for(() -> begin
+        wait_for(; timeout=20.0, sleep_s=0.05) do
             if !Base.process_running(proc)
                 error("ArchivingMediaDriver exited early. See log at $(log_path).")
             end
             isfile(joinpath(aeron_dir, "cnc.dat"))
-        end; timeout=20.0, sleep_s=0.05)
+        end
         f((
             aeron_dir=aeron_dir,
             archive_dir=archive_dir,

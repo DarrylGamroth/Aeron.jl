@@ -84,7 +84,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 sub = nothing
                 pub = nothing
                 counter = nothing
-                wait_for(() -> begin
+                wait_for() do
                     if sub === nothing
                         sub = Aeron.poll(async_sub)
                     end
@@ -95,7 +95,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                         counter = Aeron.poll(async_counter)
                     end
                     sub !== nothing && pub !== nothing && counter !== nothing
-                end)
+                end
 
                 @test sub !== nothing
                 @test pub !== nothing
@@ -121,15 +121,15 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
                     header_values = Ref{Any}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, header) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, header
                         received[] = Vector{UInt8}(buffer)
                         header_values[] = Aeron.values(header)
-                    end)
+                    end
 
                     offer_until_success(pub, payload)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
 
                     @test received[] == payload
                     vals = header_values[]
@@ -156,14 +156,14 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     expected = vcat(buf1, buf2)
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, _
                         received[] = Vector{UInt8}(buffer)
-                    end)
+                    end
 
                     offer_vec_until_success(pub, [buf1, buf2])
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
                     @test received[] == expected
                 finally
                     close(pub)
@@ -339,12 +339,13 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 stream_id = next_stream_id()
                 seen_session = Ref(Int32(0))
                 available = Ref(false)
+                function on_available_image(image)
+                    seen_session[] = Aeron.session_id(image)
+                    available[] = true
+                    nothing
+                end
                 sub = Aeron.add_subscription(client, channel, stream_id;
-                    on_available_image = image -> begin
-                        seen_session[] = Aeron.session_id(image)
-                        available[] = true
-                        nothing
-                    end)
+                    on_available_image = on_available_image)
                 pub = Aeron.add_publication(client, channel, stream_id)
                 try
                     await_connected(pub, sub)
@@ -367,11 +368,12 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 channel = ipc_channel()
                 stream_id = next_stream_id()
                 available = Ref(false)
+                function on_available_image(_)
+                    available[] = true
+                    nothing
+                end
                 sub = Aeron.add_subscription(client, channel, stream_id;
-                    on_available_image = _ -> begin
-                        available[] = true
-                        nothing
-                    end)
+                    on_available_image = on_available_image)
                 pub = Aeron.add_publication(client, channel, stream_id)
                 try
                     await_connected(pub, sub)
@@ -405,16 +407,16 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
 
                     received = Ref{Bool}(false)
                     seen_reserved = Ref{Int64}(0)
-                    handler = Aeron.FragmentHandler((_, buffer, header) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, header
                         received[] = true
                         vals = Aeron.values(header)
                         seen_reserved[] = vals.frame.reserved_value
-                    end)
+                    end
 
                     offer_with_supplier_until_success(pub, payload, supplier)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[]
-                    end)
+                    end
 
                     @test seen_reserved[] == reserved_value
                 finally
@@ -437,40 +439,40 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     payload = Vector{UInt8}(codeunits("claim payload"))
 
                     claim = nothing
-                    wait_for(() -> begin
+                    wait_for() do
                         claim, position = Aeron.try_claim(pub, length(payload))
                         position > 0
-                    end)
+                    end
 
                     claim_buffer = Aeron.buffer(claim)
                     claim_buffer[1:length(payload)] .= payload
                     Aeron.commit(claim)
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, _
                         received[] = Vector{UInt8}(buffer)
-                    end)
+                    end
 
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
                     @test received[] == payload
 
                     abort_payload = Vector{UInt8}(codeunits("abort payload"))
-                    wait_for(() -> begin
+                    wait_for() do
                         claim, position = Aeron.try_claim(pub, length(abort_payload))
                         position > 0
-                    end)
+                    end
                     Aeron.abort(claim)
 
                     received_abort = Ref{Bool}(false)
-                    abort_handler = Aeron.FragmentHandler((_, _, _) -> begin
+                    abort_handler = Aeron.FragmentHandler() do _, _, _
                         received_abort[] = true
-                    end)
+                    end
 
-                    received_in_time = poll_for(() -> begin
+                    received_in_time = poll_for(; timeout=0.5) do
                         Aeron.poll(sub, abort_handler, 10) > 0 && received_abort[]
-                    end; timeout=0.5)
+                    end
 
                     @test !received_in_time
                 finally
@@ -493,14 +495,14 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     payload = Vector{UInt8}(codeunits("exclusive hello"))
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, _
                         received[] = Vector{UInt8}(buffer)
-                    end)
+                    end
 
                     offer_until_success(pub, payload)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
 
                     @test received[] == payload
                     @test Aeron.channel(pub) == channel
@@ -528,35 +530,35 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
 
                     received = Ref{Bool}(false)
                     seen_reserved = Ref{Int64}(0)
-                    handler = Aeron.FragmentHandler((_, _, header) -> begin
+                    handler = Aeron.FragmentHandler() do _, _, header
                         received[] = true
                         vals = Aeron.values(header)
                         seen_reserved[] = vals.frame.reserved_value
-                    end)
+                    end
 
                     offer_with_supplier_until_success(pub, payload, supplier)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[]
-                    end)
+                    end
                     @test seen_reserved[] == reserved_value
 
                     claim_payload = Vector{UInt8}(codeunits("exclusive claim"))
                     claim = nothing
-                    wait_for(() -> begin
+                    wait_for() do
                         claim, position = Aeron.try_claim(pub, length(claim_payload))
                         position > 0
-                    end)
+                    end
                     claim_buffer = Aeron.buffer(claim)
                     claim_buffer[1:length(claim_payload)] .= claim_payload
                     Aeron.commit(claim)
 
                     received_claim = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    claim_handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    claim_handler = Aeron.FragmentHandler() do _, buffer, _
                         received_claim[] = Vector{UInt8}(buffer)
-                    end)
-                    wait_for(() -> begin
+                    end
+                    wait_for() do
                         Aeron.poll(sub, claim_handler, 10) > 0 && received_claim[] !== nothing
-                    end)
+                    end
                     @test received_claim[] == claim_payload
                 finally
                     close(pub)
@@ -572,11 +574,12 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 channel = ipc_channel()
                 stream_id = next_stream_id()
                 image_ref = Ref{Any}(nothing)
+                function on_available_image(image)
+                    image_ref[] = image
+                    nothing
+                end
                 sub = Aeron.add_subscription(client, channel, stream_id;
-                    on_available_image = image -> begin
-                        image_ref[] = image
-                        nothing
-                    end)
+                    on_available_image = on_available_image)
                 pub = Aeron.add_exclusive_publication(client, channel, stream_id)
                 try
                     await_connected(pub, sub)
@@ -608,14 +611,14 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     expected = vcat(buf1, buf2)
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, _
                         received[] = Vector{UInt8}(buffer)
-                    end)
+                    end
 
                     offer_vec_until_success(pub, [buf1, buf2])
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
                     @test received[] == expected
                 finally
                     close(pub)
@@ -637,30 +640,37 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                 unavailable_counter = Ref(0)
                 closed = Ref(0)
 
-                Aeron.on_new_publication!((_, _, _, _, _) -> begin
+                function on_new_publication_handler(_, _, _, _, _)
                     new_pub[] += 1
                     nothing
-                end, context)
-                Aeron.on_new_subscription!((_, _, _, _, _) -> begin
+                end
+                function on_new_subscription_handler(_, _, _, _, _)
                     new_sub[] += 1
                     nothing
-                end, context)
-                Aeron.on_new_exclusive_publication!((_, _, _, _, _) -> begin
+                end
+                function on_new_exclusive_publication_handler(_, _, _, _, _)
                     new_exclusive[] += 1
                     nothing
-                end, context)
-                Aeron.on_available_counter!((_, _, _) -> begin
+                end
+                function on_available_counter_handler(_, _, _)
                     available_counter[] += 1
                     nothing
-                end, context)
-                Aeron.on_unavailable_counter!((_, _, _) -> begin
+                end
+                function on_unavailable_counter_handler(_, _, _)
                     unavailable_counter[] += 1
                     nothing
-                end, context)
-                Aeron.on_close_client!((_) -> begin
+                end
+                function on_close_client_handler(_)
                     closed[] += 1
                     nothing
-                end, context)
+                end
+
+                Aeron.on_new_publication!(on_new_publication_handler, context)
+                Aeron.on_new_subscription!(on_new_subscription_handler, context)
+                Aeron.on_new_exclusive_publication!(on_new_exclusive_publication_handler, context)
+                Aeron.on_available_counter!(on_available_counter_handler, context)
+                Aeron.on_unavailable_counter!(on_unavailable_counter_handler, context)
+                Aeron.on_close_client!(on_close_client_handler, context)
 
                 client = Aeron.Client(context)
                 try
@@ -676,7 +686,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     ex_pub = nothing
                     counter = nothing
 
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.do_work(client)
                         if sub === nothing
                             sub = Aeron.poll(async_sub)
@@ -691,18 +701,18 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             counter = Aeron.poll(async_counter)
                         end
                         sub !== nothing && pub !== nothing && ex_pub !== nothing && counter !== nothing
-                    end)
+                    end
 
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.do_work(client)
                         new_pub[] > 0 && new_sub[] > 0 && new_exclusive[] > 0 && available_counter[] > 0
-                    end)
+                    end
 
                     close(counter)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.do_work(client)
                         unavailable_counter[] > 0
-                    end)
+                    end
                     close(pub)
                     close(ex_pub)
                     close(sub)
@@ -725,7 +735,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
             Aeron.Context() do context
                 Aeron.aeron_dir!(context, Aeron.MediaDriver.aeron_dir(driver))
                 error_seen = Ref(false)
-                error_cb = (_, _, _) -> begin
+                function error_cb(_, _, _)
                     error_seen[] = true
                     nothing
                 end
@@ -765,15 +775,15 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     end
 
                     received = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                    handler = Aeron.FragmentHandler() do _, buffer, _
                         received[] = Vector{UInt8}(buffer)
-                    end)
+                    end
                     assembler = Aeron.FragmentAssembler(handler)
 
                     offer_until_success(pub, payload)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, assembler, 10) > 0 && received[] !== nothing
-                    end)
+                    end
 
                     @test received[] == payload
                 finally
@@ -809,33 +819,33 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     end
 
                     count = Ref(0)
-                    handler = Aeron.ControlledFragmentHandler((_, _, _) -> begin
+                    handler = Aeron.ControlledFragmentHandler() do _, _, _
                         count[] += 1
                         if count[] == 1
                             return Aeron.ControlledAction.BREAK
                         end
                         return Aeron.ControlledAction.CONTINUE
-                    end)
+                    end
 
                     offer_until_success(pub, payload)
                     Aeron.poll(sub, handler, 10)
                     @test count[] == 1
 
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, handler, 10) > 0 && count[] > 1
-                    end)
+                    end
 
                     assembled = Ref{Union{Nothing, Vector{UInt8}}}(nothing)
-                    inner_handler = Aeron.ControlledFragmentHandler((_, buffer, _) -> begin
+                    inner_handler = Aeron.ControlledFragmentHandler() do _, buffer, _
                         assembled[] = Vector{UInt8}(buffer)
                         return Aeron.ControlledAction.COMMIT
-                    end)
+                    end
                     assembler = Aeron.ControlledFragmentAssembler(inner_handler)
 
                     offer_until_success(pub, payload)
-                    wait_for(() -> begin
+                    wait_for() do
                         Aeron.poll(sub, assembler, 10) > 0 && assembled[] !== nothing
-                    end)
+                    end
                     @test assembled[] == payload
                 finally
                     close(pub)
@@ -858,12 +868,12 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     offer_until_success(pub, payload)
 
                     seen = Ref(false)
-                    handler = Aeron.BlockHandler((_, buffer, session_id, term_id) -> begin
+                    handler = Aeron.BlockHandler() do _, buffer, session_id, term_id
                         seen[] = length(buffer) > 0
-                    end)
-                    wait_for(() -> begin
+                    end
+                    wait_for() do
                         Aeron.poll(sub, handler, 1024) > 0 && seen[]
-                    end)
+                    end
                     @test seen[]
                 finally
                     close(pub)
@@ -886,10 +896,10 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     reg_id = Aeron.registration_id(counter)
 
                     found_id = Ref{Union{Nothing, Int32}}(nothing)
-                    wait_for(() -> begin
+                    wait_for() do
                         found_id[] = Aeron.find_counter_by_type_id_and_registration_id(reader, type_id, reg_id)
                         found_id[] !== nothing
-                    end)
+                    end
 
                     @test Aeron.counter_value(reader, counter_id) == 0
                     @test Aeron.counter_registration_id(reader, counter_id) == reg_id
@@ -986,32 +996,28 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
             @test ctx.credentials_supplier === supplier
 
             error_seen = Ref(false)
-            AeronArchive.error_handler!((_, _, _) -> begin
+            function archive_error_handler(_, _, _)
                 error_seen[] = true
                 nothing
-            end, ctx)
+            end
+            AeronArchive.error_handler!(archive_error_handler, ctx)
             msg = "oops"
             GC.@preserve msg begin
-                AeronArchive.error_handler_wrapper(((_, _, _) -> begin
-                    error_seen[] = true
-                    nothing
-                end, nothing), 1, Base.unsafe_convert(Cstring, msg))
+                AeronArchive.error_handler_wrapper((archive_error_handler, nothing), 1, Base.unsafe_convert(Cstring, msg))
             end
             @test error_seen[]
 
             signal_seen = Ref(false)
-            AeronArchive.recording_signal_consumer!((descriptor, _) -> begin
+            function recording_signal_consumer(descriptor, _)
                 signal_seen[] = descriptor.recording_id == 7
                 nothing
-            end, ctx)
+            end
+            AeronArchive.recording_signal_consumer!(recording_signal_consumer, ctx)
             signal = AeronArchive.aeron_archive_recording_signal_t(1, 7, 2, 3, 4)
             signal_ref = Ref(signal)
             GC.@preserve signal_ref begin
                 AeronArchive.recording_signal_consumer_wrapper(Base.unsafe_convert(Ptr{AeronArchive.aeron_archive_recording_signal_t}, signal_ref),
-                    ((descriptor, _) -> begin
-                        signal_seen[] = descriptor.recording_id == 7
-                        nothing
-                    end, nothing))
+                    (recording_signal_consumer, nothing))
             end
             @test signal_seen[]
 
@@ -1106,7 +1112,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             close(pub)
                             close(conn_sub)
                             recording_id = Ref(Int64(-1))
-                            wait_for(() -> begin
+                            wait_for(; timeout=30.0, sleep_s=0.05) do
                                 count = AeronArchive.list_recordings((desc, _) -> begin
                                     if desc.stream_id == stream_id && occursin(channel, desc.original_channel)
                                         recording_id[] = desc.recording_id
@@ -1114,7 +1120,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                                     nothing
                                 end, archive, 0, 100)
                                 count > 0 && recording_id[] >= 0
-                            end; timeout=30.0, sleep_s=0.05)
+                            end
                             counters = AeronArchive.CountersReader(archive)
                             counter_id = AeronArchive.find_counter_by_recording_id(counters, recording_id[])
                             if counter_id !== nothing
@@ -1189,14 +1195,14 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             replay_session_id = AeronArchive.start_replay(archive, recording_id[], replay_channel, replay_stream_id)
 
                             received = Ref{Vector{String}}(String[])
-                            handler = Aeron.FragmentHandler((_, buffer, _) -> begin
+                            handler = Aeron.FragmentHandler() do _, buffer, _
                                 push!(received[], String(buffer))
-                            end)
+                            end
 
-                            wait_for(() -> begin
+                            wait_for(; timeout=10.0, sleep_s=0.05) do
                                 Aeron.poll(replay_sub, handler, 10)
                                 length(received[]) >= 2
-                            end; timeout=10.0, sleep_s=0.05)
+                            end
 
                             @test "archive-1" in received[]
                             @test "archive-2" in received[]
@@ -1210,13 +1216,13 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             replay_sub2 = AeronArchive.replay(archive, recording_id[], replay_channel2, replay_stream_id2;
                                 position=start_pos, length=stop_pos - start_pos)
                             received2 = Ref{Vector{String}}(String[])
-                            handler2 = Aeron.FragmentHandler((_, buffer, _) -> begin
+                            handler2 = Aeron.FragmentHandler() do _, buffer, _
                                 push!(received2[], String(buffer))
-                            end)
-                            wait_for(() -> begin
+                            end
+                            wait_for(; timeout=10.0, sleep_s=0.05) do
                                 Aeron.poll(replay_sub2, handler2, 10)
                                 length(received2[]) >= 2
-                            end; timeout=10.0, sleep_s=0.05)
+                            end
                             @test "archive-1" in received2[]
                             @test "archive-2" in received2[]
                             AeronArchive.stop_all_replays(archive, recording_id[])
@@ -1228,13 +1234,13 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                             replay_id = AeronArchive.start_replay(archive, recording_id[], replay_channel3, replay_stream_id3;
                                 position=start_pos, length=stop_pos - start_pos)
                             received3 = Ref{Vector{String}}(String[])
-                            handler3 = Aeron.FragmentHandler((_, buffer, _) -> begin
+                            handler3 = Aeron.FragmentHandler() do _, buffer, _
                                 push!(received3[], String(buffer))
-                            end)
-                            wait_for(() -> begin
+                            end
+                            wait_for(; timeout=10.0, sleep_s=0.05) do
                                 Aeron.poll(replay_sub3, handler3, 10)
                                 length(received3[]) >= 2
-                            end; timeout=10.0, sleep_s=0.05)
+                            end
                             AeronArchive.stop_replay(archive, replay_id)
                             close(replay_sub3)
 

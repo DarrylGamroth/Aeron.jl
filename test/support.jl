@@ -61,27 +61,27 @@ end
 
 function offer_until_success(pub, payload)
     result = Aeron.PUBLICATION_BACK_PRESSURED
-    wait_for(() -> begin
+    wait_for() do
         result = Aeron.offer(pub, payload)
         result > 0
-    end)
+    end
     return result
 end
 
 function offer_with_supplier_until_success(pub, payload, supplier)
     result = Aeron.PUBLICATION_BACK_PRESSURED
-    wait_for(() -> begin
+    wait_for() do
         result = Aeron.offer(pub, payload, supplier)
         result > 0
-    end)
+    end
     return result
 end
 
 function offer_vec_until_success(pub, buffers)
     result = Aeron.PUBLICATION_BACK_PRESSURED
-    wait_for(() -> begin
+    wait_for() do
         result = Aeron.offer(pub, buffers)
         result > 0
-    end)
+    end
     return result
 end
