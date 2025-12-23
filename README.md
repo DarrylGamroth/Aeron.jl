@@ -1,5 +1,8 @@
 # Aeron.jl
 
+[![CI](https://github.com/DarrylGamroth/Aeron.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/DarrylGamroth/Aeron.jl/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/DarrylGamroth/Aeron.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/DarrylGamroth/Aeron.jl)
+
 Julia wrappers around the [Aeron Client](https://github.com/aeron-io/aeron) C library for reliable UDP unicast, multicast, and shared-memory messaging.
 
 ## Features
