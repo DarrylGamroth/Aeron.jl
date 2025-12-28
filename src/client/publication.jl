@@ -308,19 +308,18 @@ Try to claim a range of the publication.
 # Arguments
 - `p::Publication`: The publication.
 - `length`: The length of the range to claim.
+- `claim::BufferClaim`: Reusable claim storage.
 
 # Returns
-- `BufferClaim`: The buffer claim.
 - `Int`: The new stream position otherwise a negative error value.
 """
-@inline function try_claim(p::Publication, length)
-    buffer_claim = Ref{aeron_buffer_claim_t}()
-    position = aeron_publication_try_claim(p.publication, length, buffer_claim)
+@inline function try_claim(p::Publication, length, claim::BufferClaim)
+    position = aeron_publication_try_claim(p.publication, length, claim.claim_ref)
     if position == AERON_PUBLICATION_ERROR
         throwerror()
     end
 
-    return BufferClaim(buffer_claim[]), Int(position)
+    return Int(position)
 end
 
 """

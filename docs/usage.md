@@ -178,7 +178,8 @@ Aeron.offer(pub, payload, supplier)
 ## Zero-copy publishing with BufferClaim
 
 ```julia
-claim, position = Aeron.try_claim(pub, 128)
+claim = Aeron.BufferClaim()
+position = Aeron.try_claim(pub, 128, claim)
 if position > 0
     buf = Aeron.buffer(claim)
     buf[1:5] .= Vector{UInt8}(codeunits("hello"))

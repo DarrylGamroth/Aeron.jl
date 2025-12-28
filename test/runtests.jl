@@ -490,9 +490,9 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     await_connected(pub, sub)
                     payload = Vector{UInt8}(codeunits("claim payload"))
 
-                    claim = nothing
+                    claim = Aeron.BufferClaim()
                     wait_for() do
-                        claim, position = Aeron.try_claim(pub, length(payload))
+                        position = Aeron.try_claim(pub, length(payload), claim)
                         position > 0
                     end
 
@@ -512,7 +512,7 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
 
                     abort_payload = Vector{UInt8}(codeunits("abort payload"))
                     wait_for() do
-                        claim, position = Aeron.try_claim(pub, length(abort_payload))
+                        position = Aeron.try_claim(pub, length(abort_payload), claim)
                         position > 0
                     end
                     Aeron.abort(claim)
@@ -527,6 +527,106 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     end
 
                     @test !received_in_time
+                finally
+                    close(pub)
+                    close(sub)
+                end
+            end
+        end
+    end
+
+    maybe_testset("BufferClaim allocations") do
+        with_embedded_driver() do driver
+            with_client(; driver=driver) do client
+                channel = ipc_channel()
+                stream_id = next_stream_id()
+                sub = Aeron.add_subscription(client, channel, stream_id)
+                pub = Aeron.add_publication(client, channel, stream_id)
+                try
+                    await_connected(pub, sub)
+                    payload = Vector{UInt8}(codeunits("alloc claim"))
+                    claim = Aeron.BufferClaim()
+
+                    for _ in 1:100
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0 && Aeron.abort(claim)
+                    end
+
+                    alloc_try_claim = @allocated Aeron.try_claim(pub, length(payload), claim)
+                    @test alloc_try_claim == 0
+
+                    wait_for() do
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0
+                    end
+                    claim_buffer = Aeron.buffer(claim)
+                    claim_buffer[1:length(payload)] .= payload
+                    alloc_commit = @allocated Aeron.commit(claim)
+                    @test alloc_commit == 0
+
+                    drain_handler = Aeron.FragmentHandler() do _, _, _
+                        nothing
+                    end
+                    poll_for(; timeout=0.5) do
+                        Aeron.poll(sub, drain_handler, 10) > 0
+                    end
+
+                    wait_for() do
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0
+                    end
+                    alloc_abort = @allocated Aeron.abort(claim)
+                    @test alloc_abort == 0
+                finally
+                    close(pub)
+                    close(sub)
+                end
+            end
+        end
+    end
+
+    maybe_testset("ExclusivePublication BufferClaim allocations") do
+        with_embedded_driver() do driver
+            with_client(; driver=driver) do client
+                channel = ipc_channel()
+                stream_id = next_stream_id()
+                sub = Aeron.add_subscription(client, channel, stream_id)
+                pub = Aeron.add_exclusive_publication(client, channel, stream_id)
+                try
+                    await_connected(pub, sub)
+                    payload = Vector{UInt8}(codeunits("alloc claim"))
+                    claim = Aeron.BufferClaim()
+
+                    for _ in 1:100
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0 && Aeron.abort(claim)
+                    end
+
+                    alloc_try_claim = @allocated Aeron.try_claim(pub, length(payload), claim)
+                    @test alloc_try_claim == 0
+
+                    wait_for() do
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0
+                    end
+                    claim_buffer = Aeron.buffer(claim)
+                    claim_buffer[1:length(payload)] .= payload
+                    alloc_commit = @allocated Aeron.commit(claim)
+                    @test alloc_commit == 0
+
+                    drain_handler = Aeron.FragmentHandler() do _, _, _
+                        nothing
+                    end
+                    poll_for(; timeout=0.5) do
+                        Aeron.poll(sub, drain_handler, 10) > 0
+                    end
+
+                    wait_for() do
+                        position = Aeron.try_claim(pub, length(payload), claim)
+                        position > 0
+                    end
+                    alloc_abort = @allocated Aeron.abort(claim)
+                    @test alloc_abort == 0
                 finally
                     close(pub)
                     close(sub)
@@ -595,9 +695,9 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     @test seen_reserved[] == reserved_value
 
                     claim_payload = Vector{UInt8}(codeunits("exclusive claim"))
-                    claim = nothing
+                    claim = Aeron.BufferClaim()
                     wait_for() do
-                        claim, position = Aeron.try_claim(pub, length(claim_payload))
+                        position = Aeron.try_claim(pub, length(claim_payload), claim)
                         position > 0
                     end
                     claim_buffer = Aeron.buffer(claim)
