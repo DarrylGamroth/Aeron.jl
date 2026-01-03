@@ -262,6 +262,7 @@ end
 
 struct AsyncDestination
     async::Ptr{aeron_async_destination_t}
+    uri::Union{Nothing,String}
 end
 
 include("exceptions.jl")

@@ -75,6 +75,7 @@ end
 struct AsyncAddSubscription
     async::Ptr{aeron_async_add_subscription_t}
     client::Client
+    uri::String
     on_available_image::Any
     on_unavailable_image::Any
 end
@@ -113,7 +114,7 @@ function async_add_subscription(c::Client, uri::AbstractString, stream_id;
             throwerror()
         end
     end
-    return AsyncAddSubscription(async[], c, available_cb, unavailable_cb)
+    return AsyncAddSubscription(async[], c, String(uri), available_cb, unavailable_cb)
 end
 
 """
@@ -141,7 +142,7 @@ function async_add_subscription_view(c::Client, uri::AbstractString, stream_id;
             throwerror()
         end
     end
-    return AsyncAddSubscription(async[], c, available_cb, unavailable_cb)
+    return AsyncAddSubscription(async[], c, String(uri), available_cb, unavailable_cb)
 end
 
 """
@@ -240,7 +241,7 @@ function async_add_destination(s::Subscription, uri::AbstractString)
     if aeron_subscription_async_add_destination(async, pointer(s.client), s.subscription, uri) < 0
         throwerror()
     end
-    return AsyncDestination(async[])
+    return AsyncDestination(async[], String(uri))
 end
 
 """
@@ -277,7 +278,7 @@ function async_remove_destination(s::Subscription, uri::AbstractString)
     if aeron_subscription_async_remove_destination(async, pointer(s.client), s.subscription, uri) < 0
         throwerror()
     end
-    return AsyncDestination(async[])
+    return AsyncDestination(async[], String(uri))
 end
 
 """

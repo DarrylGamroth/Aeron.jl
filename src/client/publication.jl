@@ -26,6 +26,7 @@ Base.unsafe_convert(::Type{Ptr{aeron_publication_t}}, p::Publication) = p.public
 struct AsyncAddPublication
     async::Ptr{aeron_async_add_publication_t}
     client::Client
+    uri::String
 end
 
 """
@@ -44,7 +45,7 @@ function async_add_publication(c::Client, uri::AbstractString, stream_id)
     if aeron_async_add_publication(async, c.client, uri, stream_id) < 0
         throwerror()
     end
-    return AsyncAddPublication(async[], c)
+    return AsyncAddPublication(async[], c, String(uri))
 end
 
 """
@@ -102,7 +103,7 @@ function async_add_destination(p::Publication, uri::AbstractString)
     if aeron_publication_async_add_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
-    return AsyncDestination(async[])
+    return AsyncDestination(async[], String(uri))
 end
 
 """
@@ -132,7 +133,7 @@ function async_remove_destination(p::Publication, uri::AbstractString)
     if aeron_publication_async_remove_destination(async, pointer(p.client), p.publication, uri) < 0
         throwerror()
     end
-    return AsyncDestination(async[])
+    return AsyncDestination(async[], String(uri))
 end
 
 """
@@ -162,7 +163,7 @@ function async_remove_destination_by_id(p::Publication, destination_id)
     if aeron_publication_async_remove_destination_by_id(async, pointer(p.client), p.publication, destination_id) < 0
         throwerror()
     end
-    return AsyncDestination(async[])
+    return AsyncDestination(async[], nothing)
 end
 
 """

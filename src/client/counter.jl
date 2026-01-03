@@ -7,7 +7,10 @@ Represents an Aeron counter, which is used for tracking various metrics.
 
 - `counter::Ptr{aeron_counter_t}`: Pointer to the underlying Aeron counter structure.
 - `constants::aeron_counter_constants_t`: Constants associated with the counter.
+- `client::Client`: The Aeron client associated with the counter.
 - `is_owned::Bool`: Indicates whether the counter is owned by this instance.
+- `key_buffer::Union{Nothing,AbstractVector{UInt8}}`: Optional key buffer retained to keep it alive.
+- `label::Union{Nothing,String}`: Optional label retained to keep it alive.
 
 # Constructor
 
@@ -20,13 +23,22 @@ struct Counter
     constants::aeron_counter_constants_t
     client::Client
     is_owned::Bool
+    key_buffer::Union{Nothing,AbstractVector{UInt8}}
+    label::Union{Nothing,String}
 
-    function Counter(counter::Ptr{aeron_counter_t}, client::Client, is_owned::Bool=false)
+    function Counter(
+        counter::Ptr{aeron_counter_t},
+        client::Client,
+        is_owned::Bool=false;
+        key_buffer::Union{Nothing,AbstractVector{UInt8}}=nothing,
+        label::Union{Nothing,AbstractString}=nothing,
+    )
         constants = Ref{aeron_counter_constants_t}()
         if aeron_counter_constants(counter, constants) < 0
             throwerror()
         end
-        return new(counter, constants[], client, is_owned)
+        label_str = isnothing(label) ? nothing : String(label)
+        return new(counter, constants[], client, is_owned, key_buffer, label_str)
     end
 end
 
@@ -41,10 +53,15 @@ Represents an asynchronous add counter operation.
 # Fields
 
 - `async::Ptr{aeron_async_add_counter_t}`: Pointer to the underlying Aeron asynchronous add counter structure.
+- `client::Client`: The Aeron client associated with the operation.
+- `key_buffer::Union{Nothing,AbstractVector{UInt8}}`: Key buffer retained to keep it alive.
+- `label::String`: Label retained to keep it alive.
 """
 struct AsyncAddCounter
     async::Ptr{aeron_async_add_counter_t}
     client::Client
+    key_buffer::Union{Nothing,AbstractVector{UInt8}}
+    label::String
 end
 
 """
@@ -77,7 +94,7 @@ function async_add_counter(c::Client, type_id::Int32, key_buffer::Union{Nothing,
             throwerror()
         end
     end
-    return AsyncAddCounter(async[], c)
+    return AsyncAddCounter(async[], c, key_buffer, String(label))
 end
 
 """
@@ -101,7 +118,7 @@ function poll(a::AsyncAddCounter)
     if counter[] == C_NULL
         return nothing
     end
-    return Counter(counter[], a.client, true)
+    return Counter(counter[], a.client, true; key_buffer=a.key_buffer, label=a.label)
 end
 
 """
