@@ -19,14 +19,16 @@ Aeron.MediaDriver.launch_embedded() do driver
         Aeron.aeron_dir!(ctx, Aeron.MediaDriver.aeron_dir(driver))
 
         Aeron.Client(ctx) do client
-            channel = "aeron:ipc"
+            channel = "aeron:udp?endpoint=localhost:20121"
             stream_id = 1001
 
             sub = Aeron.add_subscription(client, channel, stream_id)
             pub = Aeron.add_publication(client, channel, stream_id)
 
             try
-                Aeron.is_connected(pub) || yield()
+                while !Aeron.is_connected(pub)
+                    yield()
+                end
 
                 handler = Aeron.FragmentHandler() do _, buffer, _
                     println("recv: ", String(buffer))
@@ -81,6 +83,34 @@ try
 finally
     close(pub)
     close(sub)
+end
+```
+
+## Invoker mode (client conductor)
+
+If you want to drive the client conductor from your own agent loop instead of
+letting Aeron spawn a thread, enable invoker mode and call `do_work` yourself.
+See `samples/invoker_publisher.jl` for a complete example.
+
+```julia
+using Aeron
+
+Aeron.Context() do ctx
+    Aeron.use_conductor_agent_invoker!(ctx, true)
+
+    Aeron.Client(ctx) do client
+        channel = "aeron:udp?endpoint=localhost:20121"
+        stream_id = 1001
+
+        pub = Aeron.add_publication(client, channel, stream_id)
+        while true
+            work = Aeron.do_work(client)
+            work == 0 && yield()
+
+            result = Aeron.offer(pub, Vector{UInt8}(codeunits("hello")))
+            result > 0 && break
+        end
+    end
 end
 ```
 

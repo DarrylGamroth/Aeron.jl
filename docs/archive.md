@@ -58,6 +58,37 @@ Aeron.Context() do ctx
 end
 ```
 
+## Invoker mode (client conductor)
+
+Invoker mode for archive usage is driven by the underlying Aeron client. If you
+enable invoker mode, you must call `Aeron.do_work(client)` in your own loop to
+drive the conductor, even while using the archive client.
+
+```julia
+using Aeron
+const AeronArchive = Aeron.AeronArchive
+
+Aeron.Context() do ctx
+    Aeron.use_conductor_agent_invoker!(ctx, true)
+    Aeron.aeron_dir!(ctx, "/tmp/aeron")
+
+    Aeron.Client(ctx) do client
+        AeronArchive.Context() do archive_ctx
+            AeronArchive.aeron_dir!(archive_ctx, "/tmp/aeron")
+            AeronArchive.client!(archive_ctx, client)
+
+            AeronArchive.connect(archive_ctx) do archive
+                while true
+                    Aeron.do_work(client)
+                    # archive requests or polling go here
+                    break
+                end
+            end
+        end
+    end
+end
+```
+
 ## Recording and replay
 
 ### Start and stop recording a publication

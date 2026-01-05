@@ -1,9 +1,11 @@
 """
     struct BufferClaim
 
-Represents a buffer claim in an Aeron publication.
+Represents reusable claim storage for Aeron zero-copy publishing.
 
-After writing to the claimed buffer, call [`commit`](@ref) to publish the message or [`abort`](@ref) to cancel the claim.
+Create a `BufferClaim` once and pass it to `try_claim`. After writing to the
+claimed buffer, call [`commit`](@ref) to publish the message or
+[`abort`](@ref) to cancel the claim.
 
 """
 struct BufferClaim

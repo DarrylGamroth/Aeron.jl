@@ -122,7 +122,9 @@ next_correlation_id(c::Client) = aeron_next_correlation_id(c.client)
 """
     do_work(c::Client) -> Int32
 
-Perform work for the given `Client`.
+Perform one client conductor work cycle for the given `Client`.
+
+Use this when `use_conductor_agent_invoker!(ctx, true)` is enabled.
 # Arguments
 - `c::Client`: The client instance.
 

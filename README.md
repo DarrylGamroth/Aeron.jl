@@ -49,6 +49,7 @@ The media driver can be configured passing environment variable strings to [laun
 For more information on configuring the media driver, see the [Aeron wiki](https://github.com/aeron-io/aeron/wiki/Configuration-Options).
 
 For usage examples, please refer to the [samples directory](samples) in the repository.
+The invoker-mode example is in `samples/invoker_publisher.jl`.
 
 ## Contributing
 
