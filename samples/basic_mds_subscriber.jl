@@ -17,7 +17,7 @@ Base.exit_on_sigint(false)
 
 function poll_handler(subscription, buffer, header)
     stream_id = Aeron.stream_id(subscription)
-    session_id = Aeron.session_id(header)
+    session_id = Aeron.values(header).frame.session_id
     len = length(buffer)
     println("Message to stream $stream_id from session $session_id ($len bytes) <<$(String(buffer))>>")
 end
