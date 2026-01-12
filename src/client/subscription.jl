@@ -408,9 +408,9 @@ Get the channel status of the subscription.
 - `s::Subscription`: The subscription.
 
 # Returns
-- `Symbol`: One of `:active`, `:initializing`, `:closing`, `:no_id_allocated`, or `:unknown`.
+- `ChannelEndpointStatus`: The channel endpoint status enum value.
 """
-channel_status(s::Subscription) = _channel_status_symbol(channel_status_raw(s))
+channel_status(s::Subscription) = _channel_status_enum(channel_status_raw(s))
 
 """
 Get the raw channel status of the subscription.

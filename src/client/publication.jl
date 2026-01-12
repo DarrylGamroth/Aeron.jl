@@ -475,9 +475,9 @@ Get the channel status of the publication.
 - `p::Publication`: The publication.
 
 # Returns
-- `Symbol`: One of `:active`, `:initializing`, `:closing`, `:no_id_allocated`, or `:unknown`.
+- `ChannelEndpointStatus`: The channel endpoint status enum value.
 """
-channel_status(p::Publication) = _channel_status_symbol(channel_status_raw(p))
+channel_status(p::Publication) = _channel_status_enum(channel_status_raw(p))
 
 """
 Get the raw channel status of the publication.

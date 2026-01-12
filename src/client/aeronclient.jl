@@ -41,6 +41,7 @@ export AbstractBlockHandler,
     CHANNEL_ENDPOINT_STATUS_CLOSING,
     CHANNEL_ENDPOINT_STATUS_INITIALIZING,
     CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED,
+    ChannelEndpointStatus,
     Publication,
     ReservedValueSupplier,
     Subscription,
@@ -251,12 +252,25 @@ const CHANNEL_ENDPOINT_STATUS_ACTIVE = AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_ACT
 const CHANNEL_ENDPOINT_STATUS_CLOSING = AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_CLOSING
 const CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED = AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED
 
-function _channel_status_symbol(status::Integer)
-    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_ACTIVE && return :active
-    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_INITIALIZING && return :initializing
-    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_CLOSING && return :closing
-    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED && return :no_id_allocated
-    return :unknown
+"""
+    @enumx ChannelEndpointStatus
+
+Channel endpoint status values reported by Aeron.
+"""
+@enumx ChannelEndpointStatus::Int32 begin
+    INITIALIZING = Int32(AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_INITIALIZING)
+    ACTIVE = Int32(AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_ACTIVE)
+    CLOSING = Int32(AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_CLOSING)
+    NO_ID_ALLOCATED = Int32(AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED)
+    UNKNOWN = Int32(-2)
+end
+
+function _channel_status_enum(status::Integer)
+    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_ACTIVE && return ChannelEndpointStatus.ACTIVE
+    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_INITIALIZING && return ChannelEndpointStatus.INITIALIZING
+    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_CLOSING && return ChannelEndpointStatus.CLOSING
+    status == AERON_COUNTER_CHANNEL_ENDPOINT_STATUS_NO_ID_ALLOCATED && return ChannelEndpointStatus.NO_ID_ALLOCATED
+    return ChannelEndpointStatus.UNKNOWN
 end
 
 """

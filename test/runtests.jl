@@ -242,7 +242,13 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
                     @test Aeron.channel_status_indicator_id(pub) >= -1
                     @test Aeron.publication_limit_counter_id(pub) >= -1
                     @test Aeron.channel_status_indicator_id(sub) >= -1
-                    allowed_statuses = (:active, :initializing, :closing, :no_id_allocated, :unknown)
+                    allowed_statuses = (
+                        Aeron.ChannelEndpointStatus.ACTIVE,
+                        Aeron.ChannelEndpointStatus.INITIALIZING,
+                        Aeron.ChannelEndpointStatus.CLOSING,
+                        Aeron.ChannelEndpointStatus.NO_ID_ALLOCATED,
+                        Aeron.ChannelEndpointStatus.UNKNOWN,
+                    )
                     @test Aeron.channel_status(pub) in allowed_statuses
                     @test Aeron.channel_status(sub) in allowed_statuses
 
