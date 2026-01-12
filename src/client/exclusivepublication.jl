@@ -79,6 +79,8 @@ Add an exclusive publication and wait for it to be available.
 
 # Returns
 - `ExclusivePublication`: The exclusive publication.
+
+In invoker mode, this will call `do_work` to progress the conductor.
 """
 function add_exclusive_publication(c::Client, uri::AbstractString, stream_id)
     async = async_add_exclusive_publication(c, uri, stream_id)
@@ -87,7 +89,7 @@ function add_exclusive_publication(c::Client, uri::AbstractString, stream_id)
         if publication !== nothing
             return publication
         end
-        yield()
+        _invoker_wait(c)
     end
 end
 
@@ -117,7 +119,7 @@ function add_destination(p::ExclusivePublication, uri::AbstractString)
     async = async_add_destination(p, uri)
     while true
         poll(p, async) && return
-        yield()
+        _invoker_wait(p.client)
     end
 end
 
@@ -147,7 +149,7 @@ function remove_destination(p::ExclusivePublication, uri::AbstractString)
     async = async_remove_destination(p, uri)
     while true
         poll(p, async) && return
-        yield()
+        _invoker_wait(p.client)
     end
 end
 
@@ -177,7 +179,7 @@ function remove_destination_by_id(p::ExclusivePublication, destination_id)
     async = async_remove_destination_by_id(p, destination_id)
     while true
         poll(p, async) && return
-        yield()
+        _invoker_wait(p.client)
     end
 end
 
@@ -513,9 +515,20 @@ Get the channel status of the exclusive publication.
 - `p::ExclusivePublication`: The exclusive publication.
 
 # Returns
-- `Symbol`: `:active` if the channel is active, `:errored` otherwise.
+- `Symbol`: One of `:active`, `:initializing`, `:closing`, `:no_id_allocated`, or `:unknown`.
 """
-channel_status(p::ExclusivePublication) = aeron_exclusive_publication_channel_status(p.publication) == 1 ? :active : :errored
+channel_status(p::ExclusivePublication) = _channel_status_symbol(channel_status_raw(p))
+
+"""
+Get the raw channel status of the exclusive publication.
+
+# Arguments
+- `p::ExclusivePublication`: The exclusive publication.
+
+# Returns
+- `Int`: The channel status value from Aeron.
+"""
+channel_status_raw(p::ExclusivePublication) = Int(aeron_exclusive_publication_channel_status(p.publication))
 
 """
 Get the position of the exclusive publication.

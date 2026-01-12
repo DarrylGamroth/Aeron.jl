@@ -133,6 +133,15 @@ Use this when `use_conductor_agent_invoker!(ctx, true)` is enabled.
 """
 do_work(c::Client) = Int(aeron_main_do_work(c.client))
 
+function _invoker_wait(c::Client)
+    if use_conductor_agent_invoker(c.context)
+        work = do_work(c)
+        work == 0 && yield()
+    else
+        yield()
+    end
+end
+
 """
     show(io::IO, mime::MIME"text/plain", c::Client)
 

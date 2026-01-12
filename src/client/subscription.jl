@@ -185,6 +185,8 @@ Add a subscription and wait for it to be available.
 
 # Returns
 - `Subscription`: The subscription object.
+
+In invoker mode, this will call `do_work` to progress the conductor.
 """
 function add_subscription(c::Client, uri::AbstractString, stream_id;
     on_available_image::Union{Nothing,Function}=nothing,
@@ -197,7 +199,7 @@ function add_subscription(c::Client, uri::AbstractString, stream_id;
         if subscription !== nothing
             return subscription
         end
-        yield()
+        _invoker_wait(c)
     end
 end
 
@@ -208,6 +210,8 @@ end
 
 Add a subscription and wait for it to be available, using `ImageView` values in callbacks.
 The view is only valid for the duration of each callback and must not be retained.
+
+In invoker mode, this will call `do_work` to progress the conductor.
 """
 function add_subscription_view(c::Client, uri::AbstractString, stream_id;
     on_available_image::Union{Nothing,Function}=nothing,
@@ -220,7 +224,7 @@ function add_subscription_view(c::Client, uri::AbstractString, stream_id;
         if subscription !== nothing
             return subscription
         end
-        yield()
+        _invoker_wait(c)
     end
 end
 
@@ -257,7 +261,7 @@ function add_destination(s::Subscription, uri::AbstractString)
     async = async_add_destination(s, uri)
     while true
         poll(s, async) && return
-        yield()
+        _invoker_wait(s.client)
     end
 end
 
@@ -294,7 +298,7 @@ function remove_destination(s::Subscription, uri::AbstractString)
     async = async_remove_destination(s, uri)
     while true
         poll(s, async) && return
-        yield()
+        _invoker_wait(s.client)
     end
 end
 
@@ -404,9 +408,20 @@ Get the channel status of the subscription.
 - `s::Subscription`: The subscription.
 
 # Returns
-- `Symbol`: The channel status of the subscription.
+- `Symbol`: One of `:active`, `:initializing`, `:closing`, `:no_id_allocated`, or `:unknown`.
 """
-channel_status(s::Subscription) = aeron_subscription_channel_status(s.subscription) == 1 ? :active : :errored
+channel_status(s::Subscription) = _channel_status_symbol(channel_status_raw(s))
+
+"""
+Get the raw channel status of the subscription.
+
+# Arguments
+- `s::Subscription`: The subscription.
+
+# Returns
+- `Int`: The channel status value from Aeron.
+"""
+channel_status_raw(s::Subscription) = Int(aeron_subscription_channel_status(s.subscription))
 
 """
 Check if the subscription is open.
