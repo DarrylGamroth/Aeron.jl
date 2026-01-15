@@ -208,7 +208,7 @@ Close the publication.
 - `p::Publication`: The publication to close.
 """
 function Base.close(p::Publication)
-    if p.is_owned == true
+    if p.is_owned && isopen(p)
         if aeron_publication_close(p.publication, C_NULL, C_NULL) < 0
             throwerror()
         end

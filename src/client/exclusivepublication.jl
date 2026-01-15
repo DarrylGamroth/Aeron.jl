@@ -208,7 +208,7 @@ Close the exclusive publication.
 - `p::ExclusivePublication`: The exclusive publication to close.
 """
 function Base.close(p::ExclusivePublication)
-    if p.is_owned == true
+    if p.is_owned && isopen(p)
         if aeron_exclusive_publication_close(p.publication, C_NULL, C_NULL) < 0
             throwerror()
         end

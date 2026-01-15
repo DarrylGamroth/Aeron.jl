@@ -158,7 +158,7 @@ Closes the `Counter` `c`, releasing any allocated resources.
 - `c::Counter`: The counter to close.
 """
 function Base.close(c::Counter)
-    if c.is_owned
+    if c.is_owned && isopen(c)
         if aeron_counter_close(c.counter, C_NULL, C_NULL) < 0
             throwerror()
         end

@@ -328,7 +328,7 @@ Close a subscription.
 - `s::Subscription`: The subscription object.
 """
 function Base.close(s::Subscription)
-    if s.is_owned == true
+    if s.is_owned && isopen(s)
         if aeron_subscription_close(s.subscription, C_NULL, C_NULL) < 0
             throwerror()
         end
