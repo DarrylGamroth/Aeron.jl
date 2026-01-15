@@ -72,6 +72,50 @@ maybe_testset(f::Function, name::AbstractString) = maybe_testset(name, f)
         end
     end
 
+    maybe_testset("Close idempotency") do
+        with_embedded_driver() do driver
+            Aeron.Context() do context
+                Aeron.aeron_dir!(context, Aeron.MediaDriver.aeron_dir(driver))
+                client = Aeron.Client(context)
+                @test Aeron.isopen(client)
+                @test begin
+                    close(client)
+                    close(client)
+                    true
+                end
+            end
+
+            with_client(; driver=driver) do client
+                channel = ipc_channel()
+                stream_id = next_stream_id()
+                sub = Aeron.add_subscription(client, channel, stream_id)
+                pub = Aeron.add_publication(client, channel, stream_id)
+                counter = Aeron.add_counter(client, Int32(1001), UInt8[1, 2, 3, 4], "close-test")
+                try
+                    @test begin
+                        close(pub)
+                        close(pub)
+                        true
+                    end
+                    @test begin
+                        close(sub)
+                        close(sub)
+                        true
+                    end
+                    @test begin
+                        close(counter)
+                        close(counter)
+                        true
+                    end
+                finally
+                    close(pub)
+                    close(sub)
+                    close(counter)
+                end
+            end
+        end
+    end
+
     maybe_testset("Async add operations") do
         with_embedded_driver() do driver
             with_client(; driver=driver) do client

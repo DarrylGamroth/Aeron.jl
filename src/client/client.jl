@@ -10,6 +10,7 @@ Represents a client for the Aeron messaging system.
 struct Client
     client::Ptr{aeron_t}
     context::Context
+    closed::Base.RefValue{Bool}
 
     """
     Client(context::Context) -> Client
@@ -26,7 +27,7 @@ struct Client
             throw(ErrorException("aeron_start failed"))
         end
 
-        new(c[], context)
+        new(c[], context, Ref(false))
     end
 end
 
@@ -59,8 +60,11 @@ Close the given `Client`.
 - `c::Client`: The client to be closed.
 """
 function Base.close(c::Client)
-    if aeron_close(c.client) < 0
-        error("aeron_close failed")
+    if !c.closed[]
+        if aeron_close(c.client) < 0
+            error("aeron_close failed")
+        end
+        c.closed[] = true
     end
 end
 
@@ -75,7 +79,7 @@ Check if the given `Client` is open.
 # Returns
 - `Bool`: `true` if the client is open, `false` otherwise.
 """
-Base.isopen(c::Client) = !aeron_is_closed(c.client)
+Base.isopen(c::Client) = !c.closed[] && !aeron_is_closed(c.client)
 
 """
     client_id(c::Client) -> Int64
